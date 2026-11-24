@@ -1,0 +1,3 @@
+# APIs validated with the installed version recorded by `doctor`.
+cryptography>=41,<51
+truststore>=0.10.5,<0.11; sys_platform == "win32"

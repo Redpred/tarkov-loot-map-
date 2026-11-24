@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-26T02:23:56.034Z",
+  "localOnly": true,
+  "clientBuild": "47965",
+  "directory": "site/data/model-quality",
+  "generator": {
+    "file": "scripts/build-texture-quality.mjs",
+    "sha256": "e6ed536522bc2f6ecbd3ca8c8b31df3f8c64c5bfc965f92409f0af21e6504d74"
+  },
+  "snapshot": "work/texture-quality-20261026/snapshot",
+  "totals": {
+    "geometryBytes": 12325827084,
+    "original": {
+      "textureBytes": 582436260,
+      "rgbaMipBytes": 4745449932
+    },
+    "medium": {
+      "textureBytes": 364627138,
+      "rgbaMipBytes": 1192038860
+    },
+    "low": {
+      "textureBytes": 100790390,
+      "rgbaMipBytes": 298885580
+    }
+  },
+  "maps": [
+    {
+      "mapId": "factory",
+      "manifest": "site/data/model-quality/factory/manifest.json",
+      "manifestSha256": "e3557f1b8e2ef9b43fa015aae7141b42047aac9994685fca1ec8bb4e8891473f",
+      "manifestBytes": 583052,
+      "sourceManifestSha256": "3890ec9541fc10607cbd0a9b0197546d0a7e8e4076d471a565f1a62266e7a4ca",
+      "source": {
+        "sceneSha256": "af91ee4ee99a0810a993a5d128bb1af39c780c71029bb3b93e516c74603d24ec",
+        "geometrySha256": "2c18c7604acb0e6c7051f7a24206550e883558f6b09f2517bcf41de7955a6862",
+        "textureMaxSize": 256
+      },
+      "assetCount": 1254,
+      "assetBytes": 21280846
+    },
+    {
+      "mapId": "streets",
+      "manifest": "site/data/model-quality/streets/manifest.json",
+      "manifestSha256": "69ca99ad96a7691fd31406e15a4607980acd624aad4c950c0594c8fc559f4620",
+      "manifestBytes": 2458652,
+      "sourceManifestSha256": "a17f696244722d3ffaae62f2eb55f8b7977029740508ee5c14e4b9b7953df263",
+      "source": {
+        "sceneSha256": "33630b970038a1b0fc48a8e56fad8ab8b36c88d8e4150a25bd8c256fbab3b43f",
+        "geometrySha256": "01802b33bee3d00ecf88693bdf986ad6e2a5895dece4fb5967dcbb4a2f73814e",
+        "textureMaxSize": 256
+      },
+      "assetCount": 5234,
+      "assetBytes": 77125590
+    },
+    {
+      "mapId": "customs",
+      "manifest": "site/data/model-quality/customs/manifest.json",
+      "manifestSha256": "06b8e3e4c07bef2367d1eddbf82cbff1f4283252215139dd4f9796ce288724cb",
+      "manifestBytes": 1027438,
+      "sourceManifestSha256": "9626adc3d30603dcc763dd3b69a1c7d4d13a994d808335574750d2a3b6c364a6",
+      "source": {
+        "sceneSha256": "23316dafc46c4ced8090c3be47411b94df7d38a93ae1d06d9a3293e99a98c0f1",
+        "geometrySha256": "f05362137be635d63dfd6473424a3eee21da9b8a7867301ad433ea50afcd48f1",
+        "textureMaxSize": 256
+      },
+      "assetCount": 2204,
+      "assetBytes": 36869798
+    },
+    {
+      "mapId": "woods",
+      "manifest": "site/data/model-quality/woods/manifest.json",
+      "manifestSha256": "0ecc5d93ba261ebf8c567c13ec51f6c5b27737df8029bd8bf7ecfccf22a6b14f",
+      "manifestBytes": 1073962,
+      "sourceManifestSha256": "c7d67bd3b0e628e3205fd3f7a5f6eeb0b3321296768298dddffd3fd5e3794961",
+      "source": {
+        "sceneSha256": "e082562c6321567660d6ef95ec57221e8860fbf93bde5307d656bcb817fc187f",
+        "geometrySha256": "2ef66b3f34574e7aab9ddee6dcb1db2d52bb37433c9f472fc1eb0470f01b1982",
+        "textureMaxSize": 256
+      },
+      "assetCount": 2306,
+      "assetBytes": 38871808
+    },
+    {
+      "mapId": "shoreline",
+      "manifest": "site/data/model-quality/shoreline/manifest.json",
+      "manifestSha256": "20d01511fd37672744c6d82a5e4a71d8bcc4864a0ac95210a889e1168ae02714",
+      "manifestBytes": 1221410,
+      "sourceManifestSha256": "4fbed3ffde558267bfedc251e7f4773a3f9acf9fa405b2a60a94265a1101e8ee",
+      "source": {
+        "sceneSha256": "ef570d4b1af041ce1877bfe3efb3ca455f27ec3189614977d5b531cdcc618286",
+        "geometrySha256": "e82b99f6b18f76b12ee4222fd5b3a011accc0b7e10b0d700531a200c1d1d7dd1",
+        "textureMaxSize": 256
+      },
+      "assetCount": 2622,
+      "assetBytes": 43775836
+    },
+    {
+      "mapId": "interchange",
+      "manifest": "site/data/model-quality/interchange/manifest.json",
+      "manifestSha256": "65306ba863b5588868123e740e357ddb6a9016244673a79a08cfdaf10829c061",
+      "manifestBytes": 1134495,
+      "sourceManifestSha256": "a95f9bdd7791198d64a3de7cf57e1eb55eb55eb5fc1208a181210513d74af39d",
+      "source": {
+        "sceneSha256": "bf524464898e4d9c7521764bdeaa3fb4c37bc62c09d2005eb52390acdd1292f6",
+        "geometrySha256": "0254761727086277295b681c5eab6ee85b00dab8f960b0f6eee63fe376830b4c",
+        "textureMaxSize": 256
+      },
+      "assetCount": 2434,
+      "assetBytes": 35989694
+    },
+    {
+      "mapId": "reserve",
+      "manifest": "site/data/model-quality/reserve/manifest.json",
+      "manifestSha256": "49c0249accffe8d9a3cfb10839d2a4ac8533cdfc9bbc8d3c84235ae5717de32d",
+      "manifestBytes": 1015589,
+      "sourceManifestSha256": "9d3115998ac11dea99fada44d8e259c18b4081f36b51c30ae0807208087ec57e",
+      "source": {
+        "sceneSha256": "924712524983211d016b9c05e8d5282d02cbe97fdfa28c82af9586e24b77a1d4",
+        "geometrySha256": "859b81f632927f2fa04c38d1050e3477d5d17b2d2779cbb9fa2234b20b817de5",
+        "textureMaxSize": 256
+      },
+      "assetCount": 2172,
+      "assetBytes": 35610108
+    },
+    {
+      "mapId": "labs",
+      "manifest": "site/data/model-quality/labs/manifest.json",
+      "manifestSha256": "921ab00b43a7e14ba3b6ae3fe51d005c861968273fc3c50808aa6f0c5c5d732d",
+      "manifestBytes": 529923,
+      "sourceManifestSha256": "003bde9d273675f4dc76c9e500fdcfe1e46afc36050500f738ec5d504047f2ff",
+      "source": {
+        "sceneSha256": "83426f090c2c15c37f9248b39009a8d24fb6b8bd54925cc630aebcf64cd72a81",
+        "geometrySha256": "c173156f199d06d6c18ee0b621466d9eadc01c2d017eec565933382ab4d6918f",
+        "textureMaxSize": 256
+      },
+      "assetCount": 1130,
+      "assetBytes": 15674356
+    },
+    {
+      "mapId": "ground_zero",
+      "manifest": "site/data/model-quality/ground_zero/manifest.json",
+      "manifestSha256": "ed4c3e805ea2939c76c655a276c83e02acbbd817566ca162a35d74976d67244e",
+      "manifestBytes": 1433245,
+      "sourceManifestSha256": "381d0f9076d35b36c1fc17b20d3a1d8e331b8f3f1d65ad6766fbfe27c14a1ddb",
+      "source": {
+        "sceneSha256": "bfe4ba7e61d7591fc8898fc7af7482b53c5e0762e06a1e90967d542875867792",
+        "geometrySha256": "bfa4f27a1edb6068f690c2bc9b1cb23ab0f237d11d4b66253b10dacfe7dc2bab",
+        "textureMaxSize": 256
+      },
+      "assetCount": 3052,
+      "assetBytes": 44283460
+    },
+    {
+      "mapId": "labyrinth",
+      "manifest": "site/data/model-quality/labyrinth/manifest.json",
+      "manifestSha256": "7953e6ef00c0125b3575dd5eb8300e4b834d8a56f909cc2d3342ae7bbea7b4e2",
+      "manifestBytes": 276283,
+      "sourceManifestSha256": "5bd4084305ffc0985b0f22ad7b106e82c3d4d29a0fad77844c26de0badb36b9b",
+      "source": {
+        "sceneSha256": "5824b02a06fc34f04be8f9f5326bc263e35c6da2d8700398ca0ecea6752ec278",
+        "geometrySha256": "f3c8ffb6bfcbda78ffe5a2d9108679a254b293de33458604c1a1b7fd08a0f032",
+        "textureMaxSize": 256
+      },
+      "assetCount": 590,
+      "assetBytes": 9717976
+    },
+    {
+      "mapId": "terminal",
+      "manifest": "site/data/model-quality/terminal/manifest.json",
+      "manifestSha256": "bef28dd3483a1c13bef69f3a029728818c5fe9a43f39a8afb350d7225a258695",
+      "manifestBytes": 1002290,
+      "sourceManifestSha256": "ebf6adffacbd5230bdc9b44468f29334c07c203568fe724e18d12c1abb84c6df",
+      "source": {
+        "sceneSha256": "80944957283aa315f1c910aeead36f3ff827af36420ac35fc5f89ac7bfee1634",
+        "geometrySha256": "cb55d7f1d2d0b9b45a889234d100e9b78913222cc5017896396a483d8c581cbb",
+        "textureMaxSize": 256
+      },
+      "assetCount": 2160,
+      "assetBytes": 33477066
+    },
+    {
+      "mapId": "icebreaker",
+      "manifest": "site/data/model-quality/icebreaker/manifest.json",
+      "manifestSha256": "245d847db970593fbc1301198c5491758467b07329fb50de65d7a7e0e261baf0",
+      "manifestBytes": 164576,
+      "sourceManifestSha256": "3795bdfb3f4e161de8b28dbbe22b5481c8bf1fc681eab9ee3be5fefd39b9aacc",
+      "source": {
+        "sceneSha256": "6340343c617c9de8152a4f9b7d789f84f64918fd948d38abc48723bb811d1c54",
+        "geometrySha256": "6419c9268c81c329b58307df0a04b8bc8b2fd731fc302d493d8df0330f706608",
+        "textureMaxSize": 256
+      },
+      "assetCount": 352,
+      "assetBytes": 5029914
+    },
+    {
+      "mapId": "lighthouse",
+      "manifest": "site/data/model-quality/lighthouse/manifest.json",
+      "manifestSha256": "c8e560d99085cfeb24d91c1e03a721933f5368ab468dd4294048ae679bc05d59",
+      "manifestBytes": 1909622,
+      "sourceManifestSha256": "0f39331717edbf312807a1867b4897536b606c9e31d715e998295d5ef84775ed",
+      "source": {
+        "sceneSha256": "9238e051ad7732a30a97ea7abc677fb45ccc701da3974c3dd9e41d0d0673b6a1",
+        "geometrySha256": "06c2b7fac0c09b4af6c886d696287a1694fc148e9f90ad79d7d34b066cfcfa3b",
+        "textureMaxSize": 256
+      },
+      "assetCount": 4078,
+      "assetBytes": 64085758
+    }
+  ]
+}

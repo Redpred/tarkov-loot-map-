@@ -1,0 +1,78 @@
+{
+  "source": "5.0.0-dev",
+  "commit": "1ee2b758d2584958f103316ba3f3155f8fbe103e",
+  "eftVersion": "1.2.0.0.47965",
+  "files": 127,
+  "items": 6001,
+  "quests": 786,
+  "maps": {
+    "bigmap": {
+      "loose": 1497,
+      "forced": 81
+    },
+    "factory4_day": {
+      "loose": 508,
+      "forced": 22
+    },
+    "factory4_night": {
+      "loose": 521,
+      "forced": 22
+    },
+    "icebreaker": {
+      "loose": 370,
+      "forced": 86
+    },
+    "interchange": {
+      "loose": 3872,
+      "forced": 48
+    },
+    "laboratory": {
+      "loose": 1401,
+      "forced": 55
+    },
+    "laboratory_dark": {
+      "loose": 1412,
+      "forced": 59
+    },
+    "labyrinth": {
+      "loose": 403,
+      "forced": 19
+    },
+    "lighthouse": {
+      "loose": 3966,
+      "forced": 46
+    },
+    "rezervbase": {
+      "loose": 3628,
+      "forced": 52
+    },
+    "sandbox": {
+      "loose": 1294,
+      "forced": 18
+    },
+    "sandbox_high": {
+      "loose": 1356,
+      "forced": 23
+    },
+    "sandbox_start": {
+      "loose": 6,
+      "forced": 94
+    },
+    "shoreline": {
+      "loose": 2471,
+      "forced": 84
+    },
+    "tarkovstreets": {
+      "loose": 8049,
+      "forced": 112
+    },
+    "terminal": {
+      "loose": 63,
+      "forced": 385
+    },
+    "woods": {
+      "loose": 1556,
+      "forced": 50
+    }
+  }
+}

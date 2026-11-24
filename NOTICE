@@ -1,0 +1,30 @@
+Tarkov Loot Map
+
+The MIT license in LICENSE applies to the original source code and
+documentation authored for this project by Redpred and contributors.
+
+Third-party code, versioned inputs, derived game data, client models,
+textures, icons, map previews, task artwork, and sponsorship or branding
+materials are excluded from that grant. They retain their respective
+copyrights and licenses. Inclusion in this repository or an application
+package does not grant additional rights in those materials.
+
+Escape from Tarkov game content, names, logos, models, textures, icons,
+and related artwork remain the trademarks and copyrighted works of
+Battlestate Games and its licensors. All rights reserved.
+
+Tarkov Loot Map is an independent, unofficial third-party tool. It is not
+affiliated with, endorsed by, or officially partnered with Battlestate Games.
+
+Versioned loot and quest inputs are credited to Archangel / SP-Tushonka:
+https://github.com/SP-Tushonka/server-csharp
+Selected item information, icons, region labels, and prices come from tarkov.dev:
+https://tarkov.dev/api
+Models, textures, and some icons and quest artwork come from the game client.
+Project processing includes selection, Chinese localization, indexing, and
+map-coordinate association. SPT inputs retain their CC BY-NC-SA 4.0 terms;
+other source-specific notices and licenses continue to apply. Attribution
+does not itself grant permission to redistribute third-party materials.
+
+See THIRD_PARTY_NOTICES.txt and the license and source records accompanying
+each component for its attribution, applicable terms, and review status.

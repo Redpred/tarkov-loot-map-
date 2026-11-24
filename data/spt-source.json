@@ -1,0 +1,520 @@
+{
+  "repository": "https://github.com/SP-Tushonka/server-csharp",
+  "eftBuild": 47965,
+  "version": "5.0.0-dev",
+  "commit": "1ee2b758d2584958f103316ba3f3155f8fbe103e",
+  "retrievedAt": "2026-10-10T02:40:49.3551863Z",
+  "files": {
+    "locations/sandbox_high/staticContainers.json": {
+      "sha256": "31791e5c6a7cb210016c266ddf2efc7615229663cf424ae725d0a2a2ba51ee01",
+      "bytes": 239103
+    },
+    "locations/sandbox_start/looseLoot.json": {
+      "sha256": "608a0f93ab953aaa912d97d74c033425483309240ccb181adc88cbcdff9dd682",
+      "bytes": 70144
+    },
+    "locations/sandbox_high/allExtracts.json": {
+      "sha256": "5d9deec13186b5191f065375bbc5737b61e4b16276a2fd92fbb1dbb12cf771ad",
+      "bytes": 3917
+    },
+    "locations/sandbox_high/staticLoot.json": {
+      "sha256": "1ca1787c007ea1afefb40c41be751c9c98dc8705e0f6294ca89ece9e160771d5",
+      "bytes": 792789
+    },
+    "locations/shoreline/staticLoot.json": {
+      "sha256": "c962608855f28ae70421214b9ed0250633ef58abb31c2438e5be4db338534da0",
+      "bytes": 826384
+    },
+    "locations/bigmap/base.json": {
+      "sha256": "1e52d2a9e8296565ff618199dbfceba09de52554c7ad453e3465893ceb0f7508",
+      "bytes": 238277
+    },
+    "locations/laboratory/staticContainers.json": {
+      "sha256": "92dfcd2665b18a392083a95d7fb2c87be8ed29dcc963b2dd5f93c8fa3b42a101",
+      "bytes": 131980
+    },
+    "locations/laboratory/looseLoot.json": {
+      "sha256": "6f257d494e48d4c2ba3ef7a7e426a1c1be8d71b21f50930d513b77775a700fcf",
+      "bytes": 6775250
+    },
+    "locations/woods/looseLoot.json": {
+      "sha256": "19635d91421d2808f24eaf63e2a6c0901d36ba830d9995f623a8470e97a03fa0",
+      "bytes": 13588467
+    },
+    "locations/factory4_day/statics.json": {
+      "sha256": "f646a23efa5836d18e5cda0f8dcd86b1030787815d547af30840794c3a0871ab",
+      "bytes": 16573
+    },
+    "locations/tarkovstreets/staticAmmo.json": {
+      "sha256": "751548b326bf39832ba82f5567fae3a7dc0b2da2e7127708014f75c647529e0d",
+      "bytes": 12541
+    },
+    "locations/terminal_ui/base.json": {
+      "sha256": "a7b22205ef6414f84c5cb5fb25e430b35d2ca2b82bb60df078d8953b1ba77710",
+      "bytes": 156360
+    },
+    "locations/laboratory_dark/staticContainers.json": {
+      "sha256": "91e80d87d7af43f828c84940fa5ff163389e3fc246e4302f90e7f6db725a7144",
+      "bytes": 131992
+    },
+    "locations/lighthouse/staticLoot.json": {
+      "sha256": "5968cafd67863d26df557270486db047b1d681bd76f4c5276a4f9d618e799cd9",
+      "bytes": 1019655
+    },
+    "locations/woods/staticLoot.json": {
+      "sha256": "900c631dc629203497fd2c7a4eb7d4da396d4747cd41b527230254def738f8d8",
+      "bytes": 825707
+    },
+    "locations/sandbox/looseLoot.json": {
+      "sha256": "0bd07dc68acc2908141050e418bf87009923d876af3978a32f7dc5c56bbaf7b0",
+      "bytes": 6770447
+    },
+    "locations/factory4_day/staticAmmo.json": {
+      "sha256": "918c267f42ca82dbd46e0298b515384eed221bef6d1f6259bc9b05daba253002",
+      "bytes": 12236
+    },
+    "locales/global/en.json": {
+      "sha256": "d618623ccf1258daaf2ee0cf4c9f0fcd964fb8516a9523ffec238b5fcb1af544",
+      "bytes": 3004825
+    },
+    "locations/terminal/statics.json": {
+      "sha256": "3833a2ce22c9d4c9d33ab4bcffb4f46576599e13dd313a4b94771c1a55b5f19a",
+      "bytes": 25028
+    },
+    "locations/interchange/allExtracts.json": {
+      "sha256": "d574d658f60c41cabf54f600bd7eedd6662fb533d701b5c6112236e9790baac0",
+      "bytes": 4461
+    },
+    "locations/hideout/base.json": {
+      "sha256": "a0608c1bcf859d94352420b3008747042e7ebe52090a54bf173fc3769465ec4c",
+      "bytes": 5441
+    },
+    "locations/rezervbase/staticAmmo.json": {
+      "sha256": "9d61f2c356db46fd0c914c605a8ea9e3b93d93bd72c4ebe31a09de4ff2250d3a",
+      "bytes": 12430
+    },
+    "locations/rezervbase/allExtracts.json": {
+      "sha256": "756ea287d8bfab2186d80bae8faa194a98d7c4bfa08dd9da5d6091f946cc9aa8",
+      "bytes": 5510
+    },
+    "locations/rezervbase/staticContainers.json": {
+      "sha256": "cfa47d14f07f296e7b9409f8811d3fc5addef04fc248316dda5d21726ba955b3",
+      "bytes": 494553
+    },
+    "locations/labyrinth/staticLoot.json": {
+      "sha256": "28250e050daf0cd821645de3fddc6fb41a8684a9c8ed67f6334e8d7ccad53bc6",
+      "bytes": 238144
+    },
+    "locations/rezervbase/base.json": {
+      "sha256": "df114d9cc906aa694222dd49810863adcb48ece641fd9e73cd819b8840b4d00e",
+      "bytes": 165766
+    },
+    "locations/privatearea/base.json": {
+      "sha256": "42ee575af7476340cbb1651d0e16cd8c437ace8e7fc046fa9d6acec2d000ef01",
+      "bytes": 4174
+    },
+    "locations/tarkovstreets/staticContainers.json": {
+      "sha256": "58fd537c846596200f70d2826da0f9d87738cf43750dfe3633bb87dd6eddc547",
+      "bytes": 608193
+    },
+    "locations/icebreaker/base.json": {
+      "sha256": "5f49ffc849c1a02a3bfb3291acd1fb89f9a26aa346846bed24d43ad665a06d74",
+      "bytes": 93824
+    },
+    "locations/laboratory/base.json": {
+      "sha256": "8517107abfaef8421c9c2712613371695ef9036feeda1ccc58b1d95d923cee27",
+      "bytes": 136781
+    },
+    "locations/lighthouse/staticContainers.json": {
+      "sha256": "5ae24b22e993bfb4d6803bc2bd1ee2ea7a0689df262bdcb59d40bdcbfa6b5967",
+      "bytes": 267063
+    },
+    "locations/shoreline/staticAmmo.json": {
+      "sha256": "0ccf8fdaf71557a67dbb57de09f4a6240d06a89f904c6c36984e1541d3c844fc",
+      "bytes": 12497
+    },
+    "locations/tarkovstreets/statics.json": {
+      "sha256": "658652166375d410aefd77ed4098ef66174c563f359765466af9c75ee0a9a4ba",
+      "bytes": 116838
+    },
+    "locations/factory4_night/staticContainers.json": {
+      "sha256": "33f762dcd60dc1b7849ee7a0a5265ea5eff49913df4c8d08f7e33a68e7b590f6",
+      "bytes": 68609
+    },
+    "locations/laboratory/allExtracts.json": {
+      "sha256": "cbeee01290b264952b767cc17183cb394e2ccf65c1759131558fe183593576ab",
+      "bytes": 5493
+    },
+    "locations/woods/staticContainers.json": {
+      "sha256": "a1c90298ebd7efa4d0917a36966d2b089c64142e9911984de0cb794c2805cf04",
+      "bytes": 191366
+    },
+    "locations/laboratory_dark/looseLoot.json": {
+      "sha256": "4f523f10bc0f20feba9a2a7ed5fe3a362e3d878b7ffa4792cfd6382152a1f9e6",
+      "bytes": 7514640
+    },
+    "locations/tarkovstreets/base.json": {
+      "sha256": "abd3705630db8ded609a147e67bf04da93ad8aeba8892772d4f60a489e169458",
+      "bytes": 327191
+    },
+    "locations/rezervbase/staticLoot.json": {
+      "sha256": "c1e6657d8a5505b43f52f59a7f4fa625923fa0f3460506d292167bd7083dde4e",
+      "bytes": 622723
+    },
+    "locations/icebreaker/staticLoot.json": {
+      "sha256": "c510142f15474882c74143909537fc451bcfdfa6d79a7623757bbcf2e5e2f63a",
+      "bytes": 9444
+    },
+    "locations/sandbox_start/statics.json": {
+      "sha256": "0c5aad25e48a3f2ca1b59223eae0867e280c9bd7239b4b6500fa0909c47bac71",
+      "bytes": 7952
+    },
+    "locations/interchange/base.json": {
+      "sha256": "818de989db0a25ca64d9075cf94063ad1a27dcecda59a353758881be82a57a36",
+      "bytes": 203964
+    },
+    "locations/labyrinth/allExtracts.json": {
+      "sha256": "03b4f487eb37044f751270fabab669f20e30dc521e7b2b1cc2f66bd531e468a6",
+      "bytes": 555
+    },
+    "locations/factory4_day/staticLoot.json": {
+      "sha256": "1089e70ddb61ccb69facd94a4e9ed7009c30742b12a5bde013d08280f981b867",
+      "bytes": 433535
+    },
+    "locations/shoreline/looseLoot.json": {
+      "sha256": "196b0b94fbd8dca66106f493f9262c8eda6dddd96ec0c4fff2c92581aae33069",
+      "bytes": 13775090
+    },
+    "locations/interchange/statics.json": {
+      "sha256": "dd3ac42275e4aeb65b801df66f3101e4a18b6b2525f436fb663cfbe556140e2e",
+      "bytes": 76955
+    },
+    "locations/develop/base.json": {
+      "sha256": "63d7c198ba8889e4ecec96e50d13e9336e6aee6501db9ed8ea8f3aaf0b6dc62d",
+      "bytes": 15627
+    },
+    "templates/handbook.json": {
+      "sha256": "ea35ef9e60958c038be76e00fc1ba41bd9031e72fc3701961a0dca3dcec42922",
+      "bytes": 641763
+    },
+    "locations/interchange/staticContainers.json": {
+      "sha256": "6a2e10ced5240274feb4bf966befe48d911e650db1a2ff456bc25e4a015cbd3b",
+      "bytes": 400894
+    },
+    "locations/tarkovstreets/allExtracts.json": {
+      "sha256": "46806748a51cff5508d02423461d6c585726e3b9d57054ed1027b47f731980fc",
+      "bytes": 9471
+    },
+    "locations/terminal/looseLoot.json": {
+      "sha256": "3918f09e5db0b3c7ccea48426292d4e0dd0c2d914e608cdcbb166d0859bba30a",
+      "bytes": 516128
+    },
+    "locations/factory4_night/statics.json": {
+      "sha256": "f646a23efa5836d18e5cda0f8dcd86b1030787815d547af30840794c3a0871ab",
+      "bytes": 16573
+    },
+    "locations/sandbox/statics.json": {
+      "sha256": "32248c0a1f45672030466995a0d6c3760337562a5afc7c16fc377a6f94bacf32",
+      "bytes": 52560
+    },
+    "locations/lighthouse/staticAmmo.json": {
+      "sha256": "6618d17176b14b3ee4027326fce13d5d041b3b59fc3bf60022cd0b2c03ccc6c2",
+      "bytes": 12464
+    },
+    "locations/rezervbase/statics.json": {
+      "sha256": "9e5adc7ea6f54c36c25e176d0077d71ea21787bb7e849ba636165beb21b96cfc",
+      "bytes": 108052
+    },
+    "locations/factory4_night/looseLoot.json": {
+      "sha256": "d61f4289eb9dfc1144eaa9389794d225e067e5050016cbc2733a5379d8fefd9a",
+      "bytes": 2671418
+    },
+    "locations/labyrinth/base.json": {
+      "sha256": "0231f2db28e63b5f773bc2edd7398c5dc155906cb32287a3f7d80e7f0c6da213",
+      "bytes": 38626
+    },
+    "locations/suburbs/base.json": {
+      "sha256": "9811e839fa657a341674797e51b58150a7f0b3bb92ef42bedfbb27f2f9902674",
+      "bytes": 4163
+    },
+    "locations/terminal/staticContainers.json": {
+      "sha256": "49b7459756c18f88a4cbc7121724a5438ee2a8fc207d5dbf45132409419d0118",
+      "bytes": 95421
+    },
+    "locations/interchange/staticLoot.json": {
+      "sha256": "10e31059dfd06e034e6b1e80e3045f27c0dabc0bfa6f0cfe038d9b4719f01c93",
+      "bytes": 960831
+    },
+    "locations/sandbox_start/staticLoot.json": {
+      "sha256": "e4be187845306e68001bf5fad4eff40fd9c5fb07ce6b5468b497a0bcf14fe17d",
+      "bytes": 192349
+    },
+    "locations/laboratory_dark/base.json": {
+      "sha256": "6fdf8212433dd4fc7e7ad0c8254abab5fac08ef689d2704bb1d89ea5d8831f16",
+      "bytes": 117202
+    },
+    "locations/icebreaker/looseLoot.json": {
+      "sha256": "b3e1842fa98b611339c889ece8ac35eabfb9a071f6ac8f2986acfc937ea6ccc1",
+      "bytes": 304107
+    },
+    "locations/sandbox_start/staticContainers.json": {
+      "sha256": "2c00c554ddf494b58d56d25a6d388686194a715286cae7abe81258ced9aed9e3",
+      "bytes": 26553
+    },
+    "locations/terminal/staticAmmo.json": {
+      "sha256": "4ee9f914ac15a4fb52e54bdeb5c0873d54847138298dbb256cff559dac4c3ef2",
+      "bytes": 11701
+    },
+    "locations/lighthouse/statics.json": {
+      "sha256": "3e59cf5295cc8c76176aafa718c95f1e584af18030b56772968e0aafc3e1a2fc",
+      "bytes": 55939
+    },
+    "locations/woods/allExtracts.json": {
+      "sha256": "26f7a549388a911ccb5616aba38a32965d3679e63c880a543139f08515bbcc26",
+      "bytes": 10047
+    },
+    "locations/factory4_night/staticLoot.json": {
+      "sha256": "25134ac4e1d7afc668c020842fcd3be486a8137b1c97c97acf146afffd2a2b75",
+      "bytes": 444341
+    },
+    "locations/sandbox/staticAmmo.json": {
+      "sha256": "e0841ca645739b32c08f6c4741068e73a3019f6781dbc7e1c0d482c10008d436",
+      "bytes": 11691
+    },
+    "locations/laboratory/staticLoot.json": {
+      "sha256": "14ed14b848aeba3d40b56f6643bab1a912716af8b17021aba54ce83d76c1ea21",
+      "bytes": 511415
+    },
+    "locations/sandbox/staticContainers.json": {
+      "sha256": "d0bfe15f12894f4b5856e78db71c11ed0a26967028fafd11fdb8c69bb6845b44",
+      "bytes": 239102
+    },
+    "locations/factory4_day/allExtracts.json": {
+      "sha256": "3bf1c38406a37f0c5c2261ceba1b647dded32c7340b7dba6a90055e5e3952914",
+      "bytes": 4319
+    },
+    "locations/icebreaker/staticContainers.json": {
+      "sha256": "6d4ad2e130a339a42e01131b4c38e86d7e9d056c6282e66f3922c7f841ad97dd",
+      "bytes": 32611
+    },
+    "locations/labyrinth/staticAmmo.json": {
+      "sha256": "459f909e22c1d3b0e35f15980881354414de36011f76e0cdcf6919e6c8f2a057",
+      "bytes": 11752
+    },
+    "locations/icebreaker/statics.json": {
+      "sha256": "fdb8b5caf01c24d26ef552bba32974b2c9f862c5037c1aae1dade9255c316b9d",
+      "bytes": 7016
+    },
+    "locations/bigmap/staticContainers.json": {
+      "sha256": "3fc14605209258dda004805bb9b7419d5c506a832bc96b70a1dc787d398c3ab0",
+      "bytes": 265167
+    },
+    "locations/labyrinth/statics.json": {
+      "sha256": "94b96faf357667227b15c8c60de3e7f0c0c3dbab3205787520401dc5f1f0b991",
+      "bytes": 4561
+    },
+    "locations/terminal/staticLoot.json": {
+      "sha256": "903805b38e6fd2eeac40ceb28d2487160fed8a5000d46fe8c233086458823936",
+      "bytes": 588925
+    },
+    "locations/sandbox_start/staticAmmo.json": {
+      "sha256": "f976cdf07577c1f5c15436ee5098e196ca98c98a0695b9097a67f6f47b4c0095",
+      "bytes": 11290
+    },
+    "locations/shoreline/staticContainers.json": {
+      "sha256": "2853cffb2c6cc2d1d2933017fedb47191c0f7df9f6ccab8f7598281dad8a43e2",
+      "bytes": 326469
+    },
+    "locations/shoreline/statics.json": {
+      "sha256": "d323d03f08ef67120370d6a14e6e900b225d036229d943b6d364a8107535a538",
+      "bytes": 87853
+    },
+    "locations/bigmap/looseLoot.json": {
+      "sha256": "b0aa0e1e9904e83a776b91d09ce98afb7601628631b931aaef03b7ca7f94471b",
+      "bytes": 11047926
+    },
+    "locations/tarkovstreets/staticLoot.json": {
+      "sha256": "ab4fd5fcd9c93a54e6b33bcf309b8be43567c8afb0057d62274b79324df318e7",
+      "bytes": 826868
+    },
+    "locations/rezervbase/looseLoot.json": {
+      "sha256": "e3c67ee82f1553c0e8b1cd62efa8958b66060bd6f3e055f87827aef56edabbf1",
+      "bytes": 25316516
+    },
+    "locations/town/base.json": {
+      "sha256": "74c78757424cde2cb53650177987a5b8aeaba11641374e682957c209d6817508",
+      "bytes": 4156
+    },
+    "locations/factory4_night/allExtracts.json": {
+      "sha256": "3bf1c38406a37f0c5c2261ceba1b647dded32c7340b7dba6a90055e5e3952914",
+      "bytes": 4319
+    },
+    "locations/sandbox_start/base.json": {
+      "sha256": "a75b629f023968622510e7b4e576bfb7488cdd9f3cb6976854dfd9348364947d",
+      "bytes": 47993
+    },
+    "locations/sandbox_high/statics.json": {
+      "sha256": "32248c0a1f45672030466995a0d6c3760337562a5afc7c16fc377a6f94bacf32",
+      "bytes": 52560
+    },
+    "templates/items.json": {
+      "sha256": "8b0b2dd8be62bc55802f16b1f465398ddb323fb7af21f3e7b85b36a92dfeb9c7",
+      "bytes": 29602572
+    },
+    "locations/lighthouse/looseLoot.json": {
+      "sha256": "75a8fd3a2f4f0cab79856759b92f5fb2e7d2e8b3566c14512a7775990eb57d32",
+      "bytes": 49754506
+    },
+    "locations/laboratory_dark/staticLoot.json": {
+      "sha256": "e7c1f3a65d4c9879df74b9007f5f0fa3037b25322ac775d22c2b1fa4639c0743",
+      "bytes": 477494
+    },
+    "locations/icebreaker/staticAmmo.json": {
+      "sha256": "2a686a5942a8f7172099b21d86883f3c47bd215988d63a85b9ee333af9e22a09",
+      "bytes": 10924
+    },
+    "locations/sandbox/base.json": {
+      "sha256": "c45fe2751f134c43e22eedcf6caf8028a7d7bac3b45090cacfe145d8a5670f00",
+      "bytes": 170534
+    },
+    "locations/shoreline/allExtracts.json": {
+      "sha256": "c4dbb8e95f71225afa4e5503848665f033a59a8d76bac1b85a86a8bb402659d8",
+      "bytes": 6999
+    },
+    "locations/factory4_night/staticAmmo.json": {
+      "sha256": "5562839b9995eabd3e9556618d8b4fe5cdddb95860935bc9e0f3e13ee4daed43",
+      "bytes": 12246
+    },
+    "locations/laboratory/staticAmmo.json": {
+      "sha256": "adc115982b3d3670da635179f8f85bbd95789bbf155d61a28dc7efbe2f3bcd62",
+      "bytes": 11138
+    },
+    "locations/woods/statics.json": {
+      "sha256": "e5d276df7c5282dfc00240bdb1395ec5033ec9972223be29874d521e8552a8f4",
+      "bytes": 35549
+    },
+    "locations/lighthouse/allExtracts.json": {
+      "sha256": "78a4da88206eeff6bd107f7b65eb8640e303aa4874adea5d57e63951466e0f32",
+      "bytes": 6571
+    },
+    "locations/terminal/base.json": {
+      "sha256": "03c9cb8bd2502c4886b84f46f80a2f84030e715dacd625b7ef6b0db99e5ebe03",
+      "bytes": 157885
+    },
+    "locations/bigmap/allExtracts.json": {
+      "sha256": "f4528dcd0a319c53b0644c4aeadb3704cee4a68c64a1f427cb80e54ac81e9bcf",
+      "bytes": 10507
+    },
+    "locations/sandbox/allExtracts.json": {
+      "sha256": "5d9deec13186b5191f065375bbc5737b61e4b16276a2fd92fbb1dbb12cf771ad",
+      "bytes": 3917
+    },
+    "locations/interchange/looseLoot.json": {
+      "sha256": "09826c45787b2ab6a3e5a7166508f9125f05b988eaf870659fe9e49041795114",
+      "bytes": 23623323
+    },
+    "locations/laboratory_dark/statics.json": {
+      "sha256": "cd2d30c9fca42ac37df498ae5f72269da4a7d10e438d10dcb71b8970940be0b3",
+      "bytes": 28193
+    },
+    "locations/bigmap/statics.json": {
+      "sha256": "21971c6c919604c0d0d7a2956d9fd966e575a70983754cc83da984665a78407f",
+      "bytes": 56850
+    },
+    "locations/labyrinth/looseLoot.json": {
+      "sha256": "c3dd87fa972fd868008711e36b2f308b8fd957ab5b1f8b1542034da4f48d2c2f",
+      "bytes": 3997575
+    },
+    "locations/sandbox/staticLoot.json": {
+      "sha256": "cc54284c5ffc738ad7e6db2741704b8e62143b551c60f4d463c5a6cfb5556387",
+      "bytes": 662620
+    },
+    "locations/bigmap/staticAmmo.json": {
+      "sha256": "7684d3f4074cfac0fcf0eea3593b90e66f89bafd38fe30ed64a87443245063d4",
+      "bytes": 12432
+    },
+    "locations/factory4_day/base.json": {
+      "sha256": "058d83a68ac8b596d66459bb0c200ed8e990cc9098c53e7d0e4424db865e7eb8",
+      "bytes": 122752
+    },
+    "locations/factory4_day/looseLoot.json": {
+      "sha256": "2c3923f074109dbf40bd4deb83e93cca2266eba5991730520a076a00e4f53f6e",
+      "bytes": 2426695
+    },
+    "locations/lighthouse/base.json": {
+      "sha256": "629ecdde44aa3bf0b895b0237654e64c5a86b4359faea1f1414e5461cb653503",
+      "bytes": 198143
+    },
+    "locations/tarkovstreets/looseLoot.json": {
+      "sha256": "0875c376b10e24faba8949d444464565a49a3d34bd73dc6a7c1ca473eacdc3fa",
+      "bytes": 49297102
+    },
+    "locales/global/ch.json": {
+      "sha256": "53000e5f851a869a46c31684cb2ed76b3d2add2188d225be870f854fb68e6856",
+      "bytes": 2967695
+    },
+    "locations/bigmap/staticLoot.json": {
+      "sha256": "dda6e69331725fb48f6e6e8ba801feb34cdcc5d987cdd0788d3377cafe851d66",
+      "bytes": 868689
+    },
+    "locations/sandbox_high/staticAmmo.json": {
+      "sha256": "63ca1008add484a14c2436584909dd11cbd2579056d9192e833ee27da24ad8cc",
+      "bytes": 12473
+    },
+    "locations/woods/staticAmmo.json": {
+      "sha256": "074e31c07e7462667d0a389f9aa109e14ab8041dfa179f21f48962dede3837f4",
+      "bytes": 12506
+    },
+    "locations/laboratory_dark/staticAmmo.json": {
+      "sha256": "37bad210196c1224e707e1f3a38a80825fd0c0bf62808d12e486fa66f02a220b",
+      "bytes": 11037
+    },
+    "locations/lighthouse2/base.json": {
+      "sha256": "f9792c8ec9e77363c82ab274b0b6756c60c75f5f445f0209a6a6474dae23bdac",
+      "bytes": 51464
+    },
+    "locations/labyrinth/staticContainers.json": {
+      "sha256": "bbddd9627ac3093e79df094e47d4ec755d588da6a735621daada1a830d3c8f68",
+      "bytes": 19553
+    },
+    "locations/factory4_day/staticContainers.json": {
+      "sha256": "e6b3bf2527fb70a0ed4751d4f927e1df81735eaecfc6c4e0ae44c6049b952434",
+      "bytes": 69020
+    },
+    "locations/factory4_night/base.json": {
+      "sha256": "0913aaff146efc54b90096e89d17316e5177a4b32a86dbb1e3f705c5abedc3d0",
+      "bytes": 121779
+    },
+    "locations/laboratory/statics.json": {
+      "sha256": "cd2d30c9fca42ac37df498ae5f72269da4a7d10e438d10dcb71b8970940be0b3",
+      "bytes": 28193
+    },
+    "locations/woods/base.json": {
+      "sha256": "8af68cfde8e0477d64634e8841e5f203f4043e00342182bda7e5624b9d0f37b0",
+      "bytes": 271745
+    },
+    "locations/shoreline/base.json": {
+      "sha256": "3e78776cd0029f12f9e3fb017c841f9eb90d03b082a38d0b462499ce2949e775",
+      "bytes": 248770
+    },
+    "locations/sandbox_high/base.json": {
+      "sha256": "2c9c228cd1b6f179cb03885ce91dbb668a2f711f25755beb274829155cce3591",
+      "bytes": 173334
+    },
+    "templates/quests.json": {
+      "sha256": "b7012914565ccf1b2de06b77c6500fac75779d0ff0970447bd592e606f39632b",
+      "bytes": 31210453
+    },
+    "locations/sandbox_high/looseLoot.json": {
+      "sha256": "aa8aa3e2b5e19a4a014a7a6ee12f0e61ed7e0f2865e0b8e7a4e089d56b711d68",
+      "bytes": 8407509
+    },
+    "locations/interchange/staticAmmo.json": {
+      "sha256": "0b993fc6f7ab0bf4d2d5d400a9988f639bb4139c542a67f8ead203da897eb138",
+      "bytes": 12296
+    }
+  },
+  "databasePath": "data/spt/5.0.0-1ee2b75/database",
+  "eftVersion": "1.2.0.0.47965",
+  "channel": "5.0x-dev"
+}

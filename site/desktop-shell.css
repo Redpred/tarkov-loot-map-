@@ -1,0 +1,46 @@
+:root[data-desktop-shell]{--desktop-bar-height:40px;background:#11130f}
+html[data-desktop-shell]>body{position:absolute;top:var(--desktop-bar-height);left:0;right:0;height:calc(100dvh - var(--desktop-bar-height))!important;min-height:0!important;margin:0!important;overflow:auto;transform:translateZ(0)}
+html[data-desktop-shell]>body:has(.map-panel){overflow:hidden}
+html[data-desktop-shell]>body.map-app>main{height:calc(100% - var(--site-footer-height))!important}
+html[data-desktop-shell]:has(body[data-page-suspended])>.site-footer{visibility:hidden}
+#desktopTitlebar{position:fixed;inset:0 0 auto;height:40px;z-index:10000;display:flex;align-items:center;gap:10px;padding:0 16px 0 10px;width:env(titlebar-area-width,calc(100% - 140px));box-sizing:border-box;background:#11130f;color:#adaf9a;font:12px/1 "Segoe UI","Microsoft YaHei",sans-serif;user-select:none;-webkit-app-region:drag}
+#desktopTitlebar img{width:21px;height:21px;object-fit:contain;opacity:.9}
+#desktopTitlebar .desktop-title{font-weight:500;letter-spacing:.04em;color:#d6d6c8}
+#desktopTitlebar .desktop-edition{font-size:10px;border:1px solid #3b3e30;border-radius:4px;padding:3px 5px;color:#92977e;margin-left:1px}
+#desktopTitlebar .desktop-context{margin-left:auto;margin-right:12px;color:#747c6b;font-size:11px}
+#desktopTitlebar button{all:unset;display:grid;place-items:center;box-sizing:border-box;width:30px;height:28px;border-radius:6px;cursor:pointer;-webkit-app-region:no-drag;color:#b6bba7}
+#desktopTitlebar button:hover,#desktopTitlebar button[aria-expanded=true]{background:#282d21;color:#ead7a1}
+#desktopTitlebar button:focus-visible{outline:2px solid #b6a36d;outline-offset:1px}
+#desktopTitlebar svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round}
+#desktopAppMenu{position:fixed;inset:46px auto auto 10px;width:260px;box-sizing:border-box;margin:0;padding:7px;border:1px solid #3b4231;border-radius:11px;background:#1b2018;color:#d8dbcd;box-shadow:0 15px 45px #0008;font:13px/1.5 "Segoe UI","Microsoft YaHei",sans-serif;-webkit-app-region:no-drag;z-index:10001}
+#desktopAppMenu::backdrop{background:transparent}
+#desktopAppMenu button{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:12px;width:100%;padding:9px 11px;border-radius:6px;cursor:pointer}
+#desktopAppMenu button:hover,#desktopAppMenu button:focus-visible{background:#303829;color:#f0e2b8;outline:none}
+#desktopAppMenu .desktop-menu-icon{width:18px;text-align:center;color:#9cae86;font-size:16px}
+#desktopAppMenu kbd{margin-left:auto;color:#879179;font:11px "Segoe UI",sans-serif}
+#desktopAppMenu hr{border:0;border-top:1px solid #363c2e;margin:6px 5px}
+#desktopAppMenu .desktop-menu-footer{padding:8px 11px 5px;color:#7e8772;font-size:11px}
+html[data-desktop-fullscreen]>body{top:0;height:100dvh!important}
+html[data-desktop-fullscreen] #desktopTitlebar{display:none}
+#desktopTitlebar .desktop-update-badge{display:block;width:auto;padding:5px 9px;color:#e9d6a3;background:#303724;font-size:11px;white-space:nowrap}
+#desktopTitlebar .desktop-update-badge[hidden],#desktopUpdateDialog [hidden]{display:none!important}
+#desktopUpdateDialog{box-sizing:border-box;width:min(440px,calc(100vw - 32px));max-height:calc(100dvh - 64px);padding:22px;border:1px solid #4d563e;border-radius:14px;background:#1b2018;color:#d8dbcd;box-shadow:0 24px 80px #0009;font:14px/1.65 "Segoe UI","Microsoft YaHei",sans-serif;-webkit-app-region:no-drag}
+#desktopUpdateDialog::backdrop{background:#050704aa}
+#desktopUpdateDialog header{display:flex;align-items:center;justify-content:space-between;gap:20px}
+#desktopUpdateDialog h2{margin:0;font-size:19px;color:#ede9d6}
+#desktopUpdateDialog p{margin:14px 0;overflow-wrap:anywhere}
+#desktopUpdateDialog .desktop-update-version{color:#a2ad91;font-size:12px}
+#desktopUpdateDialog .desktop-update-hint,#desktopUpdateDialog .desktop-update-portable{color:#a1a892;font-size:12px}
+#desktopUpdateDialog .desktop-update-preference{display:flex;align-items:center;gap:9px;cursor:pointer;margin-top:20px}
+#desktopUpdateDialog input{accent-color:#b2bd87;width:16px;height:16px}
+#desktopUpdateDialog button{font:inherit;cursor:pointer;padding:8px 14px;border:1px solid #4f5a3d;border-radius:7px;color:#dbe0c6;background:#293122}
+#desktopUpdateDialog button:disabled{opacity:.55;cursor:default}
+#desktopUpdateDialog button:not(:disabled):hover{background:#39462d}
+#desktopUpdateDialog button:focus-visible,#desktopUpdateDialog input:focus-visible{outline:2px solid #d4c38b;outline-offset:3px}
+#desktopUpdateDialog [data-close]{padding:0;width:30px;height:30px;border:0;background:transparent;font-size:24px;color:#a7b094;line-height:1}
+#desktopUpdateDialog footer{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
+#desktopUpdateDialog [data-update-primary]{background:#b4bd8b;color:#161d10;border-color:#b4bd8b}
+#desktopUpdateDialog [data-update-primary]:not(:disabled):hover{background:#c8d39c}
+#desktopUpdateDialog [data-update-error]{color:#e9b8a5;font-size:12px}
+#desktopUpdateDialog progress{display:block;width:100%;height:7px;accent-color:#b4bd8b}
+#desktopUpdateDialog [data-progress-text]{font-size:12px;color:#a2ad91;text-align:right;margin-top:6px}

@@ -1,0 +1,92 @@
+name: Windows desktop preview
+on:
+  workflow_dispatch:
+    inputs:
+      package_kind:
+        description: Default offline installer (requires public pinned resources), or app-only development build
+        type: choice
+        options:
+          - default-offline
+          - application-only
+        default: default-offline
+      create_draft:
+        description: Create a private draft release after all checks
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24.22.1
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix desktop
+      - run: npm run test:repository
+      - run: npm run test:portable
+      - run: npm run test:desktop
+      - run: npm run test:desktop-build
+      - name: Restore pinned runtime data and images from the resource Release
+        shell: pwsh
+        run: |
+          npm run assets:restore -- --download --group=runtime
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:asset-data
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - run: npm run stage --prefix desktop
+      - run: node scripts/run-desktop-update-smoke.mjs
+      - name: Smoke test isolated application twice (including persisted state)
+        shell: pwsh
+        run: |
+          node scripts/run-desktop-smoke.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/run-desktop-smoke.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - run: npm run dist --prefix desktop -- --config.directories.output=../dist/desktop/application
+      - run: node scripts/run-desktop-smoke.mjs --package-output=dist/desktop/application
+      - run: node scripts/run-desktop-asset-smoke.mjs --package-output=dist/desktop/application
+      - name: Bundle the default resources from the pinned GitHub Release
+        if: inputs.package_kind == 'default-offline'
+        run: npm run desktop:offline -- --app-output=dist/desktop/application --out=dist/desktop/offline --download
+      - name: Verify and prepare the selected installer
+        shell: pwsh
+        run: |
+          $output = if ('${{ inputs.package_kind }}' -eq 'default-offline') { 'dist/desktop/offline' } else { 'dist/desktop/application' }
+          node scripts/desktop-prepare-release.mjs $output dist/desktop/application
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: windows-x64-preview
+          path: |
+            dist/desktop/*/releases/
+            work/desktop-stage/app/build-inventory.json
+          if-no-files-found: error
+      - name: Create release draft for review
+        if: inputs.create_draft
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = (Get-Content desktop/package.json | ConvertFrom-Json).version
+          if ('${{ inputs.package_kind }}' -ne 'default-offline') { throw 'Public release drafts must use the default-resource offline installer' }
+          $tag = "desktop-v$version"
+          $refs = gh api "repos/$env:GITHUB_REPOSITORY/git/matching-refs/tags/$tag"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (($refs | ConvertFrom-Json) | Where-Object { $_.ref -eq "refs/tags/$tag" }) { throw "Tag already exists; select a new desktop version: $tag" }
+          $release = "dist/desktop/offline/releases/$version"
+          $channelArgs = @()
+          if ($version.Contains('-')) { $channelArgs += '--prerelease' }
+          gh release create $tag "$release/TarkovLootMap-$version-win-x64-setup.exe" "$release/TarkovLootMap-$version-win-x64-setup.exe.blockmap" "$release/latest.yml" "$release/SHA256SUMS.txt" "$release/package-verification.json" "$release/offline-bundle.json" "$release/offline-profile.json" --target $env:GITHUB_SHA --draft @channelArgs --title "Windows desktop $version" --notes-file "$release/RELEASE_NOTES.md"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

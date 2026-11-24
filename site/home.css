@@ -1,0 +1,44 @@
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.home-settings-button{order:11;flex-shrink:0;min-height:44px;color:var(--gold-bright)}
+.home-app .view-dialog{width:min(640px,calc(100vw - 24px));max-height:90vh;max-height:90dvh;overflow:auto;overscroll-behavior:contain;padding:20px;background:var(--panel);color:var(--text);border:1px solid #706343;border-radius:8px}
+.home-app .view-dialog::backdrop{background:#070a08c9}
+.home-app .view-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:-20px;background:var(--panel);padding:10px 0;z-index:2}
+.home-app .view-dialog h2{font-size:18px;margin:0}.home-app .view-dialog button{min-height:44px}
+.home-app .view-dialog fieldset{min-width:0;border:1px solid var(--line);border-radius:4px;padding:14px;margin:18px 0}
+.home-app .view-dialog legend{padding:0 7px;color:var(--gold-bright)}
+.home-app .view-dialog label{display:block;font-size:12px;margin:8px 0}
+.home-app .view-dialog select,.home-app .view-dialog input[type=number]{width:100%;min-height:44px}
+.home-app .view-dialog input[type=range]{width:100%;min-height:32px}
+.home-app .view-dialog .check,.home-app .view-dialog .range-label{display:flex;align-items:center;gap:8px}.home-app .view-dialog .range-label{justify-content:space-between}
+.home-app .view-dialog .hint{font-size:12px;line-height:1.7;color:var(--muted);margin:8px 0}
+.home-app .view-dialog output{font:12px var(--mono);color:var(--gold-bright)}
+.home-app .view-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+@media(max-width:750px){.home-app .home-settings-button{padding:7px 10px;font-size:12px}.home-app .view-dialog{padding:14px}.home-app .view-dialog-head{top:-14px}.home-app .view-dialog fieldset{padding:10px}.home-app .view-dialog .performance-grid{gap:0 10px}}
+.card-cache{margin-top:11px;padding-top:10px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:3px 10px;font-size:11px;color:var(--muted)}.card-cache-status{color:#bfc5aa}.card-cache[data-state=complete] .card-cache-status{color:#a8cf9f}.card-cache-size{margin-left:auto}.card-cache-detail{flex-basis:100%;font-size:10px;overflow-wrap:anywhere}
+body{--home-gutter:40px;margin:0;min-height:100vh;min-height:100svh;font-size:13px;line-height:1.6;background:radial-gradient(ellipse at 80% 0%,#24251a55,transparent 48%),#0d0e0c}
+.skip-link{position:fixed;top:-60px;left:20px;z-index:20;padding:12px;background:var(--gold);color:#111}.skip-link:focus{top:12px}
+.home-header{min-height:84px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:calc(16px + env(safe-area-inset-top,0px)) max(var(--home-gutter),env(safe-area-inset-right,0px),calc((100% - 1376px)/2)) 16px max(var(--home-gutter),env(safe-area-inset-left,0px),calc((100% - 1376px)/2));gap:15px;background:#10110eee}
+.home-header h1{margin:0;font-size:20px;font-weight:600;letter-spacing:.09em;line-height:1.4}.brand-emblem{width:36px;height:38px;border:1px solid #817046;color:var(--gold-bright);display:flex;align-items:center;justify-content:center;font:bold 27px Georgia;flex-shrink:0}.brand-emblem>span{font:22px var(--mono);margin-left:-6px}
+.home-main{max-width:1456px;margin:auto;padding:32px max(var(--home-gutter),env(safe-area-inset-right,0px)) calc(48px + env(safe-area-inset-bottom,0px)) max(var(--home-gutter),env(safe-area-inset-left,0px))}
+.map-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
+.map-card{display:flex;flex-direction:column;background:#171913;border:1px solid #34382a;transition:border-color .18s,background .18s;min-width:0}.map-card:focus-within{border-color:var(--gold)}.map-card-link{display:block;flex:1}.map-card-link:active{background:#29291c}.card-visual{aspect-ratio:3/2;overflow:hidden;background:#101820}.card-visual img{width:100%;height:100%;object-fit:contain;display:block;filter:saturate(.85);transition:filter .2s}
+.card-content{padding:16px 17px 13px}.card-title{display:flex;align-items:center;justify-content:space-between;gap:8px}.card-title h2{font-size:18px;line-height:1.4;font-weight:600;letter-spacing:.04em;margin:0}.card-title>.ui-icon{width:17px;color:#9a8b5d;transition:transform .15s}.map-card:hover .card-title>.ui-icon{transform:translateX(3px)}.card-en{font:10px var(--mono);letter-spacing:.09em;color:#9a9e8b;margin:5px 0 14px}.card-stats{display:flex;justify-content:space-between;gap:7px;border-top:1px solid #33362a;padding-top:11px;color:#adae9d;font-size:11px}.card-stats span{white-space:nowrap}.card-stats b{font:12px var(--mono);color:#d0ccb7;margin-right:4px}.map-card.pending{opacity:.55}.card-status{font-size:11px;color:var(--muted)}#loading{color:var(--muted)}#error{color:#d6b37e}
+@media(max-width:1350px){.map-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(hover:hover) and (pointer:fine){.map-card:hover{border-color:#8a7850;background:#1d1f17}.map-card:hover img{filter:saturate(1)}}
+@media(max-width:900px){body{--home-gutter:24px}.home-main{padding-top:24px;padding-bottom:calc(40px + env(safe-area-inset-bottom,0px))}.map-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){
+  body{--home-gutter:14px}
+  .home-header{min-height:70px;padding-top:calc(14px + env(safe-area-inset-top,0px));padding-bottom:14px;gap:11px}
+  .home-header h1{font-size:17px;letter-spacing:.03em;min-width:0}
+  .brand-emblem{width:30px;height:32px;font-size:23px}
+  .home-main{padding-top:16px;padding-bottom:calc(30px + env(safe-area-inset-bottom,0px))}
+  .map-grid{gap:12px}
+  .card-content{padding:12px 10px 10px}
+  .card-title h2{font-size:15px;letter-spacing:0}
+  .card-title>.ui-icon{width:14px;flex-shrink:0}
+  .card-en{font-size:10px;line-height:1.3;letter-spacing:0;min-height:26px;margin:5px 0 7px;overflow-wrap:anywhere}
+  .card-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding-top:9px;font-size:10px;text-align:center}
+  .card-stats span{min-width:0}
+  .card-stats b{display:block;font-size:12px;line-height:1.5;margin-right:0}
+}
+@media(max-width:350px){.home-header h1{font-size:16px}.map-grid{grid-template-columns:1fr}.card-en{min-height:0}.card-stats{font-size:11px}.card-stats b{font-size:13px}}

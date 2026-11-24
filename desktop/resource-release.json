@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "resourceLockId": "e930400faf2d741b111a8f951254875f2988a40ddf37d68023605f085ea436b1",
+  "repository": "Redpred/tarkov-loot-map",
+  "tag": "resources-e930400faf2d741b111a8f951254875f2988a40ddf37d68023605f085ea436b1-r2",
+  "index": {
+    "name": "resources-index.json",
+    "sha256": "b4b3a69aee0b82bcfb164520c496e19df0b89e1c271de1d3f74d4bf0dbd7e983",
+    "bytes": 5477284
+  }
+}

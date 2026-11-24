@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN" data-map="streets">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+  <title>塔科夫街区 · 塔科夫物资地图</title>
+  <link rel="icon" type="image/png" sizes="192x192" href="app-icon-192.png">
+  <link rel="icon" type="image/svg+xml" sizes="any" href="app-icon.svg">
+  <link rel="stylesheet" href="factory.css">
+  <link rel="stylesheet" href="atlas-layout.css">
+  <link rel="stylesheet" href="atlas-settings.css">
+  <link rel="stylesheet" href="ui-theme.css">
+  <link rel="stylesheet" href="map-ui.css">
+  <link rel="stylesheet" href="atlas-screenshot-location.css">
+  <link rel="stylesheet" href="atlas-item-search.css">
+  <link rel="stylesheet" href="atlas-my-tasks.css">
+  <link rel="stylesheet" href="atlas-map-keys.css">
+  <link rel="stylesheet" href="app-nav.css">
+  <link rel="stylesheet" href="bosses.css">
+  <link rel="stylesheet" href="atlas-high-value.css"><link rel="stylesheet" href="atlas-map-filters.css">
+  <meta name="theme-color" content="#11130f">
+  <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
+  <link rel="manifest" href="app-manifest.json">
+  <link rel="apple-touch-icon" href="app-icon-180.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="物资地图">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="sponsor.css">
+  <link rel="stylesheet" href="client-download.css">
+  <script type="module" src="sponsor.js"></script>
+  <script type="module" src="filing-footer.js"></script>
+</head>
+<body class="map-app">
+  <header>
+    <a class="brand" href="index.html"><span class="brand-mark">T</span><span>塔科夫物资地图·测试版</span></a>
+    <div class="heading"><h1>街区 <span>STREETS</span></h1></div>
+    <nav class="app-nav" aria-label="主导航"><a href="index.html">首页</a><a href="streets.html" data-map-nav aria-current="page">地图</a><a href="tasks.html" data-task-nav>任务</a></nav>
+    <select id="mapSwitch" aria-label="选择地图"><option value="factory">工厂</option><option value="streets" selected>塔科夫街区</option></select>
+    <a class="client-download" href="https://pan.quark.cn/s/6723ba88bd07" target="_blank" rel="noopener noreferrer" aria-label="下载客户端（夸克网盘，新窗口）" title="下载 Windows 客户端（夸克网盘）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4"/></svg><span class="client-download-label">下载客户端</span><span class="client-download-short" aria-hidden="true">下载</span></a>
+  </header>
+  <main>
+    <aside class="floating-panel" id="leftPanel"><button class="panel-toggle" id="leftPanelToggle" aria-expanded="true" aria-controls="filterBody">点位筛选 −</button><div class="filters" id="filterBody">
+      <div class="eyebrow">查找物资</div>
+      <label class="sr-only" for="search">搜索物资、任务、目标或点位 ID</label>
+      <input id="search" type="search" placeholder="搜索物资、任务或目标…" autocomplete="off">
+      <div class="quick"><button id="searchAmmo" type="button" disabled>子弹</button><button id="clearSearch">清除</button></div>
+      <div class="region-controls">
+        <label class="check"><input id="showRegionNames" type="checkbox" disabled>建筑与区域名称</label>
+        <label class="check" id="streetNamesOption" hidden><input id="showStreetNames" type="checkbox" disabled>道路名称</label>
+        <label class="check" title="按名称附近范围触发，非精确建筑边界"><input id="showRegionArrival" type="checkbox" checked disabled>第一人称区域提示</label>
+        <button id="editRegionNames" type="button" disabled>编辑名称…</button>
+        <p class="hint" id="regionNamesStatus" role="status" hidden></p>
+      </div>
+      <details class="filter-section" id="myTaskSection" open><summary>我的任务</summary></details>
+      <details class="filter-section" id="targetItemSection" open><summary>目标物品列表 <small>可多选</small></summary></details>
+      <details class="filter-section" id="typeSection"><summary>点位类型 <small>可多选</small></summary>
+        <div class="type-actions"><button id="selectAllTypes">全部显示</button><button id="clearAllTypes">全部隐藏</button></div>
+        <div id="pointTypes" aria-label="点位类型多选列表"></div>
+        <p class="hint" id="poiCoverage" hidden></p>
+      </details>
+      <div class="marker-controls">
+        <label for="markerStyle">标点样式</label>
+        <select id="markerStyle"><option value="icons">物品与容器图标</option><option value="dots">简洁色点</option></select>
+        <label class="range-label" for="markerSize">图标大小 <output id="markerSizeValue">26 px</output></label>
+        <input id="markerSize" type="range" min="18" max="40" step="2" value="26">
+        <button id="openIconSettings" disabled>自定义点位图标…</button>
+        <p id="iconLibraryStatus" class="hint" role="status" hidden></p>
+      </div>
+      <details class="filter-section" id="heightSection"><summary>高度分层 <small id="heightSummary">全部</small></summary>
+      <div class="floors" id="floors"></div>
+      <label class="range-label" for="cutHeight">剖切上限 <output id="heightValue"></output></label>
+      <input id="cutHeight" type="range" min="-15" max="60" step="0.01" value="60">
+      </details>
+      <details class="filter-section results-section" id="resultsSection" open><summary>匹配点位 <small id="resultCount">—</small></summary>
+      <div class="results-title"><button id="exportData" title="导出当前筛选点位">导出 JSON ↓</button></div>
+      <div class="result-list" id="resultList"></div>
+      <div id="resultMore" class="hint"></div>
+      </details></div>
+    </aside>
+    <section class="map-panel" aria-label="塔科夫街区原始场景与物资点位">
+      <div id="viewport"></div>
+      <div id="clusterCounts" aria-hidden="true"></div>
+      <button id="streamStatus" hidden aria-live="polite" title="分区加载失败时点击重试"></button>
+      <div id="mapNavigator" hidden><button id="toggleNavigator" aria-expanded="true" aria-controls="navigatorContent">全图导航 −</button><div id="navigatorContent"><span class="navigator-caption">点击跳转 <small>+Z ↑</small></span><canvas id="navigatorCanvas" aria-label="地图俯视预览，点击跳转到对应区域"></canvas></div></div>
+      <div class="map-tools"><button id="topView" class="active">俯视</button><button id="orbitView">三维</button><button id="resetView">复位</button><button id="toggleGeometry" class="active">场景</button></div>
+      <div class="rotation-tools"><button id="rotateLeft" title="向左旋转 15°" aria-label="向左旋转 15 度">↶</button><button id="resetHeading" title="恢复默认方向（180°）"><span id="headingValue">180°</span></button><button id="rotateRight" title="向右旋转 15°" aria-label="向右旋转 15 度">↷</button></div>
+      <div class="compass" title="游戏世界坐标方向：+Z / +X；未将其标为地理北方"><div id="compassNeedle"><span class="axis-z" style="top:7px;bottom:auto">+Z ↑</span><span class="axis-x" style="top:29px">+X →</span></div></div>
+      <div class="map-caption"><span id="viewLabel"></span></div>
+      <div id="loading"><strong>正在构建街区视图</strong><span id="loadMessage">读取物资数据库…</span><div class="loading-line"></div></div>
+      <div id="tooltip" hidden></div>
+      <div class="map-help"><span id="interactionHelp" style="margin-left:0;color:inherit;font-family:inherit">左键平移 · 右键旋转 · 滚轮缩放</span><span id="scaleLabel"></span></div>
+      <div class="legend" id="markerLegend" hidden><span class="legend-caption">色点</span><span><i class="dot loose"></i>散落</span><span><i class="dot container"></i>容器</span><span><i class="dot forced"></i>强制记录</span><span><i class="dot unknown"></i>物品池未知</span></div>
+    </section>
+    <aside class="floating-panel" id="rightPanel"><button class="panel-toggle" id="rightPanelToggle" aria-expanded="false" aria-controls="details">点位详情 +</button><div class="details" id="details"><div class="empty-detail"><div class="crosshair">⌖</div><p>点击点位查看详情</p></div></div></aside>
+  </main>
+  <footer class="site-footer" aria-label="网站备案信息"><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" title="工信部备案信息查询（新窗口）"><span>冀ICP备2026046921号-1</span></a></footer>
+  <script type="module" src="factory.js"></script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "version": "web-download-2026-11-06",
+  "codeCommit": "589cd38283e3387377f8b659d52fb4b6f79afdde",
+  "status": "deployed",
+  "deployedAt": "2026-11-06T03:42:05.196450+00:00",
+  "releaseId": "web-download-20261106T033824Z",
+  "previousRelease": "web-6c17f65-20261106T025623Z",
+  "site": "https://tarkovlootmap.com/",
+  "downloadUrl": "https://pan.quark.cn/s/6723ba88bd07",
+  "repositoryVisibility": "private",
+  "files": [
+    {
+      "file": "site/client-download.css",
+      "bytes": 2689,
+      "sha256": "06e99e2ef527193b013bd4332d7d040c6a90625dfcf29384db2117cd4c65c7c0"
+    },
+    {
+      "file": "site/about.js",
+      "bytes": 3137,
+      "sha256": "f36d8edd7a99d6b16048dcad2e8808be771dbe89bc20401a7708fe5bca05c969"
+    },
+    {
+      "file": "site/desktop-downloads.html",
+      "bytes": 2061,
+      "sha256": "e08a28e71635abb10db98ced85a1a9251bf0203a3f6c2f915c9bb72266de5655"
+    },
+    {
+      "file": "site/index.html",
+      "bytes": 2960,
+      "sha256": "ab5312eef93f14a2c18582e7d992531b76966c653a691e0f7f271e995f76e240"
+    },
+    {
+      "file": "site/tasks.html",
+      "bytes": 4548,
+      "sha256": "309ef71ec81d0a922219cb95af76ca70aa1ed55056d0ed977f348e30145b8020"
+    },
+    {
+      "file": "site/factory.html",
+      "bytes": 9014,
+      "sha256": "df0053a0143db7d20a71ed8d8dcafe31176f5be2d71831ba76ce9c6207b6ca1e"
+    },
+    {
+      "file": "site/streets.html",
+      "bytes": 9041,
+      "sha256": "d6389bd61646134b4d99b6ba9ba43dea31ff13ed056cd9318fa2e22dae0a47dc"
+    },
+    {
+      "file": "site/map.html",
+      "bytes": 8906,
+      "sha256": "59f76be2c2fec5b8b41154948c41eefa1e495879a65250acaa61fd4287b3d42b"
+    }
+  ],
+  "changedBytes": 42356,
+  "sourceAssetsUnchanged": true,
+  "serviceRestarted": false,
+  "runtimeBaseline": "web-2026-11-06.json",
+  "validation": {
+    "localPages": 5,
+    "localViewportsPerPage": 16,
+    "localOverlaps": 0,
+    "hiddenWindowShows": 0,
+    "hiddenWindowFocuses": 0,
+    "publicFilesAndIcons": 10,
+    "publicNotModified": 10,
+    "publicRuntimeAndCachePlans": [
+      "factory",
+      "streets",
+      "woods"
+    ],
+    "publicBrowserCheck": "Not run: automatic approval review blocked the hidden browser command without a detailed reason."
+  }
+}

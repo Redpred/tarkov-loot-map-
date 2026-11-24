@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "version": "1.2.0-rc.1",
+  "codeTag": "v1.2.0-rc.1",
+  "status": "candidate-not-deployed",
+  "createdAt": "2026-10-26T06:39:12.406Z",
+  "node": "24.22.1",
+  "baseline": {
+    "tag": "baseline/pre-resource-optimization-20261026",
+    "commit": "4e9384af97a71fee28238083f8f9fce0a85585e1",
+    "sourceAssetsUnchanged": true
+  },
+  "externalAssets": {
+    "includedInGit": false,
+    "inventories": [
+      {
+        "file": "deploy/external-map-assets.json",
+        "sha256": "6a6206c92ac41eac6d2c4eba3e973d6f4e40ab0706ec5fc23dba547001c7a95e",
+        "bytes": 341092
+      },
+      {
+        "file": "deploy/external-texture-assets.json",
+        "sha256": "d9fec9a89a3f81752aec47d69d0b118aec6d1ed116634abea3dc4572bd78d20d",
+        "bytes": 8843
+      },
+      {
+        "file": "deploy/external-geometry-assets.json",
+        "sha256": "31ce05b4bde2b6d72c26260f493c627e89b8b0516a4ec199b1baa477c12a3920",
+        "bytes": 1521442
+      },
+      {
+        "file": "deploy/external-scenery-assets.json",
+        "sha256": "745aecbfcfd1d62909b1cfbabf33c9a55d443dcb0f71bcfca639dac4c1965905",
+        "bytes": 1588931
+      }
+    ]
+  },
+  "pagePolicy": {
+    "file": "deploy/public-page-policy.json",
+    "sha256": "bcce0fe472bdefb3b83e235cec3869856dfc9a022255be9b56a3146116a1afad"
+  },
+  "notes": "Source tag plus matching external assets form the restore point. No website deployment or repository visibility change."
+}

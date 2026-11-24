@@ -1,0 +1,28 @@
+{
+  "appId": "com.redpred.tarkovlootmap",
+  "productName": "塔科夫物资地图",
+  "executableName": "TarkovLootMap",
+  "directories": {"app": "../work/desktop-stage/app", "output": "../dist/desktop"},
+  "files": ["**/*"],
+  "asar": true,
+  "afterPack": "./installer-files.cjs",
+  "npmRebuild": false,
+  "electronLanguages": ["zh-CN", "en-US"],
+  "win": {"target": [{"target": "nsis", "arch": ["x64"]}], "icon": "../site/app-icon-512.png"},
+  "nsis": {
+    "include": "installer.nsh",
+    "oneClick": false,
+    "perMachine": false,
+    "allowElevation": false,
+    "packElevateHelper": false,
+    "allowToChangeInstallationDirectory": true,
+    "deleteAppDataOnUninstall": false,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "runAfterFinish": false,
+    "installerLanguages": ["zh_CN", "en_US"],
+    "artifactName": "TarkovLootMap-${version}-win-${arch}-setup.${ext}"
+  },
+  "detectUpdateChannel": false,
+  "publish": {"provider": "generic", "url": "https://github.com/Redpred/tarkov-loot-map/releases/download/desktop-v${version}/", "channel": "latest"}
+}

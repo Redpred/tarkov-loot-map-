@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Prepared task data; not active website/map data",
+  "status": "prepared_with_source_gaps",
+  "packagePath": "data/tasks/20261013-901f569",
+  "manifestPath": "data/tasks/20261013-901f569/manifest.json",
+  "manifestSha256": "32eda8139760cefa542f5e1650a7e8bf421077fc9d1283a52320373807c88066",
+  "sptCommit": "901f5693693c16ee074e0cc8caddc79a06b5facd",
+  "eftBuild": 47965,
+  "localizations": {
+    "zh-CN": {
+      "packagePath": "data/tasks/20261013-901f569-zh-CN",
+      "manifestPath": "data/tasks/20261013-901f569-zh-CN/manifest.json",
+      "manifestSha256": "8753f3d2d87f6148e500ae5945d0c9dce46bdffc9f038477fd5273b352e213f7",
+      "status": "prepared_with_source_gaps"
+    }
+  }
+}

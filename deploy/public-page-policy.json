@@ -1,0 +1,5 @@
+{
+  "updatedAt": "2026-10-24",
+  "disabledPages": ["site/loot.html", "site/encyclopedia.html"],
+  "reason": "用户要求暂时屏蔽线上图片识别与百科。发布时保持这些路径缺失并验收 HTTP 404；本地源码保留，未获恢复指令不得重新发布。"
+}

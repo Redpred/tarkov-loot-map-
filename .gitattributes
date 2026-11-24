@@ -1,0 +1,9 @@
+# Preserve original bytes: JSON/assets are bound by SHA-256 and PowerShell files
+# include UTF-8 BOM for Windows PowerShell 5.1. Never normalize checkout content.
+* -text
+*.png binary
+*.jpg binary
+*.webp binary
+*.wasm binary
+*.gz binary
+*.bin binary

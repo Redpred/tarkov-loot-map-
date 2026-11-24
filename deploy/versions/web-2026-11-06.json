@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "version": "web-2026-11-06",
+  "codeCommit": "6c17f65c10279744ddc255b8f4c0d64003c37494",
+  "desktopSourceVersion": "1.4.0-alpha.14",
+  "status": "deployed",
+  "deployedAt": "2026-11-06T03:12:20.264264+00:00",
+  "releaseId": "web-6c17f65-20261106T025623Z",
+  "previousRelease": "v1.3.0-20261028T120214Z",
+  "site": "https://tarkovlootmap.com/",
+  "node": "24.22.1",
+  "releasePlanSha256": "a8e88f1abdeedbe15708272ab45b40516e12f43199bae9de07e000bec61e2ec0",
+  "changedFiles": 101,
+  "changedBytes": 172703377,
+  "compressedUploadBytes": 51562575,
+  "geometryAndTextureAssetsReused": true,
+  "mapRuntimeRebuilt": true,
+  "mapRuntimeFiles": [
+    {
+      "file": "site/data/runtime/176312e8d09c7920e697e602251cbfbcfe1d578dfa7b86db50e7e5b05ed82c01.json",
+      "bytes": 3308470,
+      "sha256": "176312e8d09c7920e697e602251cbfbcfe1d578dfa7b86db50e7e5b05ed82c01"
+    },
+    {
+      "file": "site/data/runtime/176312e8d09c7920e697e602251cbfbcfe1d578dfa7b86db50e7e5b05ed82c01.json.gz",
+      "bytes": 410236,
+      "sha256": "aa0c38eb4618852b023acf6d05e4a84c66e3642ac2d5a980cb098c2979e253db"
+    },
+    {
+      "file": "site/data/runtime/36e82cf6ef60656aa8e2a4d8580d9be2495d720ba945ba8afbd4536f65f133dd.json",
+      "bytes": 9762290,
+      "sha256": "36e82cf6ef60656aa8e2a4d8580d9be2495d720ba945ba8afbd4536f65f133dd"
+    },
+    {
+      "file": "site/data/runtime/36e82cf6ef60656aa8e2a4d8580d9be2495d720ba945ba8afbd4536f65f133dd.json.gz",
+      "bytes": 1178790,
+      "sha256": "c6dee7c58fe9ddf45cfade6631c5563fb4312fd4ea8e8d5ee1bdd8dc6341b3f5"
+    },
+    {
+      "file": "site/data/runtime/4b003a621ab73e366677375e14038b110d35567d831e86de2d669f5626b9bab2.json",
+      "bytes": 28046556,
+      "sha256": "4b003a621ab73e366677375e14038b110d35567d831e86de2d669f5626b9bab2"
+    },
+    {
+      "file": "site/data/runtime/4b003a621ab73e366677375e14038b110d35567d831e86de2d669f5626b9bab2.json.gz",
+      "bytes": 2926427,
+      "sha256": "3d157cfcdb57e88b1d565895fc286bcd5ccea70ed3dded43e9f40d5ce3af0b32"
+    },
+    {
+      "file": "site/data/runtime/6ca67cb45046adc4a536983ed5e5fdd125708ecc63c5e36b6041bc103487bc15.json",
+      "bytes": 10673481,
+      "sha256": "6ca67cb45046adc4a536983ed5e5fdd125708ecc63c5e36b6041bc103487bc15"
+    },
+    {
+      "file": "site/data/runtime/6ca67cb45046adc4a536983ed5e5fdd125708ecc63c5e36b6041bc103487bc15.json.gz",
+      "bytes": 1387814,
+      "sha256": "1be091365be98cbceeda137134c1bfe3a3757127b9d54d92252c76afffed4f6a"
+    },
+    {
+      "file": "site/data/runtime/7ec9b4bbda00cdbd166bb9187b6cf503a204f8813ce634616e20a2b9f576a4b1.json",
+      "bytes": 2077862,
+      "sha256": "7ec9b4bbda00cdbd166bb9187b6cf503a204f8813ce634616e20a2b9f576a4b1"
+    },
+    {
+      "file": "site/data/runtime/7ec9b4bbda00cdbd166bb9187b6cf503a204f8813ce634616e20a2b9f576a4b1.json.gz",
+      "bytes": 409734,
+      "sha256": "1995d9d7e80c9501fd5a5b78da9bee49101ee9fd862539d2d0866c20bf84adc3"
+    },
+    {
+      "file": "site/data/runtime/80c3b331962711522b4cde3fb8da057ea66fd50e92b1c0c449cb710778be0873.json",
+      "bytes": 15796154,
+      "sha256": "80c3b331962711522b4cde3fb8da057ea66fd50e92b1c0c449cb710778be0873"
+    },
+    {
+      "file": "site/data/runtime/80c3b331962711522b4cde3fb8da057ea66fd50e92b1c0c449cb710778be0873.json.gz",
+      "bytes": 1998216,
+      "sha256": "8873b330c1c1bee81e7b5143ef0ae4b657ba1cade43c8508b3f3561ed0350dbd"
+    },
+    {
+      "file": "site/data/runtime/8c2926b11ed2ce513222acbc636556e81b71f26b7dbdecb4e0199b06ab7fbdb6.json",
+      "bytes": 5813865,
+      "sha256": "8c2926b11ed2ce513222acbc636556e81b71f26b7dbdecb4e0199b06ab7fbdb6"
+    },
+    {
+      "file": "site/data/runtime/8c2926b11ed2ce513222acbc636556e81b71f26b7dbdecb4e0199b06ab7fbdb6.json.gz",
+      "bytes": 782251,
+      "sha256": "7603d7526c17e05e7f62218737997619fb87bc67709d61e23083a874ee930e13"
+    },
+    {
+      "file": "site/data/runtime/928896057476478ddc92b947c52ae3926d57c07e3c017c85b71a5e2a1d28f9d0.json",
+      "bytes": 5804301,
+      "sha256": "928896057476478ddc92b947c52ae3926d57c07e3c017c85b71a5e2a1d28f9d0"
+    },
+    {
+      "file": "site/data/runtime/928896057476478ddc92b947c52ae3926d57c07e3c017c85b71a5e2a1d28f9d0.json.gz",
+      "bytes": 611426,
+      "sha256": "595f7b716d65cc937726c8e2461ed5cdc8c0d7badd1a2984cef6335ed1e0fd0c"
+    },
+    {
+      "file": "site/data/runtime/9984e0e5370b0d6c163758367f5ad88ce91803ad46ab6fc73d56c003e8ab8177.json",
+      "bytes": 3116754,
+      "sha256": "9984e0e5370b0d6c163758367f5ad88ce91803ad46ab6fc73d56c003e8ab8177"
+    },
+    {
+      "file": "site/data/runtime/9984e0e5370b0d6c163758367f5ad88ce91803ad46ab6fc73d56c003e8ab8177.json.gz",
+      "bytes": 519635,
+      "sha256": "81db793cdcab7080167cce188528a8e2c55bda6a75cf4e75c0e6f7bc410147c0"
+    },
+    {
+      "file": "site/data/runtime/a758100b0639bc6a9f5c17002a324ac8e19239e78fdd834cab50588d342dbc85.json",
+      "bytes": 30228768,
+      "sha256": "a758100b0639bc6a9f5c17002a324ac8e19239e78fdd834cab50588d342dbc85"
+    },
+    {
+      "file": "site/data/runtime/a758100b0639bc6a9f5c17002a324ac8e19239e78fdd834cab50588d342dbc85.json.gz",
+      "bytes": 2630064,
+      "sha256": "52572be2ff28d514a11666cf8372b9093ee9659e0ebbd91aacea9ab472ebad63"
+    },
+    {
+      "file": "site/data/runtime/a9bb5c62c3330eaa8b0a1ba2f3003850e60e2d2e38e75afce28b11bb5a92ac72.json",
+      "bytes": 613478,
+      "sha256": "a9bb5c62c3330eaa8b0a1ba2f3003850e60e2d2e38e75afce28b11bb5a92ac72"
+    },
+    {
+      "file": "site/data/runtime/a9bb5c62c3330eaa8b0a1ba2f3003850e60e2d2e38e75afce28b11bb5a92ac72.json.gz",
+      "bytes": 99720,
+      "sha256": "c4f504cd695bf9e5f89c3731e617c466386359eaba7e3bfd2d70296705ccae5d"
+    },
+    {
+      "file": "site/data/runtime/b89a3b8325f549ab47cd985920909ce36bebbd48568e067b8afedf985fdf7bc0.json",
+      "bytes": 16088388,
+      "sha256": "b89a3b8325f549ab47cd985920909ce36bebbd48568e067b8afedf985fdf7bc0"
+    },
+    {
+      "file": "site/data/runtime/b89a3b8325f549ab47cd985920909ce36bebbd48568e067b8afedf985fdf7bc0.json.gz",
+      "bytes": 1807758,
+      "sha256": "d93918ef9b1d22dc7aa6d6655429fc25604ea39246422383840b5d2fe38c854c"
+    },
+    {
+      "file": "site/data/runtime/be8616a9df97b7c10ecbeabfbf208233a1648cbbfc2f8524fb6cbae5a3f2d13e.json",
+      "bytes": 8996724,
+      "sha256": "be8616a9df97b7c10ecbeabfbf208233a1648cbbfc2f8524fb6cbae5a3f2d13e"
+    },
+    {
+      "file": "site/data/runtime/be8616a9df97b7c10ecbeabfbf208233a1648cbbfc2f8524fb6cbae5a3f2d13e.json.gz",
+      "bytes": 1285459,
+      "sha256": "2d10f2c8ee6f4a20745dcbca0cd0f4eb13b276d140ddbe507a8ab7f1c03602e9"
+    },
+    {
+      "file": "site/data/runtime/manifest.json",
+      "bytes": 311339,
+      "sha256": "bf68fdb1091ac5ac5c297bd12771e092379c623c8c6f69dceb670db7e4735b6a"
+    }
+  ],
+  "verification": {
+    "candidateAndActiveMaps": 13,
+    "cachePlans": 234,
+    "geometryChunks": 78,
+    "publicFiles": 69,
+    "publicMaps": 13,
+    "publicBrowser": true,
+    "browserWindowShows": 0,
+    "browserWindowFocuses": 0,
+    "prices": [
+      {
+        "mode": "regular",
+        "status": 200,
+        "items": 5497,
+        "stale": false
+      },
+      {
+        "mode": "pve",
+        "status": 200,
+        "items": 5497,
+        "stale": false
+      },
+      {
+        "mode": "pvp-season",
+        "status": 200,
+        "items": 5497,
+        "stale": false
+      }
+    ]
+  },
+  "limits": [
+    "Browser map rendering covered the default Factory scene with software rendering; all-map HTTP and quality-plan checks are separate.",
+    "Native directory selection and real in-game screenshot capture were not exercised by this deployment check."
+  ],
+  "rollback": "Deployment-specific backups and fingerprint-bound rollback instructions are retained in private maintenance records."
+}

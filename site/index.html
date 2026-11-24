@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0d0e0c">
+  <title>塔科夫物资地图</title>
+  <link rel="icon" type="image/png" sizes="192x192" href="app-icon-192.png">
+  <link rel="icon" type="image/svg+xml" sizes="any" href="app-icon.svg">
+  <link rel="stylesheet" href="ui-theme.css"><link rel="stylesheet" href="home.css"><link rel="stylesheet" href="app-nav.css"><link rel="stylesheet" href="atlas-settings.css">
+  <link rel="manifest" href="app-manifest.json">
+  <link rel="apple-touch-icon" href="app-icon-180.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="物资地图">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="sponsor.css">
+  <link rel="stylesheet" href="client-download.css">
+  <script type="module" src="sponsor.js"></script>
+  <script type="module" src="filing-footer.js"></script>
+</head>
+<body class="home-app">
+  <a class="skip-link" href="#mapDirectory">跳转到地图</a>
+  <header class="home-header">
+    <span class="brand-emblem" aria-hidden="true">T<span>／</span></span>
+    <h1>塔科夫物资地图·测试版</h1>
+    <nav class="app-nav" aria-label="主导航"><a href="index.html" aria-current="page">首页</a><a href="index.html#mapDirectory" data-map-nav hidden>地图</a><a href="tasks.html">任务</a></nav>
+    <button id="openHomeSettings" class="home-settings-button" type="button" aria-haspopup="dialog" aria-controls="viewSettings">设置</button>
+    <a class="client-download" href="https://pan.quark.cn/s/6723ba88bd07" target="_blank" rel="noopener noreferrer" aria-label="下载客户端（夸克网盘，新窗口）" title="下载 Windows 客户端（夸克网盘）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4"/></svg><span class="client-download-label">下载客户端</span><span class="client-download-short" aria-hidden="true">下载</span></a>
+  </header>
+  <main class="home-main" id="mapDirectory">
+    <div class="map-grid" id="maps" aria-label="地图" aria-busy="true"></div>
+    <p id="loading" role="status">加载地图…</p>
+    <p id="error" role="alert" hidden></p>
+    <noscript><p>请启用 JavaScript 以查看地图。</p></noscript>
+  </main>
+  <footer class="site-footer" aria-label="网站备案信息"><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" title="工信部备案信息查询（新窗口）"><span>冀ICP备2026046921号-1</span></a></footer>
+  <script type="module" src="home.js"></script>
+  <script type="module" src="game-mode.js"></script>
+</body>
+</html>

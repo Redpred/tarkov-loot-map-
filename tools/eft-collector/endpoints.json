@@ -1,0 +1,679 @@
+{
+  "schemaVersion": 1,
+  "testedGameVersion": "1.2.5.0.48146",
+  "verifiedAt": "2026-10-20",
+  "endpoints": {
+    "locations": {
+      "path": "/client/locations",
+      "method": "GET",
+      "body": "none",
+      "shape": "dict",
+      "auth": "optional",
+      "status": "verified",
+      "evidence": "48146 static GET; retained PC and Ubuntu anonymous response: HTTP 200 / err 0."
+    },
+    "languages": {
+      "path": "/client/languages",
+      "method": "GET",
+      "body": "none",
+      "shape": "dict",
+      "auth": "optional",
+      "status": "verified",
+      "evidence": "48146 static GET; Ubuntu anonymous: 20 language codes/names.",
+      "lastValidation": {
+        "at": "2026-10-20T07:16:57.112613+00:00",
+        "httpStatus": 200,
+        "backendErrorCode": 0,
+        "authKind": "anonymous",
+        "success": true,
+        "captureId": "20261020T071657-languages-59acfc38"
+      }
+    },
+    "metadata": {
+      "path": "/client/metadata",
+      "method": "POST",
+      "body": "metadata-json",
+      "shape": "dict",
+      "auth": "required",
+      "status": "experimental",
+      "evidence": "Fresh Ubuntu-created owned session through RU loopback proxy succeeded on configured .ru origin; data.value decoded. Requires separately derived version/key; lifetime unknown.",
+      "lastValidation": {
+        "at": "2026-10-20T09:55:14.859755+00:00",
+        "host": "gw-pvp.escapefromtarkov.ru",
+        "httpStatus": 200,
+        "backendErrorCode": null,
+        "authKind": "game-session",
+        "requestFraming": "none",
+        "success": true,
+        "captureId": "20261020T095514-metadata-5960fe50"
+      },
+      "validationHistory": [
+        {
+          "at": "2026-10-20T09:06:18.457176+00:00",
+          "host": "gw-pvp.escapefromtarkov.com",
+          "httpStatus": 200,
+          "backendErrorCode": null,
+          "authKind": "game-session",
+          "requestFraming": "none",
+          "success": true,
+          "captureId": "20261020T090618-metadata-62b91603"
+        }
+      ]
+    },
+    "settings": {
+      "path": "/client/settings",
+      "method": "GET",
+      "body": "none",
+      "shape": "any",
+      "auth": "optional",
+      "status": "experimental",
+      "evidence": "48146 GET succeeded on .ru with fresh owned session. RequestsMadeThroughLobby contains only /client/mail/msg/send in this capture.",
+      "lastValidation": {
+        "at": "2026-10-20T09:56:53.819710+00:00",
+        "host": "gw-pvp.escapefromtarkov.ru",
+        "httpStatus": 200,
+        "backendErrorCode": 0,
+        "authKind": "game-session",
+        "requestFraming": "none",
+        "success": true,
+        "captureId": "20261020T095653-settings-06485b55"
+      }
+    },
+    "profile-list": {
+      "path": "/client/game/profile/list",
+      "method": "POST",
+      "body": "zlib-empty",
+      "shape": "any",
+      "auth": "optional",
+      "status": "experimental",
+      "evidence": "48146 compressed empty POST + spt-shuffle succeeded with owned session: two profiles. Full response is private; current PMC has 204 quest states.",
+      "lastValidation": {
+        "at": "2026-10-20T09:59:18.669059+00:00",
+        "host": "gw-pvp.escapefromtarkov.ru",
+        "httpStatus": 200,
+        "backendErrorCode": 0,
+        "authKind": "game-session",
+        "requestFraming": "spt-shuffle",
+        "success": true,
+        "captureId": "20261020T095918-profile-list-1a64ca15"
+      }
+    },
+    "game-config": {
+      "path": "/client/game/config",
+      "method": "POST",
+      "body": "zlib-empty",
+      "shape": "any",
+      "auth": "optional",
+      "status": "experimental",
+      "evidence": "48146 POST zlib-empty + spt-shuffle with fresh owned session succeeded on configured .ru origin. Runtime Main/RagFair=.ru, sessionMode=regular. Defaults remain anonymous and unframed.",
+      "lastValidation": {
+        "at": "2026-10-20T09:55:58.818066+00:00",
+        "host": "gw-pvp.escapefromtarkov.ru",
+        "httpStatus": 200,
+        "backendErrorCode": 0,
+        "authKind": "game-session",
+        "requestFraming": "spt-shuffle",
+        "success": true,
+        "captureId": "20261020T095558-game-config-baf330cc"
+      },
+      "validationHistory": [
+        {
+          "at": "2026-10-20T07:25:26.927042+00:00",
+          "httpStatus": 400,
+          "backendErrorCode": 1000,
+          "authKind": "anonymous",
+          "success": false,
+          "captureId": "20261020T072526-game-config-fdcb62b9"
+        },
+        {
+          "at": "2026-10-20T09:07:28.532448+00:00",
+          "host": "gw-pvp.escapefromtarkov.com",
+          "httpStatus": 200,
+          "backendErrorCode": 0,
+          "authKind": "game-session",
+          "requestFraming": "spt-shuffle",
+          "success": true,
+          "captureId": "20261020T090728-game-config-b2c8da0f"
+        }
+      ]
+    },
+    "items": {
+      "path": "/client/items",
+      "method": "GET",
+      "body": "none",
+      "shape": "dict",
+      "auth": "optional",
+      "status": "verified",
+      "evidence": "48146 static GET: config-items-183d19680.asm.txt. Live result recorded in lastValidation.",
+      "lastValidation": {
+        "at": "2026-10-20T07:17:27.411595+00:00",
+        "httpStatus": 200,
+        "backendErrorCode": 0,
+        "authKind": "anonymous",
+        "success": true,
+        "captureId": "20261020T071727-items-f4479609"
+      }
+    },
+    "globals": {
+      "path": "/client/globals",
+      "method": "GET",
+      "body": "none",
+      "shape": "dict",
+      "auth": "optional",
+      "status": "verified",
+      "evidence": "48146 static GET: config-globals-182a62cf0.asm.txt. Live result recorded in lastValidation.",
+      "lastValidation": {
+        "at": "2026-10-20T07:18:33.259318+00:00",
+        "httpStatus": 200,
+        "backendErrorCode": 0,
+        "authKind": "anonymous",
+        "success": true,
+        "captureId": "20261020T071833-globals-ae07e541"
+      }
+    },
+    "handbook": {
+      "path": "/client/handbook/templates",
+      "method": "GET",
+      "body": "none",
+      "shape": "dict",
+      "auth": "optional",
+      "status": "verified",
+      "evidence": "48146 static GET: config-handbook-180a83750.asm.txt. Live result recorded in lastValidation.",
+      "lastValidation": {
+        "at": "2026-10-20T07:17:57.534433+00:00",
+        "httpStatus": 200,
+        "backendErrorCode": 0,
+        "authKind": "anonymous",
+        "success": true,
+        "captureId": "20261020T071757-handbook-79e3abf3"
+      }
+    },
+    "hideout-areas": {
+      "path": "/client/hideout/areas",
+      "method": "GET",
+      "body": "none",
+      "shape": "any",
+      "auth": "optional",
+      "status": "experimental",
+      "evidence": "48146 static GET: config-hideout-areas-180abbaf0.asm.txt. Live result recorded in lastValidation.",
+      "lastValidation": {
+        "at": "2026-10-20T07:19:22.548623+00:00",
+        "httpStatus": 400,
+        "backendErrorCode": 1000,
+        "authKind": "anonymous",
+        "success": false,
+        "captureId": "20261020T071922-hideout-areas-4bce32a6"
+      }
+    },
+    "hideout-recipes": {
+      "path": "/client/hideout/production/recipes",
+      "method": "GET",
+      "body": "none",
+      "shape": "dict",
+      "auth": "optional",
+      "status": "verified",
+      "evidence": "48146 static GET: config-hideout-recipes-180ac0b80.asm.txt. Live result recorded in lastValidation.",
+      "lastValidation": {
+        "at": "2026-10-20T07:23:05.171496+00:00",
+        "httpStatus": 200,
+        "backendErrorCode": 0,
+        "authKind": "anonymous",
+        "success": true,
+        "captureId": "20261020T072305-hideout-recipes-2fc23f95"
+      }
+    },
+    "hideout-settings": {
+      "path": "/client/hideout/settings",
+      "method": "GET",
+      "body": "none",
+      "shape": "dict",
+      "auth": "optional",
+      "status": "verified",
+      "evidence": "48146 static GET: config-hideout-settings-180abfcf0.asm.txt. Live result recorded in lastValidation.",
+      "lastValidation": {
+        "at": "2026-10-20T07:24:55.379764+00:00",
+        "httpStatus": 200,
+        "backendErrorCode": 0,
+        "authKind": "anonymous",
+        "success": true,
+        "captureId": "20261020T072455-hideout-settings-ca4c95e0"
+      }
+    },
+    "customization": {
+      "path": "/client/customization",
+      "method": "GET",
+      "body": "none",
+      "shape": "dict",
+      "auth": "optional",
+      "status": "verified",
+      "evidence": "48146 static GET: config-customization-180a981e0.asm.txt. Live result recorded in lastValidation.",
+      "lastValidation": {
+        "at": "2026-10-20T07:21:12.243581+00:00",
+        "httpStatus": 200,
+        "backendErrorCode": 0,
+        "authKind": "anonymous",
+        "success": true,
+        "captureId": "20261020T072112-customization-bb4eafcb"
+      }
+    },
+    "achievements": {
+      "path": "/client/achievement/list",
+      "method": "GET",
+      "body": "none",
+      "shape": "any",
+      "auth": "optional",
+      "status": "experimental",
+      "evidence": "48146 static GET: config-achievements-180ab9640.asm.txt. Live result recorded in lastValidation.",
+      "lastValidation": {
+        "at": "2026-10-20T07:23:52.590024+00:00",
+        "httpStatus": 400,
+        "backendErrorCode": 1000,
+        "authKind": "anonymous",
+        "success": false,
+        "captureId": "20261020T072352-achievements-09971f3a"
+      }
+    },
+    "locale-ch": {
+      "path": "/client/locale/ch",
+      "method": "GET",
+      "body": "none",
+      "shape": "dict",
+      "auth": "optional",
+      "status": "experimental",
+      "evidence": "48146 static GET: config-locale-180a99350.asm.txt; language ch from live /client/languages.",
+      "lastValidation": {
+        "at": "2026-10-20T07:20:12.104441+00:00",
+        "httpStatus": 400,
+        "backendErrorCode": 1000,
+        "authKind": "anonymous",
+        "success": false,
+        "captureId": "20261020T072012-locale-ch-7e707d0e"
+      }
+    },
+    "main-quests": {
+      "path": "/client/quest/getMainQuestsList",
+      "method": "GET",
+      "body": "none",
+      "shape": "dict",
+      "auth": "optional",
+      "status": "verified",
+      "evidence": "48146 static GET: config-main-quests-182a60fe0.asm.txt. Live result recorded in lastValidation.",
+      "lastValidation": {
+        "at": "2026-10-20T07:24:24.126571+00:00",
+        "httpStatus": 200,
+        "backendErrorCode": 0,
+        "authKind": "anonymous",
+        "success": true,
+        "captureId": "20261020T072424-main-quests-c4fa3305"
+      }
+    },
+    "traders": {
+      "path": "/client/trading/api/traderSettings",
+      "method": "GET",
+      "body": "none",
+      "shape": "any",
+      "auth": "optional",
+      "status": "experimental",
+      "evidence": "48146 static GET: config-trader-settings-182a62850.asm.txt. Live result recorded in lastValidation.",
+      "lastValidation": {
+        "at": "2026-10-20T07:22:02.892488+00:00",
+        "httpStatus": 400,
+        "backendErrorCode": 1000,
+        "authKind": "anonymous",
+        "success": false,
+        "captureId": "20261020T072202-traders-0553998c"
+      }
+    },
+    "items-prices": {
+      "path": "/client/items/prices",
+      "method": "POST",
+      "body": "zlib-empty",
+      "shape": "any",
+      "auth": "optional",
+      "status": "experimental",
+      "evidence": "48146 config-prices-180aa5010.asm.txt: zeroed Method/Params; CreateFromLegacyParams defaults to POST + compressed empty string. This is not yet verified as live flea prices.",
+      "lastValidation": {
+        "at": "2026-10-20T07:34:07.973267+00:00",
+        "httpStatus": 400,
+        "backendErrorCode": 1000,
+        "authKind": "anonymous",
+        "success": false,
+        "captureId": "20261020T073407-items-prices-7525184a"
+      }
+    },
+    "menu-locale-ch": {
+      "path": "/client/menu/locale/ch",
+      "method": "GET",
+      "body": "none",
+      "shape": "dict",
+      "auth": "optional",
+      "status": "verified",
+      "evidence": "48146 ClientBackendSession.GetMenuLocale at 0x180a810f0: explicit GET, Main backend, language ch from verified languages. Ubuntu anonymous single-request result is recorded in lastValidation.",
+      "lastValidation": {
+        "at": "2026-10-20T07:59:31.131360+00:00",
+        "httpStatus": 200,
+        "backendErrorCode": 0,
+        "authKind": "anonymous",
+        "success": true,
+        "captureId": "20261020T075931-menu-locale-ch-23e31acb"
+      }
+    },
+    "quest-chains": {
+      "path": "/client/quest/chains",
+      "method": "POST",
+      "body": "zlib-empty",
+      "shape": "any",
+      "auth": "optional",
+      "status": "experimental",
+      "evidence": "48146 0x180ab3df0: Main backend, null Method and Params, default POST with zlib-empty. Ubuntu anonymous single-request result is recorded in lastValidation.",
+      "lastValidation": {
+        "at": "2026-10-20T08:00:02.402425+00:00",
+        "httpStatus": 400,
+        "backendErrorCode": 1000,
+        "authKind": "anonymous",
+        "success": false,
+        "captureId": "20261020T080002-quest-chains-19b95172"
+      }
+    },
+    "quest-list": {
+      "path": "/client/quest/list",
+      "method": "POST",
+      "body": "zlib-json",
+      "shape": "any",
+      "auth": "optional",
+      "status": "experimental",
+      "evidence": "48146 RequestQuestsTemplates(withCompleted) serializes {completed:true}. With fresh regular session, .ru and spt-shuffle: err201 before selecting existing active profile; err0 with 207 templates afterward. Not a proven global catalog; template.status is not player progress.",
+      "params": {
+        "completed": true
+      },
+      "previousValidation": {
+        "at": "2026-10-20T08:01:12.460861+00:00",
+        "httpStatus": 400,
+        "backendErrorCode": 1000,
+        "authKind": "anonymous",
+        "success": false,
+        "captureId": "20261020T080112-quest-list-5847c885",
+        "body": "zlib-empty"
+      },
+      "lastValidation": {
+        "at": "2026-10-20T10:02:25.020733+00:00",
+        "host": "gw-pvp.escapefromtarkov.ru",
+        "httpStatus": 200,
+        "backendErrorCode": 0,
+        "authKind": "game-session",
+        "requestFraming": "spt-shuffle",
+        "success": true,
+        "captureId": "20261020T100225-quest-list-d0c538ce"
+      },
+      "validationHistory": [
+        {
+          "at": "2026-10-20T08:22:47.703653+00:00",
+          "httpStatus": 400,
+          "backendErrorCode": 1000,
+          "authKind": "anonymous",
+          "success": false,
+          "captureId": "20261020T082247-quest-list-f1b29351",
+          "body": "zlib-json",
+          "params": {
+            "completed": true
+          }
+        },
+        {
+          "at": "2026-10-20T09:01:54.945766+00:00",
+          "host": "gw-pvp.escapefromtarkov.com",
+          "httpStatus": 400,
+          "backendErrorCode": 1000,
+          "authKind": "anonymous",
+          "requestFraming": "spt-shuffle",
+          "success": false,
+          "captureId": "20261020T090154-quest-list-545b9a8d"
+        },
+        {
+          "at": "2026-10-20T09:08:38.761580+00:00",
+          "host": "gw-pvp.escapefromtarkov.com",
+          "httpStatus": 200,
+          "backendErrorCode": 201,
+          "authKind": "game-session",
+          "requestFraming": "spt-shuffle",
+          "success": false,
+          "captureId": "20261020T090838-quest-list-4ee697f7"
+        },
+        {
+          "at": "2026-10-20T09:10:25.173360+00:00",
+          "host": "gw-pvp.escapefromtarkov.ru",
+          "httpStatus": 403,
+          "backendErrorCode": null,
+          "authKind": "game-session",
+          "requestFraming": "spt-shuffle",
+          "success": false,
+          "captureId": "20261020T091025-quest-list-c46181f5"
+        },
+        {
+          "at": "2026-10-20T09:57:31.634621+00:00",
+          "host": "gw-pvp.escapefromtarkov.ru",
+          "httpStatus": 200,
+          "backendErrorCode": 201,
+          "authKind": "game-session",
+          "requestFraming": "spt-shuffle",
+          "success": false,
+          "captureId": "20261020T095731-quest-list-418effd5"
+        }
+      ]
+    },
+    "weather": {
+      "path": "/client/weather",
+      "method": "POST",
+      "body": "zlib-empty",
+      "shape": "any",
+      "auth": "optional",
+      "status": "experimental",
+      "evidence": "48146 0x180aa8de0 through 0x180aa91d6: Main backend, null Method and Params, default POST with zlib-empty. Ubuntu anonymous single-request result is recorded in lastValidation.",
+      "lastValidation": {
+        "at": "2026-10-20T08:00:41.187048+00:00",
+        "httpStatus": 400,
+        "backendErrorCode": 1000,
+        "authKind": "anonymous",
+        "success": false,
+        "captureId": "20261020T080041-weather-128e7103"
+      }
+    },
+    "hideout-qte": {
+      "path": "/client/hideout/qte/list",
+      "method": "GET",
+      "body": "none",
+      "shape": "list",
+      "auth": "optional",
+      "status": "verified",
+      "evidence": "48146 static explicit GET, Main backend, no Params in request; function 0x180abc000. Ubuntu anonymous single-request result is recorded in lastValidation.",
+      "lastValidation": {
+        "at": "2026-10-20T08:02:44.224466+00:00",
+        "httpStatus": 200,
+        "backendErrorCode": 0,
+        "authKind": "anonymous",
+        "success": true,
+        "captureId": "20261020T080244-hideout-qte-22ce6733"
+      }
+    },
+    "prestige": {
+      "path": "/client/prestige/list",
+      "method": "GET",
+      "body": "none",
+      "shape": "dict",
+      "auth": "optional",
+      "status": "verified",
+      "evidence": "48146 static explicit GET, Main backend, no Params in request; function 0x182a614c0. Ubuntu anonymous single-request result is recorded in lastValidation.",
+      "lastValidation": {
+        "at": "2026-10-20T08:03:15.508123+00:00",
+        "httpStatus": 200,
+        "backendErrorCode": 0,
+        "authKind": "anonymous",
+        "success": true,
+        "captureId": "20261020T080315-prestige-f353d9d4"
+      }
+    },
+    "main-quest-notes": {
+      "path": "/client/quest/getMainQuestNotesList",
+      "method": "GET",
+      "body": "none",
+      "shape": "list",
+      "auth": "optional",
+      "status": "verified",
+      "evidence": "48146 static explicit GET, Main backend, no Params in request; function 0x182a61fb0. Ubuntu anonymous single-request result is recorded in lastValidation.",
+      "lastValidation": {
+        "at": "2026-10-20T08:03:47.098250+00:00",
+        "httpStatus": 200,
+        "backendErrorCode": 0,
+        "authKind": "anonymous",
+        "success": true,
+        "captureId": "20261020T080347-main-quest-notes-07dd5196"
+      }
+    },
+    "tapes": {
+      "path": "/client/tape/list",
+      "method": "GET",
+      "body": "none",
+      "shape": "list",
+      "auth": "optional",
+      "status": "verified",
+      "evidence": "48146 static explicit GET, Main backend, no Params in request; function 0x180ac1b90. Ubuntu anonymous single-request result is recorded in lastValidation.",
+      "lastValidation": {
+        "at": "2026-10-20T08:04:26.783643+00:00",
+        "httpStatus": 200,
+        "backendErrorCode": 0,
+        "authKind": "anonymous",
+        "success": true,
+        "captureId": "20261020T080426-tapes-a8806c36"
+      }
+    },
+    "subtitle-tracks": {
+      "path": "/client/subtitle-track/list",
+      "method": "GET",
+      "body": "none",
+      "shape": "list",
+      "auth": "optional",
+      "status": "verified",
+      "evidence": "48146 static explicit GET, Main backend, no Params in request; function 0x180abcc40. Ubuntu anonymous single-request result is recorded in lastValidation.",
+      "lastValidation": {
+        "at": "2026-10-20T08:04:58.056876+00:00",
+        "httpStatus": 200,
+        "backendErrorCode": 0,
+        "authKind": "anonymous",
+        "success": true,
+        "captureId": "20261020T080458-subtitle-tracks-fa8b02e2"
+      }
+    },
+    "flea-item-price": {
+      "path": "/client/ragfair/itemMarketPrice",
+      "method": "POST",
+      "body": "zlib-json",
+      "shape": "dict",
+      "auth": "optional",
+      "status": "experimental",
+      "backendRole": "RagFair",
+      "evidence": "48146 GetMarketPrices 0x180aa6350: templateId, POST zlib JSON, BackendUrls.RagFair. One Salewa sample succeeded with owned regular session, .ru and spt-shuffle. Validate matching templateId and finite min/avg/max. Currency, time window and aggregation semantics remain unknown.",
+      "requestContractSha256": "94039191fc2234109344a806f87dc0d0242b69f14f25a90f9dd3102baa8a6db6",
+      "lastValidation": {
+        "at": "2026-10-20T09:58:25.681310+00:00",
+        "host": "gw-pvp.escapefromtarkov.ru",
+        "httpStatus": 200,
+        "backendErrorCode": 0,
+        "authKind": "game-session",
+        "requestFraming": "spt-shuffle",
+        "success": true,
+        "captureId": "20261020T095825-flea-item-price-18068250"
+      }
+    },
+    "flea-offers": {
+      "path": "/client/ragfair/find",
+      "method": "POST",
+      "body": "zlib-json",
+      "shape": "dict",
+      "auth": "required",
+      "status": "experimental",
+      "backendRole": "RagFair",
+      "evidence": "48146 GetOffers 0x180aa5d90, 23 fields. Owned initialized regular session + spt-shuffle succeeded on .ru. Players=2, barter included, condition 0..100, all currencies; one explicit page/limit, no auto-pagination. Captures preserve live total changes.",
+      "requestContractSha256": "94039191fc2234109344a806f87dc0d0242b69f14f25a90f9dd3102baa8a6db6",
+      "validationHistory": [
+        {
+          "at": "2026-10-20T10:15:20.455542+00:00",
+          "host": "gw-pvp.escapefromtarkov.ru",
+          "httpStatus": 400,
+          "backendErrorCode": 1000,
+          "authKind": "game-session",
+          "requestFraming": "spt-shuffle",
+          "success": false,
+          "summary": null,
+          "captureId": "20261020T101520-flea-offers-probe-ed7f520a"
+        },
+        {
+          "at": "2026-10-20T10:19:49.605746+00:00",
+          "host": "gw-pvp.escapefromtarkov.ru",
+          "httpStatus": 200,
+          "backendErrorCode": 0,
+          "authKind": "game-session",
+          "requestFraming": "spt-shuffle",
+          "success": true,
+          "summary": {
+            "returnedOffers": 15,
+            "offersCount": 39,
+            "selectedCategory": "544fb45d4bdc2dee738b4568",
+            "page": 0,
+            "limit": 15
+          },
+          "captureId": "20261020T101949-flea-offers-probe-26817065"
+        },
+        {
+          "at": "2026-10-20T10:20:31.404805+00:00",
+          "host": "gw-pvp.escapefromtarkov.ru",
+          "httpStatus": 200,
+          "backendErrorCode": 0,
+          "authKind": "game-session",
+          "requestFraming": "spt-shuffle",
+          "success": true,
+          "summary": {
+            "returnedOffers": 15,
+            "offersCount": 39,
+            "selectedCategory": "544fb45d4bdc2dee738b4568",
+            "page": 1,
+            "limit": 15
+          },
+          "captureId": "20261020T102031-flea-offers-probe-afea045b"
+        },
+        {
+          "at": "2026-10-20T10:21:25.510011+00:00",
+          "host": "gw-pvp.escapefromtarkov.ru",
+          "httpStatus": 200,
+          "backendErrorCode": 0,
+          "authKind": "game-session",
+          "requestFraming": "spt-shuffle",
+          "success": true,
+          "summary": {
+            "returnedOffers": 8,
+            "offersCount": 38,
+            "selectedCategory": "544fb45d4bdc2dee738b4568",
+            "page": 2,
+            "limit": 15
+          },
+          "captureId": "20261020T102125-flea-offers-probe-d05d52de"
+        }
+      ],
+      "lastValidation": {
+        "at": "2026-10-20T10:22:26.936321+00:00",
+        "host": "gw-pvp.escapefromtarkov.ru",
+        "httpStatus": 200,
+        "backendErrorCode": 0,
+        "authKind": "game-session",
+        "requestFraming": "spt-shuffle",
+        "success": true,
+        "summary": {
+          "returnedOffers": 38,
+          "offersCount": 38,
+          "selectedCategory": "544fb45d4bdc2dee738b4568",
+          "page": 0,
+          "limit": 100
+        },
+        "captureId": "20261020T102226-flea-offers-probe-c501340c"
+      }
+    }
+  }
+}

@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>离线地图 · 塔科夫物资地图</title>
+  <link rel="icon" type="image/png" sizes="192x192" href="app-icon-192.png">
+  <link rel="icon" type="image/svg+xml" sizes="any" href="app-icon.svg"><link rel="stylesheet" href="ui-theme.css"><link rel="stylesheet" href="desktop-downloads.css"></head>
+<body><main><h1>离线地图</h1><p>提前保存一张地图的完整资源。优先从 GitHub Releases 下载，完成后相同画质下可以断网浏览；实时价格仍需联网。</p>
+<p>默认读取和保存到客户端安装目录下的 <code>map-resources</code> 文件夹，无需选择目录。已有资源会校验后复用；中断后可继续下载，升级和卸载保留资源。</p>
+<section><button id="choose">更改资源位置</button><button id="authorize" hidden>重新授权</button><p id="directory" role="status"></p></section>
+<section class="options"><label>地图 <select id="map"></select></label><label>模型 <select id="geometry"><option value="low">低</option><option value="medium">均衡</option><option value="original">高</option></select></label><label>贴图 <select id="texture"><option value="medium">均衡</option><option value="low">低</option><option value="original">高</option></select></label><label>装饰 <select id="scenery"><option value="full">保留</option><option value="simple">精简</option></select></label></section>
+<p id="estimate">选择画质后点击下载，将先核对大小和版本。</p><button id="download">下载 / 校验并继续</button><button id="pause" disabled>暂停</button><progress id="progress" max="100" value="0"></progress><p id="status" role="status"></p>
+<p class="hint">场景清单与地图资源一并保存在资源目录中。任务进度和设置保存在当前用户的数据文件夹。更换资源位置不会移动或删除旧文件。</p>
+</main><script type="module" src="desktop-downloads.js"></script></body></html>

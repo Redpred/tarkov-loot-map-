@@ -1,0 +1,18 @@
+.site-footer .about-button{display:inline-flex;align-items:center;justify-content:center;min-height:28px;padding:2px 8px;border:0;background:transparent;color:inherit;font:inherit;white-space:nowrap}
+.site-footer .about-button:hover{color:var(--gold-bright);text-decoration:underline;text-underline-offset:3px}
+body .about-dialog{width:min(600px,calc(100vw - 28px));max-width:calc(100vw - 28px);max-height:calc(100dvh - 32px);padding:24px;margin:auto;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--text);box-shadow:0 20px 80px #0009;overflow:auto;overscroll-behavior:contain;font:14px/1.8 var(--sans);text-align:left}
+.about-dialog::backdrop{background:#080b08bf;backdrop-filter:blur(3px)}
+.about-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.about-dialog-head h2{margin:0;font-size:20px;line-height:1.5;font-weight:600;color:var(--gold-bright)}
+.about-dialog-head button{flex:none;min-width:44px;min-height:44px;padding:0;border-color:transparent;background:transparent;font-size:26px;line-height:1}
+.about-dialog h3{margin:24px 0 8px;font-size:14px;font-weight:600;color:var(--gold-bright)}
+.about-dialog p{margin:8px 0;color:var(--muted);overflow-wrap:anywhere}
+.about-dialog a{color:var(--gold-bright);text-decoration:underline;text-underline-offset:3px}
+.about-dialog a:hover{color:var(--text)}
+.about-dialog .about-links{display:flex;gap:8px 20px;flex-wrap:wrap;margin-top:24px;padding-top:16px;border-top:1px solid var(--line);font-size:12px}
+@media(max-width:720px){
+  :root.has-police-filing.has-project-notice{--site-footer-height:calc(64px + env(safe-area-inset-bottom,0px))}
+  .has-police-filing.has-project-notice .site-footer{display:grid;grid-template-columns:max-content max-content;grid-template-rows:28px 28px;align-content:center;gap:0 8px}
+  .has-police-filing.has-project-notice .site-footer .filing-police{grid-column:1 / -1;grid-row:2;border-left:0;padding-left:8px}
+}
+@media(max-width:480px){body .about-dialog{padding:16px;font-size:13px}.about-dialog-head h2{font-size:17px}}

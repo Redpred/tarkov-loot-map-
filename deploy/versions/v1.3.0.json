@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "version": "1.3.0",
+  "codeTag": "v1.3.0",
+  "codeCommit": "a1f8d59fa330b51160d104e26506541eaa3e6baf",
+  "status": "deployed",
+  "deployedAt": "2026-10-28T12:12:11.693328+00:00",
+  "releaseId": "v1.3.0-20261028T120214Z",
+  "previousRelease": "v1.2.0-20261026T144627Z",
+  "site": "https://tarkovlootmap.com/",
+  "node": "24.22.1",
+  "releasePlanSha256": "57c9550fcbede87f83611f7e656311a1e55d3fcf9513715e78bdc121d4034ba6",
+  "assetInventories": [
+    {
+      "file": "deploy/external-map-assets.json",
+      "sha256": "6a6206c92ac41eac6d2c4eba3e973d6f4e40ab0706ec5fc23dba547001c7a95e",
+      "bytes": 341092
+    },
+    {
+      "file": "deploy/external-texture-assets.json",
+      "sha256": "d9fec9a89a3f81752aec47d69d0b118aec6d1ed116634abea3dc4572bd78d20d",
+      "bytes": 8843
+    },
+    {
+      "file": "deploy/external-geometry-assets.json",
+      "sha256": "31ce05b4bde2b6d72c26260f493c627e89b8b0516a4ec199b1baa477c12a3920",
+      "bytes": 1521442
+    },
+    {
+      "file": "deploy/external-scenery-assets.json",
+      "sha256": "745aecbfcfd1d62909b1cfbabf33c9a55d443dcb0f71bcfca639dac4c1965905",
+      "bytes": 1588931
+    },
+    {
+      "file": "deploy/external-delivery-chunks.json",
+      "sha256": "1d2e6b58027bc2b00e2aacff5f2d353bd5f1863acfb0cdc17c430cdd385bce25",
+      "bytes": 364372
+    }
+  ],
+  "sourceAssetsUnchanged": true,
+  "resourceDelivery": {
+    "mode": "prepared-chunks-only",
+    "models": 837,
+    "files": 1608,
+    "bytes": 2652058052,
+    "archiveDownloadsPublished": false,
+    "catalogPublished": false,
+    "sourceFileCount": 22,
+    "installedFileCount": 1630
+  },
+  "features": [
+    "managed-local-resource-directory",
+    "verified-resumable-downloads",
+    "per-map-storage-without-site-limit",
+    "remove-resource-pack-download-ui-and-location-notes",
+    "pmc-locate-and-boss-list-simplification"
+  ],
+  "validation": {
+    "portable": 135,
+    "serverMaps": 13,
+    "serverCachePlans": 234,
+    "serverGeometryChunks": 78,
+    "serverPreparedMaps": 13,
+    "publicOrigins": [
+      {
+        "origin": "https://tarkovlootmap.com",
+        "maps": 13,
+        "staticFiles": 18,
+        "cachePlans": 26,
+        "geometryChunks": 78,
+        "preparedMaps": 13,
+        "textures": 26
+      },
+      {
+        "origin": null,
+        "originRedacted": true,
+        "originType": "direct-ip",
+        "maps": 13,
+        "staticFiles": 18,
+        "cachePlans": 26,
+        "geometryChunks": 78,
+        "preparedMaps": 13,
+        "textures": 26
+      }
+    ],
+    "browser": {
+      "homepageSettings": true,
+      "firstMapDirectoryPrompt": true,
+      "nativeDirectoryPickerTested": false,
+      "fullSceneRetestedInProduction": false
+    },
+    "prices": [
+      {
+        "origin": "https://tarkovlootmap.com",
+        "modes": [
+          {
+            "mode": "regular",
+            "status": 200
+          },
+          {
+            "mode": "pve",
+            "status": 200
+          },
+          {
+            "mode": "pvp-season",
+            "status": 200
+          }
+        ]
+      },
+      {
+        "origin": null,
+        "originRedacted": true,
+        "originType": "direct-ip",
+        "modes": [
+          {
+            "mode": "regular",
+            "status": 200
+          },
+          {
+            "mode": "pve",
+            "status": 200
+          },
+          {
+            "mode": "pvp-season",
+            "status": 200
+          }
+        ]
+      }
+    ]
+  },
+  "rollbackBackupCreated": true
+}

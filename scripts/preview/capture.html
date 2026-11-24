@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>地图全景预览生成</title>
+<script type="importmap">{"imports":{"three":"/vendor/three.module.js"}}</script>
+<style>body{margin:24px;background:#101820;color:#e3e7df;font:15px system-ui}button,select{padding:10px;margin-right:10px}canvas{display:block;width:min(100%,1080px);height:auto;margin-top:20px;border:1px solid #34453d}#status{white-space:pre-wrap}#results{line-height:1.8}</style></head>
+<body><h1>地图全景预览生成</h1><p>俯视 · 全部高度与楼层 · 完整地图 · 隐藏标点与操作面板</p>
+<select id="map" aria-label="生成哪张地图"></select><button id="capture">生成所选地图</button><button id="all">更新缺失或过期预览</button>
+<p id="status" role="status">准备就绪</p><div id="results"></div><canvas id="preview" width="1440" height="960"></canvas>
+<script type="module" src="/__capture.js"></script></body></html>

@@ -1,0 +1,58 @@
+/* Shared, centred page switch. */
+/* Home, the current map, tasks, and a shared game mode on the right. */
+.app-nav{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:4px;padding:4px;border:1px solid #6f603d;border-radius:4px;background:#171a12;box-shadow:0 3px 16px #0005;flex-shrink:0}
+.app-nav a{display:flex;align-items:center;justify-content:center;min-width:104px;min-height:44px;padding:0 24px;font-size:18px;font-weight:700;letter-spacing:.12em;border:1px solid transparent;border-radius:2px;color:#b6b6a1}
+.app-nav a[hidden]{display:none}
+.app-nav a:hover{color:#f2deb0;background:#343021}.app-nav a[aria-current=page]{color:#f4dfad;border-color:#ad9257;background:linear-gradient(135deg,#655331,#3b3421);box-shadow:inset 0 1px #d4b56a30}
+.home-header{position:relative}.map-app>header{gap:18px}.map-app .map-switch-label{margin-left:auto}.map-app #mapSwitch{margin-left:0}.map-app #openMapKeys{display:flex;align-items:center;justify-content:center;gap:8px;flex-shrink:0;min-height:44px;padding:0 15px;color:#e4d2a2;background:#34301f;border:1px solid #927b49;font-size:14px;font-weight:600}.map-app #openMapKeys:hover{background:#4b4028;border-color:#c2a76a}.map-app #openMapKeys .ui-icon{width:19px;height:19px}
+@media(max-width:1250px){.map-app .heading,.map-app .map-switch-label{display:none}.map-app #mapSwitch{margin-left:auto}.map-app .brand{padding-right:0;border:0}.map-app>header{gap:12px}.map-app #mapSwitch{width:130px}}
+@media(max-width:900px){.home-header{flex-wrap:wrap;padding-bottom:72px}.home-header .app-nav{top:auto;bottom:12px;transform:translateX(-50%)}.map-app .brand-mark{display:none}.tasks-brand{font-size:14px}}
+@media(max-width:750px),(max-width:1000px) and (max-height:500px){
+  body.map-app{--header-height:calc(110px + env(safe-area-inset-top));--panel-top:calc(var(--header-height) + 10px)}
+  .map-app>header{height:var(--header-height);display:flex;align-items:flex-start;padding:calc(env(safe-area-inset-top) + 4px) var(--safe-right) 0 var(--safe-left);gap:8px}
+  .map-app .brand{font-size:12px;gap:5px;min-height:44px;padding:0;flex:1}.map-app .brand>span:last-child{max-width:none}.map-app #mapSwitch{width:108px;max-width:35vw;min-height:44px;margin-left:auto;font-size:14px}
+  .map-app .app-nav{top:auto;bottom:6px;transform:translateX(-50%);padding:3px;gap:2px}.map-app .app-nav a{min-width:62px;min-height:44px;padding:0 10px;font-size:16px}
+  .map-app #openMapKeys{position:absolute;right:var(--safe-right);bottom:10px;min-height:44px;width:68px;padding:0 4px;font-size:12px;gap:0}.map-app #openMapKeys .ui-icon{display:none}
+  .tasks-app{--tasks-header-height:calc(114px + env(safe-area-inset-top))}.tasks-header{align-items:flex-start;padding-top:calc(env(safe-area-inset-top) + 10px)}.tasks-brand{font-size:14px;line-height:22px}.tasks-brand span{display:inline;font-size:11px}.tasks-header .app-nav{top:auto;bottom:8px;transform:translateX(-50%)}
+  .home-header{padding-bottom:72px}.home-header h1{font-size:17px}.home-header .app-nav,.tasks-header .app-nav{padding:3px}.home-header .app-nav a,.tasks-header .app-nav a{min-width:100px;min-height:44px;font-size:17px}
+}
+body>header .header-game-mode{display:flex;align-items:center;gap:8px;margin-left:auto;flex:none;order:10;font-size:11px;color:#a7ac93}
+body>header .header-game-mode select{width:122px;min-height:44px;padding:8px 10px;background:#20251a;border:1px solid #6c6040;border-radius:3px;color:#dfce9e;font-size:13px}
+body.map-app>header .header-game-mode{margin-left:0}body.map-app>header .header-map-tools{order:9}
+@media(max-width:1500px){body>header .header-game-mode>span{display:none}}
+@media(max-width:1100px){
+ .home-header,.loot-header,.tasks-header{position:relative;height:124px;min-height:124px;padding:12px 20px 66px;align-items:center;flex-wrap:nowrap;gap:12px}
+ .tasks-app{--tasks-header-height:124px}.tasks-header{position:sticky}
+ .home-header .app-nav,.loot-header .app-nav,.tasks-header .app-nav{top:auto;bottom:9px;transform:translateX(-50%)}
+ .home-header h1{font-size:16px}.tasks-brand{font-size:14px}.home-header .brand-emblem{display:none}
+}
+@media(max-width:750px),(max-width:1000px) and (max-height:500px){
+ body>header .header-game-mode{gap:0;margin-left:auto}body>header .header-game-mode select{width:106px;font-size:12px;padding:7px}
+ .home-header,.loot-header,.tasks-header{height:calc(124px + env(safe-area-inset-top));min-height:124px;padding:calc(10px + env(safe-area-inset-top)) 12px 66px;gap:8px}
+ .tasks-app{--tasks-header-height:calc(124px + env(safe-area-inset-top))}
+ .home-header h1,.tasks-brand,.loot-brand{font-size:12px;letter-spacing:0;min-width:0;line-height:1.6}.tasks-brand span{font-size:10px;display:block}.loot-brand>span{display:none}
+ body.map-app>header{gap:5px}body.map-app #mapSwitch{margin:0 auto 0 0;width:90px;max-width:100px;flex:1;font-size:12px;padding-inline:5px}
+ body.map-app>header .header-map-tools{margin-left:0;gap:3px}body.map-app>header .header-map-tools button{width:36px;min-width:36px;padding:7px}
+ body.map-app>header .header-game-mode{margin-left:0}body.map-app .app-nav{left:calc(50% + 18px)}
+}
+/* Keep all three destinations visible on small screens. */
+@media(min-width:751px) and (max-width:1100px) and (min-height:501px){
+ body.map-app{--header-height:110px;--panel-top:calc(var(--header-height) + 10px)}
+ body.map-app>header{height:var(--header-height);align-items:flex-start;padding-top:5px;gap:10px}
+ body.map-app>header .brand{display:none}body.map-app #mapSwitch{margin-left:0;margin-right:auto;min-height:44px}
+ body.map-app .app-nav{top:auto;bottom:6px;left:50%;transform:translateX(-50%)}
+}
+.app-nav a{min-width:90px;padding-inline:18px;white-space:nowrap}
+@media(max-width:750px),(max-width:1000px) and (max-height:500px){
+ .home-header .app-nav a,.tasks-header .app-nav a,.loot-header .app-nav a{min-width:70px;padding-inline:12px;font-size:15px;letter-spacing:.04em}
+ .map-app .app-nav{left:calc(50% - 12px);transform:translateX(-50%);bottom:6px}
+ .map-app .app-nav a{min-width:46px;padding-inline:7px;font-size:13px;letter-spacing:0}
+ .map-app .app-nav a:last-child{min-width:76px}
+}
+/* Four tabs fit 320 px; the map header retains its collapse control. */
+@media(max-width:750px),(max-width:1000px) and (max-height:500px){
+ .home-header .app-nav a,.tasks-header .app-nav a,.loot-header .app-nav a{min-width:52px;padding-inline:10px;font-size:14px;letter-spacing:0}
+ .map-app .app-nav a{min-width:43px;padding-inline:7px;font-size:13px}
+ .map-app .app-nav a:last-child{min-width:43px}
+ .map-app .app-nav a[href="loot.html"]{min-width:72px}
+}

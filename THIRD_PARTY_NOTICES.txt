@@ -1,0 +1,31 @@
+Tarkov Loot Map — third-party source and license notices
+
+The MIT grant is described in LICENSE and NOTICE. All third-party components
+and content retain their own terms.
+
+• Three.js is distributed under the MIT license in site/vendor/three-LICENSE.txt.
+• Tesseract.js and its core use the Apache License 2.0. Their original licenses
+  are in site/vendor/ocr/. Versions and sources of the included language data
+  are identified in site/vendor/ocr/manifest.json.
+• Electron and Chromium include LICENSE.electron.txt and
+  LICENSES.chromium.html in their distribution. Desktop runtime dependencies
+  retain their accompanying notices. See desktop/runtime-NOTICES.txt.
+• The NSIS offline installer bundles 7-Zip 24.09 for extraction. Its accompanying
+  license and matching complete source are included under
+  map-resources/licenses/offline-installer/ in the offline installer.
+• Loot and quest inputs are credited to Archangel / SP-Tushonka
+  (https://github.com/SP-Tushonka/server-csharp). Versions and modifications
+  are recorded in data/spt-source.json and data/task-source.json. Source
+  licenses are supplied in data/spt/ and data/tasks/. The applicable
+  CC BY-NC-SA 4.0 license is also at
+  https://creativecommons.org/licenses/by-nc-sa/4.0/.
+• Selected item data, icons, prices, and region labels are sourced from
+  tarkov.dev (https://tarkov.dev/api). Region data uses the license in
+  data/regions/tarkov-dev-LICENSE and site/data/regions-LICENSE.txt.
+• Escape from Tarkov models, textures, icons, previews and artwork belong to
+  Battlestate Games and its licensors. See NOTICE for the scope of the project's
+  grant and the attribution. Provenance and hashes do not grant rights in any
+  third-party materials.
+
+Consult the notices supplied by each dependency and resource bundle. The
+project's license does not supersede component licenses.

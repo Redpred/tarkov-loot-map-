@@ -1,0 +1,76 @@
+name: Published Windows installer checks
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published desktop-v release tag
+        required: true
+        type: string
+      expected_sha256:
+        description: Independently verified installer SHA-256
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  installed:
+    runs-on: windows-2025
+    timeout-minutes: 60
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+      EXPECTED_SHA256: ${{ inputs.expected_sha256 }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24.22.1
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - run: npm ci --prefix desktop
+      - name: Download, install and hash all default resources
+        shell: pwsh
+        run: ./scripts/verify-published-desktop.ps1 -Tag $env:RELEASE_TAG -ExpectedSha256 $env:EXPECTED_SHA256 -Phase install
+      - name: Verify the installed offline interface
+        shell: pwsh
+        timeout-minutes: 15
+        run: ./scripts/verify-published-desktop.ps1 -Tag $env:RELEASE_TAG -ExpectedSha256 $env:EXPECTED_SHA256 -Phase offline
+      - name: Download and verify the real GitHub update
+        shell: pwsh
+        timeout-minutes: 35
+        run: ./scripts/verify-published-desktop.ps1 -Tag $env:RELEASE_TAG -ExpectedSha256 $env:EXPECTED_SHA256 -Phase updates
+      - name: Uninstall and verify retained resources
+        shell: pwsh
+        run: ./scripts/verify-published-desktop.ps1 -Tag $env:RELEASE_TAG -ExpectedSha256 $env:EXPECTED_SHA256 -Phase uninstall
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: published-installer-checks
+          path: |
+            work/release-acceptance/acceptance-result.json
+            work/release-acceptance/installation-result.json
+            work/release-acceptance/offline-smoke.json
+            work/release-acceptance/offline-smoke-failure.json
+            work/release-acceptance/remote-updater.json
+          if-no-files-found: warn
+          retention-days: 14
+  resources:
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24.22.1
+      - name: Verify public resource ranges, resumed chunks and source asset restoration
+        run: node scripts/verify-published-resources.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: published-resource-checks
+          path: work/release-acceptance/resources/remote-resources.json
+          if-no-files-found: warn
+          retention-days: 14

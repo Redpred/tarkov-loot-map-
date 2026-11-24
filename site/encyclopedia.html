@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0d0e0c"><title>百科 · 塔科夫物资地图</title>
+  <link rel="icon" type="image/png" sizes="192x192" href="app-icon-192.png">
+  <link rel="icon" type="image/svg+xml" sizes="any" href="app-icon.svg">
+  <link rel="stylesheet" href="ui-theme.css"><link rel="stylesheet" href="app-nav.css"><link rel="stylesheet" href="bosses.css"><link rel="stylesheet" href="encyclopedia.css">
+  <link rel="manifest" href="app-manifest.json"><link rel="apple-touch-icon" href="app-icon-180.png">
+</head>
+<body class="encyclopedia-page">
+  <a class="skip-link" href="#encyclopediaMain">跳转到百科</a>
+  <header class="encyclopedia-header"><a class="encyclopedia-brand" href="index.html">塔科夫物资地图<span>资料手册</span></a>
+    <nav class="app-nav" aria-label="主导航"><a href="index.html">地图</a><a href="tasks.html">任务</a><a href="loot.html">图片估价</a><a href="encyclopedia.html" aria-current="page">百科</a></nav>
+  </header>
+  <main id="encyclopediaMain">
+    <div class="encyclopedia-heading"><div><p class="eyebrow">逃离塔科夫 · 资料手册</p><h1>塔科夫百科</h1><p class="muted">查物品性能、制作材料、敌人资料与游戏规则。</p></div><p id="snapshotDate" class="snapshot-date"></p></div>
+    <div id="encyclopediaStats" class="encyclopedia-stats"></div>
+    <div class="encyclopedia-workspace">
+      <aside class="encyclopedia-sidebar"><h2>资料分类</h2><nav id="sectionNav" aria-label="百科分类"></nav></aside>
+      <section class="encyclopedia-content" aria-label="资料目录">
+        <div class="section-heading"><h2 id="sectionTitle">加载资料…</h2><span id="resultCount" role="status"></span></div>
+        <p id="sectionNote" class="muted"></p>
+        <div id="sectionMetrics" class="section-metrics" aria-label="当前分类统计"></div>
+        <details id="bossGuide" class="boss-guide" hidden><summary>怎么看刷新概率、模式和实验室活动？</summary><div id="bossGuideBody"></div></details>
+        <form id="encyclopediaFilters" class="encyclopedia-filters" role="search">
+          <label class="search-field"><span class="sr-only">搜索当前分类</span><input id="encyclopediaSearch" type="search" placeholder="搜索名称或关键词，如：止血、M855A1…" autocomplete="off"></label>
+          <select id="groupFilter" aria-label="细分类别"><option value="">全部类别</option></select>
+          <select id="kindFilter" aria-label="物品范围" hidden><option value="items">全部物品</option><option value="ammo">弹药</option><option value="quest">任务物品</option><option value="market">允许跳蚤出售</option><option value="all">含分类目录</option></select>
+          <select id="bossView" aria-label="BOSS 浏览方式" hidden><option value="roles">按角色浏览</option><option value="waves">逐条查看波次</option></select>
+          <select id="bossScope" aria-label="BOSS 记录范围" hidden><option value="all">全部记录</option><option value="configuration">普通与条件配置</option><option value="conditional">条件触发与停电记录</option><option value="event">活动记录</option><option value="history">Blackout 历史记录</option><option value="disabled">未启用场景记录</option></select>
+          <select id="bossMode" aria-label="BOSS 配置模式标记" hidden><option value="">全部模式标记</option><option value="regular">配置含 PvP 常规</option><option value="pve">配置含 PvE</option><option value="pvp-season">配置含 PvP 赛季</option></select>
+          <select id="encyclopediaSort" aria-label="排序"><option value="name">名称排序</option><option value="price">基准价从高到低</option></select>
+        </form>
+        <div id="encyclopediaStatus" role="status"></div><div id="encyclopediaResults" class="encyclopedia-results"></div>
+        <nav class="encyclopedia-pagination" aria-label="翻页"><button id="previousPage">上一页</button><span id="pageNumber"></span><button id="nextPage">下一页</button></nav>
+      </section>
+    </div>
+    <noscript>请启用 JavaScript 以搜索并浏览百科。</noscript>
+  </main>
+  <dialog id="entryDialog" aria-labelledby="entryTitle"><div class="entry-toolbar"><span>资料详情</span><button id="closeEntry" aria-label="关闭详情">关闭 ×</button></div><div id="entryDetail"></div></dialog>
+  <script type="module" src="encyclopedia.js"></script>
+</body>
+</html>

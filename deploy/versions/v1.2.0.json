@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "version": "1.2.0",
+  "codeTag": "v1.2.0",
+  "codeCommit": "e6a2fd90bafc47f4d52905645ec0e13f9dc0e7a6",
+  "status": "deployed",
+  "deployedAt": "2026-10-26T16:18:56.319165+00:00",
+  "releaseId": "v1.2.0-20261026T144627Z",
+  "site": "https://tarkovlootmap.com/",
+  "node": "24.22.1",
+  "previousRelease": "map-key-spawns-20261023T171915Z",
+  "assetInventories": [
+    {
+      "file": "deploy/external-map-assets.json",
+      "sha256": "6a6206c92ac41eac6d2c4eba3e973d6f4e40ab0706ec5fc23dba547001c7a95e",
+      "bytes": 341092
+    },
+    {
+      "file": "deploy/external-texture-assets.json",
+      "sha256": "d9fec9a89a3f81752aec47d69d0b118aec6d1ed116634abea3dc4572bd78d20d",
+      "bytes": 8843
+    },
+    {
+      "file": "deploy/external-geometry-assets.json",
+      "sha256": "31ce05b4bde2b6d72c26260f493c627e89b8b0516a4ec199b1baa477c12a3920",
+      "bytes": 1521442
+    },
+    {
+      "file": "deploy/external-scenery-assets.json",
+      "sha256": "745aecbfcfd1d62909b1cfbabf33c9a55d443dcb0f71bcfca639dac4c1965905",
+      "bytes": 1588931
+    }
+  ],
+  "sourceAssetsUnchanged": true,
+  "defaults": {
+    "geometry": "low",
+    "texture": "medium",
+    "scenery": "full"
+  },
+  "validation": {
+    "portable": 116,
+    "tasks": 57,
+    "previews": 13,
+    "serverMaps": 13,
+    "serverCachePlans": 234,
+    "serverGeometryChunks": 78,
+    "publicOrigins": [
+      "https://tarkovlootmap.com"
+    ],
+    "browser": "passed",
+    "domainAndIpHttps": true
+  },
+  "rollbackBackupCreated": true,
+  "resourcePreparation": {
+    "method": "Reproduced from verified original exports with exact local file hashes",
+    "runtimePolicy": "Current original, geometry-quality and scenery-details catalog references; unused historical local runtime outputs are excluded",
+    "omittedHistoricalRuntimeFiles": 996,
+    "omittedHistoricalRuntimeBytes": 220705947,
+    "requiredRuntimeFiles": 7972
+  },
+  "marketSnapshotRefresh": {
+    "fetchedAt": [
+      {
+        "mode": "regular",
+        "fetchedAt": "2026-10-26T16:29:43.891Z",
+        "items": 5479,
+        "sha256": "b6d1d6947af721fc347a3f8ad6280d6a0828bc797527c3fe1f0196b9668c6246"
+      },
+      {
+        "mode": "pve",
+        "fetchedAt": "2026-10-26T16:29:46.129Z",
+        "items": 5479,
+        "sha256": "8d9ac697d9aad7bd6d87f2df3e25f3aceb5756b324964d7378ee70bc92b5ae72"
+      },
+      {
+        "mode": "pvp-season",
+        "fetchedAt": "2026-10-26T16:29:48.497Z",
+        "items": 5479,
+        "sha256": "a9bb0c9a3d83deef36f75348dedbd5458559c1255694d192bc41956b3d776c4a"
+      }
+    ],
+    "reason": "Upstream downloads timed out on production; fresh public snapshots fetched locally and verified before installation",
+    "automaticRefresh": "Unchanged; slow upstream network remains an operational issue; snapshots are rejected after 24 hours"
+  }
+}

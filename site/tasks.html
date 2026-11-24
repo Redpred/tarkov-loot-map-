@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0d0e0c">
+  <title>任务 · 塔科夫物资地图</title>
+  <link rel="icon" type="image/png" sizes="192x192" href="app-icon-192.png">
+  <link rel="icon" type="image/svg+xml" sizes="any" href="app-icon.svg">
+  <link rel="stylesheet" href="ui-theme.css"><link rel="stylesheet" href="tasks.css"><link rel="stylesheet" href="app-nav.css">
+  <link rel="manifest" href="app-manifest.json">
+  <link rel="apple-touch-icon" href="app-icon-180.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="物资地图">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="sponsor.css">
+  <link rel="stylesheet" href="client-download.css">
+  <script type="module" src="sponsor.js"></script>
+  <script type="module" src="filing-footer.js"></script>
+</head>
+<body class="tasks-app">
+  <a class="skip-link" href="#taskContent">跳转到任务</a>
+  <header class="tasks-header">
+    <a class="tasks-brand" href="index.html">塔科夫物资地图<span>·测试版</span></a>
+    <nav class="app-nav" aria-label="主导航"><a href="index.html">首页</a><a id="mapNavigation" href="index.html#mapDirectory" data-map-nav hidden>地图</a><a id="taskNavigation" class="active" href="tasks.html" aria-current="page">任务</a></nav>
+    <a class="client-download" href="https://pan.quark.cn/s/6723ba88bd07" target="_blank" rel="noopener noreferrer" aria-label="下载客户端（夸克网盘，新窗口）" title="下载 Windows 客户端（夸克网盘）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4"/></svg><span class="client-download-label">下载客户端</span><span class="client-download-short" aria-hidden="true">下载</span></a>
+  </header>
+  <main class="tasks-main" id="taskContent">
+    <div class="tasks-viewbar">
+      <div class="view-tabs" role="tablist" aria-label="任务列表">
+        <button id="overviewTab" role="tab" aria-selected="true" aria-controls="taskResults" type="button">任务总览</button>
+        <button id="mineTab" role="tab" aria-selected="false" aria-controls="taskResults" type="button">我的任务 <span id="selectedCount">0</span></button>
+        <button id="preparationTab" role="tab" aria-selected="false" aria-controls="taskResults" type="button">战前准备</button>
+      </div>
+      <label class="task-search"><span class="sr-only">搜索任务</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input id="taskSearch" type="search" placeholder="搜索任务或目标" autocomplete="off"></label>
+    </div>
+    <div id="traderBar" class="trader-bar" aria-label="按商人筛选"></div>
+    <div class="list-heading"><h1 id="listTitle">任务总览</h1><span id="resultCount" role="status"></span><button id="expandGroups" type="button">全部展开</button><button id="collapseGroups" type="button">全部收起</button></div>
+    <p class="load-message" id="loadingMessage" role="status">正在加载任务…</p>
+    <div id="loadError" class="empty-state" role="alert" hidden><p>任务加载失败，请重试。</p><button id="retryLoad" type="button">重新加载</button></div>
+    <div id="taskResults" role="tabpanel" aria-labelledby="overviewTab" aria-busy="true"></div>
+    <noscript><p>请启用 JavaScript 以查看任务。</p></noscript>
+  </main>
+  <footer class="site-footer" aria-label="网站备案信息"><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" title="工信部备案信息查询（新窗口）"><span>冀ICP备2026046921号-1</span></a></footer>
+  <div id="detailBackdrop" class="detail-backdrop" hidden></div>
+  <aside id="taskDetail" class="task-detail" role="dialog" aria-modal="false" aria-labelledby="detailTitle" hidden>
+    <div class="detail-topbar"><span>任务详情</span><button id="closeDetail" type="button" aria-label="关闭任务详情">✕</button></div>
+    <div id="detailContent" class="detail-content"></div>
+  </aside>
+  <div class="task-toast" id="taskToast" role="status" hidden></div>
+  <script type="module" src="tasks.js"></script>
+</body>
+</html>

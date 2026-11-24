@@ -1,0 +1,105 @@
+/* Unified map filters. Category policy and inventory artwork stay independent. */
+.map-app #pointTypes,.map-app #auxiliaryTypes{max-height:none;overflow:visible;background:#0f130dcc;border:1px solid #3a412b;border-radius:3px;padding:5px 8px}
+.map-app .active-filter-status{padding:0 0 12px;font-size:11px}
+.filter-counts{display:flex;align-items:center;gap:16px;color:#adb59c;margin-bottom:7px}
+.filter-counts strong{color:#eee1b2;font-size:13px}
+.active-filter-details>summary{cursor:pointer;color:#b6ba9d;padding:4px 0;overflow-wrap:anywhere}
+.active-filter-chips{display:flex;flex-wrap:wrap;gap:5px;padding-top:7px}
+.map-app .active-filter-chips button{max-width:100%;text-align:left;white-space:normal;overflow-wrap:anywhere;font-size:10px;padding:5px 7px;background:#282b1c;color:#d1c28f;border:1px solid #555439;border-radius:4px;line-height:1.5}
+.map-app #clearLootFilters,.map-app #clearAuxiliary{width:100%;font-size:11px;margin:9px 0 5px;color:#c4b887;background:#24271b;border:1px solid #464a31;padding:8px}
+.map-app #auxiliarySection{margin-top:6px}
+.map-app #auxiliarySection #myTaskSection{border-top:1px solid #3a3e2b;margin-top:10px}
+.map-price-context{display:flex;align-items:flex-end;gap:6px}
+.map-price-context label{flex:1;min-width:0;font-size:10px}
+.map-price-context select{display:block;width:100%;margin-top:5px}
+.map-app .map-price-context button{font-size:11px;padding:8px 10px}
+.map-app #valueFilterSection select,.map-app #valueFilterSection input[type=number],.map-app #valueFilterSection input[type=search]{max-width:100%;min-width:0;background:#11170e;color:#d2d5bf;border:1px solid #4b5337;border-radius:3px;padding:7px;font:11px var(--sans);box-sizing:border-box}
+.map-app #valueFilterSection .hint{font-size:10px;line-height:1.7;margin:7px 0}
+.filter-enable,.filter-unknown{display:flex;align-items:center;gap:7px;font-size:11px;padding:8px 0;cursor:pointer}
+.map-app #valueFilterSection .filter-enable{color:#dfdac0}
+.filter-enable input,.filter-unknown input{flex-shrink:0}
+.filter-field{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:11px;margin:7px 0}
+.filter-field select{width:155px;flex-shrink:1}
+.filter-field>span{white-space:nowrap}.filter-field input[type=number]{width:95px}
+.map-value-tiers{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0 3px}
+.map-value-tier{display:flex;align-items:center;gap:6px;flex-wrap:wrap;border:1px solid #3f4933;border-radius:4px;padding:8px 7px;background:#11180ed9;cursor:pointer;min-width:0}
+.map-value-tier strong{font-size:10px;letter-spacing:-.2px}.map-value-tier small{font-size:10px;display:block;width:100%;padding-left:21px;color:#98a18c;font-variant-numeric:tabular-nums}
+.filter-unknown>span{margin-left:auto;color:#98a18c;font-size:10px;white-space:nowrap}
+.filter-custom{border-top:1px solid #3b432e;margin:7px 0;padding-top:7px}
+.filter-custom>summary{cursor:pointer;font-size:11px;color:#b5bda5;padding:6px 0}
+.map-tier-limits{display:grid;grid-template-columns:1fr;gap:7px;margin:7px 0}
+.map-tier-limits label{display:flex;align-items:center;gap:7px;font-size:11px}.map-tier-limits input{width:100px;margin-left:auto}
+.map-tier-colors{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0}
+.map-tier-colors label{display:flex;align-items:center;flex-direction:column;gap:6px;font-size:10px}
+.map-tier-colors input{padding:2px;width:40px;height:28px;border:1px solid #566149;background:transparent;cursor:pointer}
+.map-app #resetValueTiers,.map-app #mapPriceItemsMore{padding:6px 8px;font-size:10px}
+.map-app .filter-error{color:#ffba96;font-size:11px;line-height:1.6}
+.map-app #valueFilterSection [aria-invalid=true]{border-color:#ee9a75}
+.map-app .map-price-items{max-height:260px;overflow:auto;margin:7px 0}
+.map-price-items label{display:flex;align-items:center;gap:7px;line-height:1.5;padding:7px 0;font-size:11px;border-bottom:1px solid #3a412b}
+.map-price-items label>span{min-width:0;flex:1;overflow-wrap:anywhere}.map-price-items strong{font-size:10px;white-space:nowrap;color:#d4c185}.map-price-items input{flex-shrink:0}
+.map-app .filter-empty{padding:9px;background:#282619;border:1px solid #615334;border-radius:4px;margin-top:8px}
+.filter-empty p{margin:0 0 6px;line-height:1.6;color:#d7caa3}.filter-empty small{display:block;color:#afa78d}
+.map-app .filter-empty button{display:block;width:100%;padding:7px;margin-top:7px;font-size:10px;text-align:left;color:#e5d5a1;background:#39351f;border:1px solid #625937;white-space:normal}
+.map-app #settings-markers .region-controls{display:grid;gap:5px}.map-app #settings-markers .region-controls .check{justify-content:flex-start}
+@media(max-width:750px),(max-width:1000px) and (max-height:500px){
+  .map-app #leftPanel:not(.collapsed){top:calc(var(--header-height) + 8px)}
+  .map-app.mobile-header-collapsed #leftPanel:not(.collapsed){top:calc(var(--header-height) + 60px)}
+  .map-app:not(.left-panel-closed) #rightPanel.collapsed{display:none}
+  .map-app #mapSwitch{margin-right:0}
+  .map-app .map-price-context select,.map-app #valueFilterSection select,.map-app #valueFilterSection input[type=number],.map-app #valueFilterSection input[type=search]{font-size:16px;min-height:44px}
+  .map-app .map-price-context button,.map-app #clearLootFilters,.map-app #clearAuxiliary,.map-app #resetValueTiers,.map-app #mapPriceItemsMore{min-height:44px}
+  .map-app .filter-custom>summary,.map-app .filter-enable,.map-app .filter-unknown,.map-app .active-filter-details>summary{min-height:44px;box-sizing:border-box;align-content:center;font-size:12px}
+  .map-app .active-filter-chips button,.map-app .filter-empty button{min-height:44px;font-size:12px}
+  .map-app .map-value-tier{min-height:68px;gap:7px}.map-value-tier strong{font-size:11px}.map-value-tier small{padding-left:27px}
+  .map-app .map-price-items label{min-height:44px;font-size:12px}.map-tier-colors input{height:40px}
+  .map-app .filter-field{flex-wrap:wrap}.map-app .filter-field select{max-width:100%;width:auto}.map-app .map-tier-limits input{max-width:140px}
+}
+.map-app .task-point-group{min-width:0;border-top:1px solid #ffffff12}
+.map-app .task-point-heading{display:flex;align-items:center;gap:8px;padding:2px 8px}
+.map-app .task-point-heading>input,.map-app .task-point-objective input{flex:0 0 auto;margin:0;accent-color:var(--accent,#c3b58a)}
+.map-app .task-point-toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;flex:1;min-width:0;min-height:44px;padding:7px 0;border:0;background:transparent;text-align:left;white-space:normal}
+.map-app .task-point-toggle>span{min-width:0}
+.map-app .task-point-toggle strong,.map-app .task-point-objective>span>span{display:block;font-size:12px;line-height:1.65;font-weight:500;overflow-wrap:anywhere}
+.map-app .task-point-toggle small,.map-app .task-point-objective small{display:block;margin-top:2px;color:var(--muted,#959e9b);font-size:11px;line-height:1.5}
+.map-app .task-point-toggle::after{content:'›';flex:none;width:18px;height:18px;line-height:18px;text-align:center;font-size:18px;transform:rotate(0deg)}
+.map-app .task-point-toggle[aria-expanded=true]::after{transform:rotate(90deg)}
+.map-app .task-point-objectives{padding:0 0 5px 15px}
+.map-app .task-point-objectives[hidden]{display:none}
+.map-app .task-point-objective{display:flex;align-items:flex-start;gap:8px;min-height:44px;padding:9px 8px;margin:0;cursor:pointer;border-radius:5px;text-align:left}
+.map-app .task-point-objective>span{min-width:0;flex:1}
+.map-app .task-point-objective input{margin-top:4px}
+.map-app .task-point-objective:hover,.map-app .task-point-heading:has(input:checked){background:#ffffff06}
+.map-app .task-point-objective:has(input:checked){background:#c3b58a10}
+.map-app .task-point-search-note{font-size:11px;color:var(--muted,#959e9b);line-height:1.6;margin:8px}
+.map-app .task-search-results{min-width:0}
+@media(max-width:700px){.map-app .task-point-toggle strong,.map-app .task-point-objective>span>span{font-size:13px}.map-app .task-point-toggle small,.map-app .task-point-objective small{font-size:12px}}
+
+/* Two independent selection modes; shared height lives beside the view tools. */
+.map-app .filter-tabs{gap:5px}.map-app .filter-tabs button{white-space:nowrap;font-size:12px}
+.map-app #filterPane>.quick{display:flex;justify-content:flex-end;margin:4px 0 10px}
+.map-app .clear-filter-button{width:100%;min-height:38px;padding:8px;margin:10px 0 4px;background:#24271b;border:1px solid #464a31;color:#c4b887;font-size:12px}
+.map-app #valueFilterStatus{font-size:12px;color:#c1b68e;padding-top:10px;line-height:1.7}
+.map-app .value-point-kinds{display:flex;flex-wrap:wrap;gap:12px;padding:10px 0}.value-point-kinds label{display:flex;gap:7px;align-items:center}
+.map-app #typeSection>#myTaskSection{border-top:1px solid #3a3e2b;margin-top:8px}
+.map-app .ammo-caliber-group{border-top:1px solid #ffffff12;margin-left:6px}
+.map-app .ammo-caliber-group>summary{display:flex;align-items:center;gap:8px;min-height:44px;cursor:pointer;list-style:none;font-size:12px}
+.map-app .ammo-caliber-group>summary:after{content:'›';margin-left:auto}.map-app .ammo-caliber-group[open]>summary:after{transform:rotate(90deg)}
+.map-app .ammo-caliber-group>summary small{color:#9ca388;font-size:10px}
+.map-app .ammo-leaf,.map-app .search-type-option{display:flex;align-items:center;gap:8px;padding:8px;min-height:40px;font-size:12px;cursor:pointer}
+.map-app .ammo-leaf{padding-left:18px}.ammo-leaf span{overflow-wrap:anywhere;min-width:0}.ammo-tree input{flex:none}
+.map-app .header-map-tools{display:flex;gap:5px;align-items:center;flex:none}
+.map-app .header-map-tools button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:7px 10px;background:#20251a;border:1px solid #5d583b;color:#d5c493;white-space:nowrap}
+.map-app .height-dialog{position:fixed;inset:auto 0 94px;margin:0 auto;width:min(350px,calc(100vw - 24px));max-height:65dvh;overflow:auto;box-sizing:border-box;padding:14px;border:1px solid #887344;border-radius:5px;background:#161c12fa;color:#d9d4ba;box-shadow:0 6px 30px #0009;z-index:12}
+.height-dialog-head{display:flex;align-items:center;justify-content:space-between}.height-dialog-head h2{font-size:15px;margin:0}.map-app .height-dialog-head button{width:40px;height:40px;font-size:20px}
+.map-app .height-dialog #heightSection{margin:0;border:0}.map-app .height-dialog #heightSection>summary{display:none}
+.map-app .height-dialog .range-label{display:flex;justify-content:space-between}.map-app .height-dialog input[type=range]{width:100%}
+.map-app .height-dialog .hint{font-size:12px;color:#c4bb97}
+@media(min-width:751px) and (max-width:1500px){.map-app .brand>span:last-child{display:none}.map-app .brand{padding-right:8px}.map-app>header{gap:10px}.map-app .heading,.map-app .map-switch-label{display:none}.map-app #mapSwitch{margin-left:auto;width:120px}.map-app .header-map-tools button span{display:none}.map-app .header-map-tools button{width:44px;padding:9px}.map-app #openMapKeys{padding-inline:10px}}
+@media(max-width:750px),(max-width:1000px) and (max-height:500px){
+ .map-app>header{gap:6px}.map-app .brand{display:none}.map-app #mapSwitch{margin-left:48px;margin-right:auto;width:112px;max-width:calc(100vw - 160px)}
+ .map-app .header-map-tools{margin-left:auto;gap:4px}.map-app .header-map-tools button{width:44px;min-width:44px;padding:9px}.map-app .header-map-tools button span{display:none}
+ .map-app .height-dialog{bottom:calc(var(--safe-bottom) + 76px);max-height:calc(100dvh - var(--header-height) - 100px)}
+ .map-app .clear-filter-button,.map-app .ammo-leaf,.map-app .search-type-option{min-height:44px}
+ .map-app .ammo-leaf,.map-app .ammo-caliber-group>summary{font-size:13px}.map-app .filter-tabs{gap:2px}.map-app .filter-tabs button{font-size:12px}
+}

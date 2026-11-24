@@ -1,0 +1,18 @@
+.map-keys-count{color:#aba98e;font-size:11px;margin:8px 0}
+.map-app .map-keys-search{display:block;margin:6px 0;width:100%;min-height:44px;background:#10150d;border:1px solid #4b5138;color:#e0decc;border-radius:2px;padding:8px;font:inherit;font-size:13px;box-sizing:border-box}
+.map-keys-list{list-style:none;margin:0;padding:0}
+.map-key-row{margin:0 0 6px;border:1px solid #454b33;background:#20251a;border-radius:3px;overflow:hidden}
+.map-key-line{display:flex;align-items:center;gap:2px}
+.map-app .map-key-choice{display:flex;align-items:center;flex:1;min-width:0;gap:6px;padding:7px 4px;cursor:pointer}
+.map-key-choice input{flex:none;margin:0}
+.map-key-icon{display:grid;place-items:center;flex:0 0 30px;height:36px;color:#b7a16b}
+.map-key-icon .pool-item-icon{width:30px;height:36px;object-fit:contain;border:0;margin:0;background:transparent}.map-key-icon .ui-icon{width:22px;height:22px}
+.map-key-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}.map-key-copy strong{font-size:12px;line-height:1.5;overflow-wrap:anywhere;color:#dfdac5}.map-key-copy small{font-size:10px;color:#aaa98f}
+.map-app .map-key-jump{display:grid;place-items:center;flex:0 0 36px;min-height:44px;padding:6px;border:0;background:transparent;color:#c5ad70}.map-key-jump .ui-icon{width:18px;height:18px}
+.map-app .map-key-jump:hover,.map-key-choice:hover{background:#373322}.map-key-jump:focus-visible{outline:2px solid #bfa064;outline-offset:-2px}
+.map-key-options{border-top:1px solid #414630}.map-key-options>summary{cursor:pointer;font-size:11px;color:#c5b781;min-height:44px;padding:10px 7px;box-sizing:border-box}
+.map-key-doors{display:flex;flex-wrap:wrap;gap:6px;padding:0 7px 7px}.map-app .map-key-doors button{min-height:44px;text-align:left;padding:8px;white-space:normal;font-size:11px;color:#ccc5a3;background:#191f13;border:1px solid #555438}
+.map-app .map-key-doors button:hover,.map-app .map-key-doors button[aria-pressed=true]{background:#48402a;border-color:#b1995e;color:#f0d79e}
+.map-key-related{margin-top:18px}.map-key-related h3{font-size:13px;color:#d0bd8c}.map-key-related .map-key-doors{padding:0}
+.map-keys-empty{padding:10px 0;text-align:center;color:#b5b099;font-size:12px}
+@media(max-width:750px),(max-width:1000px) and (max-height:500px){.map-app .map-key-jump{flex-basis:44px}.map-key-copy strong{font-size:13px}.map-app .map-keys-search{font-size:16px}}

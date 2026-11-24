@@ -1,0 +1,51 @@
+.sponsor-title{display:flex;align-items:center;gap:12px;min-width:0}
+.sponsor-title>h1,.sponsor-title>.tasks-brand{min-width:0}
+body>header .sponsor-button{display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:none;min-height:36px;padding:6px 11px;border:1px solid #8d7950;border-radius:4px;background:#2a271b;color:#e5ce96;font-size:12px;white-space:nowrap}
+body>header .sponsor-button:hover{background:#423721;border-color:#c8ac6c;color:#ffebbc}
+.sponsor-button .ui-icon{width:15px;height:15px}
+.tasks-header.has-sponsor{justify-content:flex-start}
+body .sponsor-dialog{width:min(960px,calc(100vw - 28px));max-width:calc(100vw - 28px);max-height:calc(100dvh - 32px);padding:20px;margin:auto;background:#171a13;color:#e7e5d9;border:1px solid #88754b;border-radius:10px;box-shadow:0 16px 70px #000b;overflow:auto;overscroll-behavior:contain}
+.sponsor-dialog::backdrop{background:#080b08bf;backdrop-filter:blur(3px)}
+.sponsor-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sponsor-dialog-head h2{font-size:18px;font-weight:600;margin:0;color:#e5ce96}
+.sponsor-dialog-head [data-close]{display:grid;place-items:center;width:36px;min-height:36px;padding:0;font-size:24px;line-height:1;background:transparent;border-color:transparent;color:#b7b9a7}
+.sponsor-dialog .sponsor-intro{margin:8px 0 14px;color:#adb29b;font-size:12px;line-height:1.7}
+.sponsor-image-link{display:block;width:max-content;max-width:100%;margin:0 auto 14px;text-align:center}
+.sponsor-image-link>span{display:block;margin-top:6px;color:#a8ad98;font-size:10px}
+.sponsor-image{display:block;width:auto;max-width:100%;height:min(42dvh,340px);object-fit:contain;margin:0 auto;border-radius:6px}
+.sponsor-dialog .sponsor-link{display:block;color:#d9c48e;font-size:12px;line-height:1.7;overflow-wrap:anywhere;text-decoration:underline;text-underline-offset:3px}
+.sponsor-dialog .sponsor-link:hover{color:#ffebbc}
+.sponsor-dialog .sponsor-copy{width:100%;min-height:42px;margin-top:12px;background:#39331f;border-color:#88754b;color:#f1db9c;font-weight:600}
+.sponsor-dialog .sponsor-copy-status{min-height:20px;margin:8px 0 0;color:#b6cfa9;font-size:11px;text-align:center}
+.sponsor-copy-buffer{position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;padding:0;border:0}
+@media(max-width:750px),(max-width:1000px) and (max-height:500px){
+  .sponsor-title{gap:6px;flex-shrink:1}
+  body>header .sponsor-button{min-height:40px;padding:6px 8px;gap:4px;font-size:12px}
+  .sponsor-title .sponsor-button .ui-icon{display:none}
+  .home-header.has-sponsor{gap:6px}
+  .home-header .sponsor-title h1{font-size:12px;line-height:1.4;letter-spacing:0}
+  body.map-app>header .sponsor-button{position:absolute;right:var(--safe-right,10px);bottom:6px;min-height:44px;padding:6px 8px}
+  body.map-app>header .sponsor-button .ui-icon{display:none}
+  .sponsor-dialog-head [data-close]{min-width:44px;min-height:44px}
+}
+@media(max-width:360px){
+  .home-header.has-sponsor .header-game-mode select{width:88px}
+  .home-header.has-sponsor .home-settings-button{padding-inline:7px}
+}
+
+.sponsor-panels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:20px}
+.sponsor-channel{min-width:0;padding:14px;border:1px solid #3f4434;border-radius:8px;background:#11150f}
+.sponsor-channel h3{margin:0 0 14px;font-size:15px;font-weight:600;color:#e5ce96;text-align:center}
+.sponsor-channel-wechat h3{color:#b6e2c7}.sponsor-channel-alipay h3{color:#bbdcf5}
+.sponsor-channel .sponsor-image-link{width:100%;margin-bottom:10px}
+.sponsor-channel .sponsor-image{width:100%;height:280px;max-height:none;object-fit:contain}
+.sponsor-payment-image .sponsor-image{padding:8px;border-radius:8px;background:#fff}
+.sponsor-dialog .sponsor-channel-hint{margin:10px 0 2px;color:#b5bca8;font-size:12px;line-height:1.7;text-align:center}
+.sponsor-dialog .sponsor-link{text-align:center}
+@media(max-width:800px){body .sponsor-dialog{width:min(400px,calc(100vw - 28px));padding:16px}.sponsor-panels{grid-template-columns:1fr;gap:16px}.sponsor-channel .sponsor-image{height:auto;max-height:340px;width:auto;max-width:100%}.sponsor-payment-image .sponsor-image{width:min(264px,100%)}}
+body .sponsor-preview{width:fit-content;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);padding:16px;margin:auto;overflow:auto;overscroll-behavior:contain;border:1px solid #88754b;border-radius:10px;background:#171a13;color:#e7e5d9;box-shadow:0 16px 70px #000b}
+.sponsor-preview::backdrop{background:#080b08e6}
+.sponsor-preview .sponsor-dialog-head{margin-bottom:12px}.sponsor-preview [data-close]{min-width:44px;min-height:44px}
+.sponsor-preview>img{display:block;width:auto;height:auto;max-width:min(680px,calc(100vw - 58px));max-height:calc(100dvh - 116px);margin:auto;object-fit:contain;border:8px solid #fff;border-radius:6px;background:#fff}
+
+.sponsor-dialog>.sponsor-dialog-head{position:sticky;top:0;z-index:2;padding:4px 0 8px;background:#171a13}
