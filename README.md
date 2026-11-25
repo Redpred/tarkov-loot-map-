@@ -2,7 +2,7 @@
 
 面向《逃离塔科夫》的中文交互地图。探索 13 张地图的三维场景，出发前查物资、撤离点和任务目标。
 
-**[打开在线地图](https://tarkovlootmap.com/)** · [查看任务](https://tarkovlootmap.com/tasks.html) · [获取 Windows 离线版](https://pan.quark.cn/s/adeaebc575dd)
+**[打开在线地图](https://tarkovlootmap.com/)** · [查看任务](https://tarkovlootmap.com/tasks.html) · [获取 Windows 离线版](https://pan.quark.cn/s/336c5ebc25bc)
 
 [![塔科夫街区完整三维场景的俯视预览](https://tarkovlootmap.com/previews/streets.webp)](https://tarkovlootmap.com/streets.html)
 
@@ -17,7 +17,7 @@
 
 **网页**　选一张地图即可在线加载。支持目录授权的桌面浏览器可以指定本地资源目录，后续访问时复用已经保存的模型和贴图。
 
-**Windows x64**　`1.4.0-alpha.19` 离线安装包约 1 GiB，预装 13 张地图的默认资源。安装与临时解压建议预留 10 GiB。
+**Windows x64**　`1.4.0-alpha.20` 离线安装包约 1 GiB，预装 13 张地图的默认资源。安装与临时解压建议预留 10 GiB。
 
 ## 从源码运行
 
