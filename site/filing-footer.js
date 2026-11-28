@@ -1,4 +1,5 @@
 import './about.js';
+import './client-download.js';
 
 // Record and emblem supplied by the maintainer. Derived deployments must use
 // their own filing information; this is not a live verification of approval.

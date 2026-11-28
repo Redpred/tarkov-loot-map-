@@ -26,3 +26,74 @@ html[data-desktop-shell] .client-download{display:none}
  html:not([data-desktop-shell]) .map-app>header .sponsor-button{right:calc(var(--safe-right,10px) + 52px);width:44px;padding-inline:0}
  html:not([data-desktop-shell]) .map-app .app-nav{left:calc(50% - 30px)}
 }
+
+body .client-download-dialog {
+  box-sizing: border-box;
+  width: min(400px, calc(100% - 28px));
+  max-width: none;
+  max-height: calc(100dvh - 28px);
+  margin: auto;
+  padding: 16px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid #88754b;
+  border-radius: 10px;
+  background: #171a13;
+  color: #e7e5d9;
+  box-shadow: 0 16px 70px #000b;
+  text-align: left;
+}
+.client-download-dialog::backdrop {
+  background: #080b08bf;
+  backdrop-filter: blur(3px);
+}
+.client-download-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.client-download-dialog-head h2 {
+  margin: 0;
+  color: #e5ce96;
+  font-size: 18px;
+  font-weight: 600;
+}
+.client-download-dialog-head button {
+  flex: none;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: inherit;
+  font-size: 24px;
+  line-height: 1;
+}
+.client-download-options {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+.client-download-options a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #88754b;
+  border-radius: 6px;
+  background: #2a271b;
+  color: #f0dca8;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.client-download-options a:hover {
+  background: #423721;
+  border-color: #c8ac6c;
+  color: #ffebbc;
+}
+.client-download-dialog :is(a, button):focus-visible {
+  outline: 2px solid #f0dca8;
+  outline-offset: 2px;
+}
