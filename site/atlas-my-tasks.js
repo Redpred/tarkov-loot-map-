@@ -2,8 +2,9 @@ import {createTaskStore} from './task-store.js';
 import {createTaskMapIndex} from './task-map-index.js';
 import {objectiveSelectionKey,checkboxState,syncTaskObjectives} from './atlas-point-selection.js';
 const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-export function createMyTasks({data,mapId,host,onChange,iconHtml,preparedIndex=null,itemIndex,selection}){
-  const store=createTaskStore();let index=preparedIndex,entries=[],active=new Set(),updating=false;const opened=new Set();
+export function createMyTasks({data,mapId,host,onChange,iconHtml,preparedIndex=null,itemIndex,selection,rememberSection=()=>{}}){
+  const store=createTaskStore();let index=preparedIndex,entries=[],active=new Set(),updating=false;
+  const opened=new Set(),seenGroups=new Set();
   const requestedTask=new URLSearchParams(location.search).get('task');if(requestedTask)opened.add(requestedTask);
   const href=id=>`tasks.html?map=${encodeURIComponent(mapId)}${id?'&task='+encodeURIComponent(id):''}`;
   const key=(task,row)=>objectiveSelectionKey(task.id,row.objective.id);
@@ -20,6 +21,11 @@ export function createMyTasks({data,mapId,host,onChange,iconHtml,preparedIndex=n
     }
     active=new Set();for(const entry of entries)for(const row of entry.objectives)if(selection.keys.has(key(entry.task,row)))for(const point of row.points)active.add(point);
     host.innerHTML=`<summary>我的任务 <small>${entries.length} 项</small></summary><div class="my-task-actions"><a href="${href()}">管理任务 ↗</a></div>${entries.length?'':'<p class="hint">本图暂无已选任务。</p>'}<div class="my-task-entries">${entries.map(entry=>{const {task,objectives}=entry;return `<details class="my-task-group" data-task="${task.id}" ${opened.has(task.id)?'open':''}><summary><input type="checkbox" data-parent="${task.id}" data-focus-key="${task.id}" ${!available(entry).length?'disabled':''} aria-label="显示任务：${escape(task.name)}"><span>${escape(task.name)}</span><small>${objectives.length}</small></summary><a class="my-task-detail" href="${href(task.id)}">任务详情 ↗</a>${objectives.map(row=>{const o=row.objective,complete=store.isCompleted(task.id,o.id),id=key(task,row);return `<label class="my-task-goal ${complete?'is-complete':''}"><input type="checkbox" data-goal="${id}" data-focus-key="${id}" ${selection.keys.has(id)?'checked':''} ${!row.points.size?'disabled':''}><span>${o.itemIds?.length?iconHtml(o.itemIds[0]):''}<span>${escape(o.text)}</span><small>${complete?'已完成 · ':''}${row.points.size?`${row.points.size} 个${row.candidate?'候选点':'位置'}`:escape(row.hint)}</small></span></label>`;}).join('')}</details>`;}).join('')}</div>`;
+    for(const section of host.querySelectorAll('.my-task-group')){
+      const id=section.dataset.task;
+      rememberSection(section,'my-task:'+id,!seenGroups.has(id)&&!opened.has(id));
+      seenGroups.add(id);
+    }
     for(const entry of entries)Object.assign(host.querySelector(`[data-parent="${entry.task.id}"]`),checkboxState(available(entry).map(row=>key(entry.task,row)),selection.keys));
     if(focusKey)host.querySelector(`[data-focus-key="${CSS.escape(focusKey)}"]`)?.focus({preventScroll:true});
     if(changed)selection.changed();updating=false;onChange();

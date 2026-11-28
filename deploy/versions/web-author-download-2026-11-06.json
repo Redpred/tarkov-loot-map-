@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "version": "web-author-download-2026-11-06",
+  "status": "deployed",
+  "deployedAt": "2026-11-06T14:29:51.492981+00:00",
+  "releaseId": "web-author-download-20261106T142759Z",
+  "previousRelease": "web-download-20261106T033824Z",
+  "source": {
+    "baseCommit": "2c172ee630ee7b41ae0301cb075f9b67fe8c8377",
+    "workingTree": true
+  },
+  "site": "https://tarkovlootmap.com/",
+  "downloadUrl": "https://pan.quark.cn/s/7d9dda3f78d3",
+  "desktopVersion": "1.4.0-alpha.15",
+  "author": "Redpred",
+  "authorUrl": "https://space.bilibili.com/434445528?spm_id_from=333.788.0.0",
+  "files": [
+    {
+      "file": "site/index.html",
+      "bytes": 2960,
+      "sha256": "a220451cabbb7440cd64b7c26fcde036b937cab971a180644c34d0dc0bdf8b9b"
+    },
+    {
+      "file": "site/tasks.html",
+      "bytes": 4548,
+      "sha256": "7b732e97bea64ac52b7a445ec84afb1f81ea7e1cbb500a5b310a38969c8bf2ba"
+    },
+    {
+      "file": "site/factory.html",
+      "bytes": 9014,
+      "sha256": "62ca4fa3d3ea42b689aaaac6c0cf3a6b61b08a8f4c0cdb317e44c005e6708d12"
+    },
+    {
+      "file": "site/streets.html",
+      "bytes": 9041,
+      "sha256": "860db8c9cb42b8fa662b9ed36de611264ad1ca1bcf9ff9a44cf23060632214ab"
+    },
+    {
+      "file": "site/map.html",
+      "bytes": 8906,
+      "sha256": "dcc37a4f158a8b600b1577dd3fdbb980d6a04fe17b975224032fa33f4fa0b6f6"
+    },
+    {
+      "file": "site/about.js",
+      "bytes": 3293,
+      "sha256": "16ae118c00e44667c1146a0ffc6e550c5f36b635b807d8f311da967fab957d1d"
+    },
+    {
+      "file": "site/project-notice.js",
+      "bytes": 1865,
+      "sha256": "6d6a41fbe0a044d3e850b7aec0670e23b4a9c0d4ed5f0af00ef15383eaa468eb"
+    }
+  ],
+  "changedBytes": 39627,
+  "sourceAssetsUnchanged": true,
+  "serviceRestarted": false,
+  "runtimeBaseline": "web-2026-11-06.json",
+  "validation": {
+    "localAboutViewports": [
+      [
+        1280,
+        900
+      ],
+      [
+        360,
+        780
+      ],
+      [
+        320,
+        640
+      ],
+      [
+        640,
+        360
+      ],
+      [
+        1280,
+        900
+      ]
+    ],
+    "localDownloadHrefChecks": 5,
+    "hiddenWindowShows": 0,
+    "hiddenWindowFocuses": 0,
+    "publicFilesAndIcons": 9,
+    "publicNotModified": 9,
+    "publicRuntimeAndCachePlans": [
+      "factory",
+      "streets",
+      "woods"
+    ],
+    "hiddenPaths": [
+      "/loot.html",
+      "/encyclopedia.html",
+      "/api/health",
+      "/__local-editor/session"
+    ],
+    "publicBrowserCheck": "Not run; local hidden UI and public byte-for-byte HTTP verification passed.",
+    "shareContentVerified": false
+  }
+}

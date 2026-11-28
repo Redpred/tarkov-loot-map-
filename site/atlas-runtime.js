@@ -1,4 +1,5 @@
 import {resourceCache,sha256} from './atlas-resource-cache.js';
+import {readMapResource} from './atlas-resource-request.js';
 import {createItemIndex} from './atlas-item-index.js';
 import {restoreTaskMapIndex} from './task-map-index.js';
 
@@ -29,8 +30,8 @@ export async function readPreparedJson(info,identity,{fetcher=fetch,cache=resour
   const stored=await cache.get(identity,info.sha256);
   if(stored){try{return await parse(stored);}catch{signal?.throwIfAborted();await cache.remove(identity,info.sha256);}}
   signal?.throwIfAborted();
-  const response=await fetcher(info.file,{signal});if(!response.ok)throw new Error('预计算资源不可用');
-  const blob=await response.blob(),value=await parse(blob);
+  const blob=await readMapResource(info.file,'预计算资源读取',response=>response.blob(),{fetcher,signal,timeout:8000,retries:0});
+  const value=await parse(blob);
   // Disk writes are useful for the next visit, but must not hold up the scene.
   void cache.put(identity,info.sha256,blob,ticket).catch(()=>{});
   return value;

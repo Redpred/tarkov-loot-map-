@@ -4,6 +4,8 @@ import {cacheOwner} from './atlas-cache-identity.js';
 import {ATLAS_MAPS} from './atlas-maps.js';
 import {localResources} from './atlas-local-resources.js';
 import {managedResources} from './atlas-managed-resources.js';
+import {readMapResource} from './atlas-resource-request.js';
+import {mapErrorMessage,mapLoadError} from './atlas-map-diagnostics.js';
 export const CACHE_DB = 'atlas-resources-v1';
 const ENABLED_KEY = 'atlas-resource-cache-enabled-v2', EPOCH_KEY = 'atlas-resource-cache-epoch';
 function browserPreferences() { try { return globalThis.localStorage; } catch { return undefined; } }
@@ -33,12 +35,12 @@ export function createResourceCache({indexedDB = globalThis.indexedDB, storage =
     return `${generation}:${preference(EPOCH_KEY)||''}:${mapGenerations.get(mapId)||0}:${preference(`${EPOCH_KEY}:${mapId}`)||''}`;
   };
   async function db() {
-    if (!indexedDB) throw new Error('此浏览器无法使用本地资源缓存');
+    if (!indexedDB) throw mapLoadError('CACHE-UNAVAILABLE', '此浏览器无法使用本地资源缓存');
     if (!opening) {
       const pending = new Promise((resolve, reject) => {
       const req = indexedDB.open(dbName, 3);
       let expired=false;
-      const timer = setTimeout(() => {expired=true;reject(new Error('本地缓存暂时不可用'));}, 3000);
+      const timer = setTimeout(() => {expired=true;reject(mapLoadError('CACHE-OPEN-TIMEOUT', '本地缓存暂时不可用'));}, 3000);
       req.onupgradeneeded = () => {
         // A large existing cache can legitimately take longer than the open
         // timeout to migrate. Only metadata is touched, never resource bytes.
@@ -98,7 +100,11 @@ export function createResourceCache({indexedDB = globalThis.indexedDB, storage =
       if(invalid)await remove(identity,version);
       if (blob) { metrics.hitCount++; metrics.hitBytes += blob.size; } else metrics.missCount++;
       return blob;
-    } catch (error) { metrics.readFailures++; reason = error.message; return null; }
+    } catch (error) {
+      metrics.readFailures++;
+      reason = mapErrorMessage(error.diagnosticCode ? error : mapLoadError('CACHE-READ', error.message));
+      return null;
+    }
   }
   async function put(identity, version, blob, startTicket = ticket(identity),replaceIdentities=[]) {
     if (!enabled() || startTicket !== ticket(identity)) return false;
@@ -131,7 +137,9 @@ export function createResourceCache({indexedDB = globalThis.indexedDB, storage =
     } catch(error) {
       if(!enabled()||startTicket!==ticket(identity))return false;
       metrics.writeFailures++;
-      reason=error.name==='QuotaExceededError'?'浏览器存储空间不足，新资源暂未保存。已有缓存保留，请按地图手动清理。':error.message;
+      reason=error.name==='QuotaExceededError'
+        ?'浏览器存储空间不足，新资源暂未保存。已有缓存保留，请按地图手动清理。 · CACHE-QUOTA'
+        :mapErrorMessage(error.diagnosticCode ? error : mapLoadError('CACHE-WRITE', error.message));
       return false;
     }
   }
@@ -176,7 +184,7 @@ export function createResourceCache({indexedDB = globalThis.indexedDB, storage =
       let persistent=false,quota=null,originUsage=null;try{persistent=Boolean(await storage?.persisted?.());const estimate=await storage?.estimate?.();quota=estimate?.quota??null;originUsage=estimate?.usage??null;}catch{}
       return {available: true, bytes: totals.bytes, count: totals.count,
         limitGiB: null, enabled:enabled(), quota, originUsage, persistent, reason, ...metrics};
-    } catch (error) { return {available: false, bytes: 0, count: 0, limitGiB: null, enabled:enabled(), reason: error.message, ...metrics}; }
+    } catch (error) { return {available: false, bytes: 0, count: 0, limitGiB: null, enabled:enabled(), reason: mapErrorMessage(error.diagnosticCode ? error : mapLoadError('CACHE-READ', error.message)), ...metrics}; }
   }
   return {get, put, remove, clear, clearMap, inventory, setEnabled, stats, ticket, enabled,
     recordFetch(bytes){metrics.networkBytes+=bytes;metrics.networkCount++;},
@@ -187,19 +195,46 @@ export function createResourceCache({indexedDB = globalThis.indexedDB, storage =
 
 export const resourceCache = createResourceCache();
 export async function sha256(bytes) {
+  if (!globalThis.crypto?.subtle) throw mapLoadError('MAP-HASH-UNAVAILABLE', '无法校验地图资源，请通过 HTTPS 或本机地址访问。');
   const digest = await crypto.subtle.digest('SHA-256', bytes);
   return Array.from(new Uint8Array(digest), n => n.toString(16).padStart(2, '0')).join('');
+}
+
+function decodeTexture(loader, url, signal, asset = url) {
+  signal?.throwIfAborted();
+  return new Promise((resolve, reject) => {
+    let stopped = false;
+    const cleanup = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', abort);
+    };
+    const stop = error => {
+      stopped = true;
+      cleanup();
+      reject(error);
+    };
+    const abort = () => stop(signal.reason);
+    const timer = setTimeout(() => stop(mapLoadError('TEXTURE-DECODE-TIMEOUT', '材质解码超时', {url: asset, temporary: true})), 15000);
+    signal?.addEventListener('abort', abort, {once: true});
+    Promise.resolve().then(() => {
+      signal?.throwIfAborted();
+      return loader.loadAsync(url);
+    }).then(texture => {
+      cleanup();
+      if (stopped) texture?.dispose?.();
+      else resolve(texture);
+    }, cause => {
+      stop(mapLoadError('TEXTURE-DECODE', '材质解码失败', {cause, url: asset}));
+    });
+  });
 }
 
 // Texture object URLs never reach download-manager extensions. The exported
 // content hash changes even when a texture's source filename stays the same.
 export async function loadCachedTexture(loader, url, info, cache = resourceCache, signal) {
   signal?.throwIfAborted();
-  if (!/^[a-f0-9]{64}$/.test(info.sha256 || '')) {
-    const texture = await loader.loadAsync(url);
-    if (signal?.aborted) { texture.dispose?.(); signal.throwIfAborted(); }
-    return texture;
-  }
+  if (!info.sha256) return decodeTexture(loader, url, signal);
+  if (!/^[a-f0-9]{64}$/.test(info.sha256)) throw mapLoadError('TEXTURE-METADATA', '贴图版本标识无效', {url});
   const identity = `texture:${new URL(url, globalThis.location?.href || 'http://localhost/').pathname}`;
   const external=cache===resourceCache&&managedResources.mode()!=='client'?await localResources.get(identity,info.sha256,info.bytes):null;
   if(cache===resourceCache&&managedResources.mode()==='managed')cache=managedResources.cache(cache,signal);
@@ -207,26 +242,38 @@ export async function loadCachedTexture(loader, url, info, cache = resourceCache
   const startTicket = cache.ticket(identity);
   let blob = external || await cache.get(identity, info.sha256);
   signal?.throwIfAborted();
+  const valid = async value => (!info.bytes || value.size === info.bytes) && await sha256(await value.arrayBuffer()) === info.sha256;
   async function decode(value) {
     const objectUrl = URL.createObjectURL(value);
     try {
-      const texture = await loader.loadAsync(objectUrl);
+      const texture = await decodeTexture(loader, objectUrl, signal, url);
       if (signal?.aborted) { texture.dispose?.(); signal.throwIfAborted(); }
       return texture;
     } finally { URL.revokeObjectURL(objectUrl); }
   }
   if (blob) {
-    try { return await decode(blob); } catch (error) { signal?.throwIfAborted(); if(!external)await cache.remove(identity, info.sha256); }
+    try {
+      if (external || await valid(blob)) return await decode(blob);
+    } catch { signal?.throwIfAborted(); }
+    if (!external) await cache.remove(identity, info.sha256);
+  }
+  const requestUrl = `${url}${url.includes('?') ? '&' : '?'}v=${info.sha256}`;
+  const read = async (mode, retries) => {
+    const value = await readMapResource(requestUrl, '材质读取', response => response.blob(), {
+      code: 'TEXTURE', signal, cache: mode, retries, readError: cache.client, headers: cache.client ? {'X-Tarkov-Storage':'client'} : undefined
+    });
+    cache.recordFetch?.(value.size);
+    return value;
+  };
+  blob = await read(cache.managed ? 'no-store' : 'default');
+  if (!await valid(blob)) {
+    // A bad response under an immutable URL can otherwise survive every reload.
+    if (!cache.managed) blob = await read('reload', 0);
+    if (cache.managed || !await valid(blob)) throw mapLoadError('TEXTURE-HASH', '材质完整性校验失败', {url: requestUrl});
   }
   signal?.throwIfAborted();
-  const response = await fetch(`${url}${url.includes('?') ? '&' : '?'}v=${info.sha256}`, {signal,cache:cache.managed?'no-store':'default',headers:cache.client?{'X-Tarkov-Storage':'client'}:{}});
-  if (!response.ok) {const detail=cache.client?await response.json().catch(()=>null):null;throw new Error(detail?.error||`材质读取失败（HTTP ${response.status}）`);}
-  blob = await response.blob();
-  cache.recordFetch?.(blob.size);
-  signal?.throwIfAborted();
-  if ((info.bytes && blob.size !== info.bytes) || await sha256(await blob.arrayBuffer()) !== info.sha256) throw new Error('材质完整性校验失败，请刷新页面');
-  signal?.throwIfAborted();
   const texture = await decode(blob);
+  if (signal?.aborted) { texture.dispose?.(); signal.throwIfAborted(); }
   try{await cache.put(identity, info.sha256, blob, startTicket);}catch(error){texture.dispose?.();throw error;}
   if (signal?.aborted) { texture.dispose?.(); signal.throwIfAborted(); }
   return texture;

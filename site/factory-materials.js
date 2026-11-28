@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {loadCachedTexture} from './atlas-resource-cache.js';
+import {mapLoadError} from './atlas-map-diagnostics.js';
 import {buildingCutGLSL} from './atlas-building-cut-shader.js';
 
 const vertexShader = `
@@ -83,18 +84,23 @@ function buildMaterial(source,clipping,get){
 
 }
 
-function textureNames(source){return [...new Set([source.tex,source.emis,source.vp?.heights,...(source.vp?.layers||[]).map(l=>l.tex)].filter(Boolean))];}
+function textureNames(source){
+  if(!source)throw mapLoadError('MODEL-MATERIAL-REFERENCE', '模型引用了不存在的材质');
+  return [...new Set([source.tex,source.emis,source.vp?.heights,...(source.vp?.layers||[]).map(l=>l.tex)].filter(Boolean))];
+}
 export function createMaterialLibrary(manifest,clipping,base='data/atlas/'){
   const loader=new THREE.TextureLoader(),textures=new Map(),materials=new Map();
   const white=new THREE.DataTexture(new Uint8Array([255,255,255,255]),1,1);white.needsUpdate=true;
   async function ensureTexture(name,signal){
     signal?.throwIfAborted();
-    if(!manifest.textures[name])return white;
+    const info=Object.hasOwn(manifest.textures,name)?manifest.textures[name]:null;
+    if(!info)throw mapLoadError('TEXTURE-REFERENCE', `贴图目录缺少材质 ${name}`);
+    if(typeof info.file!=='string'||!info.file)throw mapLoadError('TEXTURE-METADATA', '贴图文件地址无效');
     if(!textures.has(name)){
       const entry={refs:0,texture:null};
-      const file=manifest.textures[name].file;
-      entry.promise=loadCachedTexture(loader,file.startsWith('/')?file:base+file,manifest.textures[name],undefined,signal).then(texture=>{
-        texture.colorSpace=manifest.textures[name].colorSpace==='linear'?THREE.NoColorSpace:THREE.SRGBColorSpace;
+      const file=info.file;
+      entry.promise=loadCachedTexture(loader,file.startsWith('/')?file:base+file,info,undefined,signal).then(texture=>{
+        texture.colorSpace=info.colorSpace==='linear'?THREE.NoColorSpace:THREE.SRGBColorSpace;
         texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.flipY=true;texture.anisotropy=4;entry.texture=texture;return texture;
       }).catch(e=>{textures.delete(name);throw e;});
       textures.set(name,entry);
@@ -108,33 +114,55 @@ export function createMaterialLibrary(manifest,clipping,base='data/atlas/'){
       for(const name of m.names){const t=textures.get(name);if(t&&--t.refs<=0){t.texture?.dispose();textures.delete(name);}}
     }
   }
-  async function acquire(ids,progress=()=>{},signal){
+  async function acquire(ids,progress=()=>{},signal,{onUnavailable,unavailable=new Map()}={}){
     signal?.throwIfAborted();
-    const controller=new AbortController(),abort=()=>controller.abort();
+    const unique=[...new Set(ids)],names=[...new Set(unique.filter(id=>!materials.has(id)).flatMap(id=>textureNames(manifest.materials[id])))];
+    const needed=names.filter(name=>!unavailable.has(name));
+    const controller=new AbortController(),abort=()=>controller.abort(signal.reason);
     signal?.addEventListener('abort',abort,{once:true});
-    const unique=[...new Set(ids)],needed=[...new Set(unique.filter(id=>!materials.has(id)).flatMap(id=>textureNames(manifest.materials[id])))];
+    const acquired=new Map();
     let cursor=0,done=0;
     try{
-      const results=await Promise.allSettled(Array.from({length:4},async()=>{
-        try{while(cursor<needed.length){controller.signal.throwIfAborted();await ensureTexture(needed[cursor++],controller.signal);progress(++done,needed.length);}}
+      if(needed.length)progress(0,needed.length);
+      const results=await Promise.allSettled(Array.from({length:Math.min(4,needed.length)},async()=>{
+        try{
+          while(cursor<needed.length){
+            controller.signal.throwIfAborted();
+            const name=needed[cursor++];
+            try{await ensureTexture(name,controller.signal);}
+            catch(error){
+              controller.signal.throwIfAborted();
+              if(!onUnavailable||error.temporary||error.status===409)throw error;
+              unavailable.set(name,error);
+            }
+            progress(++done,needed.length);
+          }
+        }
         catch(error){controller.abort();throw error;}
       }));
       const failure=results.find(r=>r.status==='rejected'&&r.reason.name!=='AbortError')||results.find(r=>r.status==='rejected');if(failure)throw failure.reason;
       signal?.throwIfAborted();
       for(const id of unique){
-        if(!materials.has(id)){
-          const names=textureNames(manifest.materials[id]);for(const name of names)if(textures.has(name))textures.get(name).refs++;
-          const material=buildMaterial(manifest.materials[id],clipping,name=>textures.get(name)?.texture||white);
-          material.userData.atlasRole=manifest.materials[id].role;
-          materials.set(id,{refs:0,names,material});
+        let entry=materials.get(id);
+        if(!entry){
+          const source=manifest.materials[id],names=textureNames(source);
+          const problem=unavailable.get(names.find(name=>unavailable.has(name)));
+          if(problem){onUnavailable(problem);continue;}
+          const material=buildMaterial(source,clipping,name=>textures.get(name)?.texture||white);
+          material.userData.atlasRole=source.role;
+          for(const name of names)textures.get(name).refs++;
+          entry={refs:0,names,material};materials.set(id,entry);
         }
-        materials.get(id).refs++;
+        entry.refs++;acquired.set(id,entry.material);
       }
-      return new Map(unique.map(id=>[id,materials.get(id).material]));
+      return acquired;
     }catch(error){
-      for(const [name,t] of textures)if(t.refs===0){t.texture?.dispose();textures.delete(name);}
+      release(acquired.keys());
       throw error;
-    }finally{signal?.removeEventListener('abort',abort);}
+    }finally{
+      for(const [name,t] of textures)if(t.refs===0){t.texture?.dispose();textures.delete(name);}
+      signal?.removeEventListener('abort',abort);
+    }
   }
   return {acquire,release,dispose(){for(const m of materials.values())m.material.dispose();materials.clear();for(const t of textures.values())t.texture?.dispose();textures.clear();white.dispose();}};
 }

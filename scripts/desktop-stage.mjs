@@ -22,10 +22,10 @@ await verifyProjectAssets(root, assetLock, 'runtime');
 files.push(...assetLock.files.filter(entry => entry.group === 'runtime' && !exclude.test(entry.path)).map(entry => entry.path));
 for (const name of ['main.mjs', 'policy.mjs', 'resources.mjs', 'local-resources.mjs', 'release-resources.mjs', 'release-pack-cache.mjs', 'screenshot-access.mjs', 'updates.mjs', 'update-release.mjs', 'preload.cjs', 'resources.lock.json', 'resource-release.json']) files.push('desktop/' + name);
 for (const name of ['map-cache-plan.mjs', 'market-prices.mjs']) files.push('scripts/lib/' + name);
-for (const name of ['desktop-downloads.html', 'desktop-downloads.js', 'desktop-downloads.css', 'desktop-shell.js', 'desktop-shell.css', 'desktop-updates.js', 'atlas-screenshot-directory.js', 'filing-footer.js', 'images/police-filing.png']) if (!files.includes('site/' + name)) files.push('site/' + name);
+for (const name of ['desktop-shell.js', 'desktop-shell.css', 'desktop-updates.js', 'atlas-screenshot-directory.js', 'filing-footer.js', 'images/police-filing.png']) if (!files.includes('site/' + name)) files.push('site/' + name);
 files.push('THIRD_PARTY_NOTICES.txt', 'data/spt/5.0.0-1ee2b75/LICENSE.txt', 'data/tasks/20261013-901f569/raw/spt/LICENSE');
 files.push('LICENSE', 'NOTICE', 'desktop/runtime-NOTICES.txt');
-files.push('site/task-asset-url.js');
+files.push('site/task-asset-url.js', 'site/task-access-data.js', 'site/atlas-map-entry.js', 'site/atlas-resource-request.js', 'site/atlas-map-diagnostics.js', 'site/atlas-measurement.js');
 const inventory = [];
 for (const relative of [...new Set(files)].sort()) {
   const source = path.join(root, relative), target = path.join(stage, relative), stat = await fs.lstat(source);

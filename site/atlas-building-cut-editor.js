@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import {validateBuildingCuts,createCutPlan,inCutRect,rectArea,defaultCutPresets} from './atlas-building-cuts.js';
+import {readMapJson} from './atlas-resource-request.js';
 
 export async function createBuildingCutEditor({map,geometrySha256,bounds,viewport,canvas,controls,getCamera,getPreset,setPreset,setMode,onChange,invalidate,notice}){
   const identity={map:map.id,geometrySha256},key=`atlas-building-cuts-${map.id}-v1`;
   const checked=input=>{const next=validateBuildingCuts(input,identity);for(const p of next.presets)createCutPlan(next,p.id);return next;};
   let initial={version:1,...identity,presets:defaultCutPresets(),regions:[]},warning='';
-  try{const response=await fetch(`data/building-cuts/${map.id}.json`);if(!response.ok)throw Error('默认剖切数据未加载');initial=checked(await response.json());}catch(error){warning=error.message;}
+  try{initial=checked(await readMapJson(`data/building-cuts/${map.id}.json`,'默认剖切数据读取',{timeout:8000,retries:0}));}catch(error){warning=error.message;}
   let saved=structuredClone(initial);
   try{const stored=localStorage.getItem(key);if(stored)saved=checked(JSON.parse(stored));}catch(error){warning=`${error.message}；已使用默认配置，原保存记录未删除。`;}
   let profile=structuredClone(saved),selected=null,open=false,action=null,drag=null,undo=[];

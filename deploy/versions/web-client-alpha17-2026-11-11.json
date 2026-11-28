@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "version": "web-client-alpha17-2026-11-11",
+  "status": "deployed",
+  "deployedAt": "2026-11-11T14:03:42.434022+00:00",
+  "releaseId": "web-client-alpha17-20261111T140226Z",
+  "previousRelease": "web-author-download-20261106T142759Z",
+  "source": {
+    "baseCommit": "2c172ee630ee7b41ae0301cb075f9b67fe8c8377",
+    "baseReleaseManifest": "web-author-download-2026-11-06.json",
+    "derivedFromDeployedHtml": true
+  },
+  "site": "https://tarkovlootmap.com/",
+  "downloadUrl": "https://pan.quark.cn/s/d33aeda9b267",
+  "desktopVersion": "1.4.0-alpha.17",
+  "files": [
+    {
+      "file": "site/index.html",
+      "bytes": 2960,
+      "sha256": "449703e09e75e8994696e82b7de64b47559bf91cc92095dc5cfc8ee49cbacf57"
+    },
+    {
+      "file": "site/tasks.html",
+      "bytes": 4548,
+      "sha256": "d814e774036dd17be2d2b342720c40347098e683da1063e8e6edd68adf175f90"
+    },
+    {
+      "file": "site/factory.html",
+      "bytes": 9014,
+      "sha256": "e7e8cf11974619effab4a7dd3bb1422d579625b4229b961579ef1f3845c9b56e"
+    },
+    {
+      "file": "site/streets.html",
+      "bytes": 9041,
+      "sha256": "96c2b79d39e9ef08378ac2c67b4ebb244d184c4a39f177ae5b49688d1f27c71b"
+    },
+    {
+      "file": "site/map.html",
+      "bytes": 8906,
+      "sha256": "11cfba9d32da4762d876c73634d22263ba78ece9220221f03a1ae52cdc1757e1"
+    }
+  ],
+  "changedBytes": 34469,
+  "sourceAssetsUnchanged": true,
+  "serviceRestarted": false,
+  "runtimeBaseline": "web-2026-11-06.json",
+  "validation": {
+    "publicDownloadHrefChecks": 5,
+    "previousETagReturnedNewPage": 5,
+    "currentETagReturnedNotModified": 5,
+    "publicRuntimeAndCachePlans": ["factory", "streets", "woods"],
+    "publicModelChunkAndTextureChecks": ["factory", "streets", "woods"],
+    "hiddenPaths": ["/loot.html", "/encyclopedia.html", "/api/health", "/__local-editor/session"],
+    "rollbackBackupVerified": true,
+    "sharePageStatus": 200,
+    "shareContentVerified": false
+  }
+}

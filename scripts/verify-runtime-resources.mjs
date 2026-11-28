@@ -5,14 +5,17 @@ import {createHash} from 'node:crypto';
 import {gzipSync,gunzipSync} from 'node:zlib';
 import * as THREE from 'three';
 import {ATLAS_MAPS} from '../site/atlas-maps.js';
+import {DEFAULT_GEOMETRY_QUALITY} from '../site/atlas-geometry-quality.js';
 import {mergeMapData,runtimeInputs} from '../site/atlas-runtime.js';
 import {createItemIndex} from '../site/atlas-item-index.js';
 import {createTaskMapIndex,restoreTaskMapIndex} from '../site/task-map-index.js';
 import {SceneCollision} from '../site/atlas-collision.js';
 import {buildGeometryGroups} from '../site/atlas-sectors.js';
 
-const root=path.resolve(import.meta.dirname,'..'),site=path.join(root,'site');
+const root=path.resolve(import.meta.dirname,'..'),args=process.argv.slice(2),arg=name=>args.includes(name)?args[args.indexOf(name)+1]:null;
+const site=path.resolve(root,arg('--site')||'site');
 const catalog=JSON.parse(fs.readFileSync(path.join(site,'data/runtime/manifest.json')));
+assert.deepEqual(catalog.geometry,{});
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const read=file=>fs.readFileSync(path.join(site,file));
 function artifact(info){const bytes=read(info.file);assert.equal(hash(bytes),info.sha256);assert.equal(bytes.length,info.bytes);assert.deepEqual(gunzipSync(read(info.file+'.gz')),bytes);return JSON.parse(bytes);}
@@ -38,11 +41,15 @@ for(const map of Object.values(ATLAS_MAPS)){
     itemBuildMs:median(()=>createItemIndex(data)),itemRestoreMs:median(()=>createItemIndex(data,prepared.itemIndex)),
     taskBuildAndQueryMs:median(()=>createTaskMapIndex({catalog:tasks,data,mapId:map.id,itemIndex:original}).entries(selected)),
     taskRestoreAndQueryMs:median(()=>restoreTaskMapIndex(prepared.taskIndex,data,map.id).entries(selected))};
-  const geometry=JSON.parse(read(map.geometry)),sectors=map.streamed?geometry.sectors:[{id:'whole'}];
+  const base=`data/geometry-quality/${map.id}/`;
+  const {variants}=JSON.parse(read(base+'manifest.json'));
+  assert.deepEqual(Object.keys(variants),[DEFAULT_GEOMETRY_QUALITY]);
+  const variant=variants[DEFAULT_GEOMETRY_QUALITY],geometry=JSON.parse(read(base+variant.file));
+  const geometryBase=base+DEFAULT_GEOMETRY_QUALITY+'/',sectors=map.streamed?geometry.sectors:[{id:'whole'}];
   for(const sector of sectors){
-    const file=map.streamed?map.textureBase+sector.file:map.geometry,detail=JSON.parse(read(file)),info=catalog.geometry[map.id][sector.id],spatial=artifact(info);
+    const detail=map.streamed?JSON.parse(read(geometryBase+sector.file)):geometry,info=variant.runtime.geometry[sector.id],spatial=artifact(info);
     assert.equal(hash(JSON.stringify(detail)),info.manifestSha256);assert.equal(spatial.geometrySha256,detail.sha256);
-    const raw=read(file.replace(/\.json$/,'.bin'));assert.equal(hash(raw),detail.sha256);const buffer=raw.buffer.slice(raw.byteOffset,raw.byteOffset+raw.byteLength);
+    const raw=read(geometryBase+detail.binary);assert.equal(hash(raw),detail.sha256);const buffer=raw.buffer.slice(raw.byteOffset,raw.byteOffset+raw.byteLength);
     assert.equal(spatial.meshes.length,detail.meshes.length);
     for(let i=0;i<detail.meshes.length;i++){
       const m=detail.meshes[i],s=spatial.meshes[i],geo=new THREE.BufferGeometry();
@@ -74,4 +81,4 @@ for(const map of Object.values(ATLAS_MAPS)){
   }
   report.maps.push(metrics);console.log(JSON.stringify(metrics));
 }
-const out=path.join(root,'work/runtime-precompute-20261014/verification.json');fs.writeFileSync(out,JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify({geometry:report.geometry,report:out}));
+const out=path.resolve(root,arg('--report')||'work/runtime-precompute-20261014/verification.json');fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify({geometry:report.geometry,report:out}));

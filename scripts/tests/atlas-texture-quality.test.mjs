@@ -6,38 +6,10 @@ import {createHash} from 'node:crypto';
 import sharp from 'sharp';
 import * as THREE from 'three';
 import {buildTextureQuality,mipBytes} from '../build-texture-quality.mjs';
-import {TEXTURE_QUALITY_KEY,readTextureQuality,saveTextureQuality,selectTextureManifest,loadTextureQuality} from '../../site/atlas-texture-quality.js';
+import {selectTextureManifest,loadTextureQuality} from '../../site/atlas-texture-quality.js';
 import {createMaterialLibrary} from '../../site/factory-materials.js';
-import {createTextureSettings} from '../../site/atlas-texture-settings.js';
 
 const hash=b=>createHash('sha256').update(b).digest('hex');
-test('quality is shared across maps, validates input and reports unavailable storage',()=>{
-  const data=new Map(),storage={getItem:k=>data.get(k),setItem:(k,v)=>data.set(k,v)};
-  assert.equal(readTextureQuality(storage),'medium');
-  assert.equal(saveTextureQuality('low',storage),true);assert.equal(readTextureQuality(storage),'low');
-  assert.equal(data.get(TEXTURE_QUALITY_KEY),'low');
-  data.set(TEXTURE_QUALITY_KEY,'__proto__');assert.equal(readTextureQuality(storage),'medium');
-  const blocked={getItem(){throw Error();},setItem(){throw Error();}};
-  assert.equal(readTextureQuality(blocked),'medium');assert.equal(saveTextureQuality('low',blocked),false);
-});
-
-test('fallback stays visible and can persist original quality instead of retrying a broken preference',()=>{
-  const oldStorage=Object.getOwnPropertyDescriptor(globalThis,'localStorage'),oldLocation=Object.getOwnPropertyDescriptor(globalThis,'location');
-  let saved='low',reloads=0;
-  Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:()=>saved,setItem:(key,value)=>{if(key===TEXTURE_QUALITY_KEY)saved=value;}}});
-  Object.defineProperty(globalThis,'location',{configurable:true,value:{reload:()=>reloads++}});
-  try{
-    const nodes={'#textureQuality':{},'#applyTextureQuality':{},'#textureQualityStatus':{},'#geometryQuality':{},'#geometryQualityStatus':{},'#loadSceneryDetails':{},'#sceneryDetailsStatus':{}},ui=createTextureSettings({querySelector:id=>nodes[id]});
-    ui.loaded({quality:'original',warning:'所选贴图暂不可用，本次使用原画质。'});
-    assert.match(nodes['#textureQualityStatus'].textContent,/原画质/);assert.equal(nodes['#applyTextureQuality'].hidden,false);
-    nodes['#textureQuality'].value='original';nodes['#textureQuality'].onchange();
-    assert.equal(nodes['#applyTextureQuality'].hidden,false);assert.equal(saved,'low');
-    nodes['#applyTextureQuality'].onclick();assert.equal(saved,'original');assert.equal(reloads,1);
-  }finally{
-    if(oldStorage)Object.defineProperty(globalThis,'localStorage',oldStorage);else delete globalThis.localStorage;
-    if(oldLocation)Object.defineProperty(globalThis,'location',oldLocation);else delete globalThis.location;
-  }
-});
 
 test('snapshot builder preserves geometry and alpha; lower tiers bind to the exact source and reject corruption',async t=>{
   const work=path.resolve(import.meta.dirname,'../../work');await fs.mkdir(work,{recursive:true});
@@ -56,27 +28,31 @@ test('snapshot builder preserves geometry and alpha; lower tiers bind to the exa
   assert.deepEqual(await fs.readFile(path.join(options.snapshotRoot,'data/atlas',manifest.binary)),binary);
   assert.deepEqual(await fs.readFile(path.join(atlas,'textures/color.webp')),image);
   assert.equal(report.maps[0].geometryBytes,binary.length);
-  for(const [quality,size] of [['medium',[128,64]],['low',[64,32]]]){
-    const selected=await selectTextureManifest(manifest,catalog,'factory',quality);
-    assert.equal(selected.materials,manifest.materials);assert.equal(selected.sha256,manifest.sha256);
-    assert.deepEqual(selected.textures.color.size,size);assert.match(selected.textures.color.file,new RegExp(`^/data/model-quality/factory/${quality}/`));
-    const record=catalog.variants[quality].textures.color,b=await fs.readFile(path.join(options.outRoot,'factory',record.file));
-    assert.equal(hash(b),record.sha256);assert.equal(b.length,record.bytes);
-    const meta=await sharp(b).metadata();assert.equal(meta.hasAlpha,true);
-    const {data}=await sharp(b).raw().toBuffer({resolveWithObject:true});const alpha=[];for(let i=3;i<data.length;i+=4)alpha.push(data[i]);assert.ok(Math.min(...alpha)<50);assert.ok(Math.max(...alpha)>200);
-    assert.equal(selected.textures.mask.sha256,manifest.textures.mask.sha256);assert.equal(selected.textures.mask.colorSpace,'linear');
-    assert.ok(report.maps[0][quality].rgbaMipBytes<report.maps[0].original.rgbaMipBytes);
-  }
+  assert.deepEqual(Object.keys(catalog.variants),['medium']);
+  const quality='medium',size=[128,64];
+  const selected=await selectTextureManifest(manifest,catalog,'factory',quality);
+  assert.equal(selected.materials,manifest.materials);assert.equal(selected.sha256,manifest.sha256);
+  assert.deepEqual(selected.textures.color.size,size);assert.match(selected.textures.color.file,new RegExp(`^/data/model-quality/factory/${quality}/`));
+  const record=catalog.variants[quality].textures.color,b=await fs.readFile(path.join(options.outRoot,'factory',record.file));
+  assert.equal(hash(b),record.sha256);assert.equal(b.length,record.bytes);
+  const meta=await sharp(b).metadata();assert.equal(meta.hasAlpha,true);
+  const {data}=await sharp(b).raw().toBuffer({resolveWithObject:true});const alpha=[];for(let i=3;i<data.length;i+=4)alpha.push(data[i]);assert.ok(Math.min(...alpha)<50);assert.ok(Math.max(...alpha)>200);
+  assert.equal(selected.textures.mask.sha256,manifest.textures.mask.sha256);assert.equal(selected.textures.mask.colorSpace,'linear');
+  assert.ok(report.maps[0][quality].rgbaMipBytes<report.maps[0].original.rgbaMipBytes);
   assert.equal(await selectTextureManifest(manifest,null,'factory','original'),manifest);
-  await assert.rejects(selectTextureManifest({...manifest,manualCull:{changed:true}},catalog,'factory','low'),/版本/);
-  for(const mutate of [c=>delete c.variants.low.textures.mask,c=>c.mapId='streets',c=>c.variants.low.textures.color.sourceSha256='0'.repeat(64),c=>c.variants.low.textures.color.file='../original.webp',c=>c.variants.low.textures.color.colorSpace='linear',c=>c.variants.low.textures.color.size=[512,512]]){
-    const bad=structuredClone(catalog);mutate(bad);await assert.rejects(selectTextureManifest(manifest,bad,'factory','low'));
+  await assert.rejects(selectTextureManifest({...manifest,manualCull:{changed:true}},catalog,'factory','medium'),/版本/);
+  for(const mutate of [c=>delete c.variants.medium.textures.mask,c=>c.mapId='streets',c=>c.variants.medium.textures.color.sourceSha256='0'.repeat(64),c=>c.variants.medium.textures.color.file='../original.webp',c=>c.variants.medium.textures.color.colorSpace='linear',c=>c.variants.medium.textures.color.size=[512,512]]){
+    const bad=structuredClone(catalog);mutate(bad);await assert.rejects(selectTextureManifest(manifest,bad,'factory','medium'));
   }
   let requests=0;await loadTextureQuality(manifest,'factory','original',{fetcher(){requests++;}});assert.equal(requests,0);
   const loaded=await loadTextureQuality(manifest,'factory','medium',{fetcher:async()=>({ok:true,json:async()=>catalog})});assert.equal(loaded.quality,'medium');
-  const fallback=await loadTextureQuality(manifest,'factory','low',{fetcher:async()=>({ok:false,status:404})});assert.equal(fallback.quality,'original');assert.equal(fallback.manifest,manifest);assert.match(fallback.warning,/原画质/);
+  const fallback=await loadTextureQuality(manifest,'factory','medium',{fetcher:async()=>({ok:false,status:404})});assert.equal(fallback.quality,'original');assert.equal(fallback.manifest,manifest);assert.match(fallback.warning,/原画质/);
   await assert.rejects(buildTextureQuality(options),e=>e.code==='EEXIST');
   await assert.rejects(buildTextureQuality({...options,outRoot:path.join(site,'derived')}),/separate/);
+  await fs.unlink(path.join(atlas,manifest.binary));
+  await fs.unlink(path.join(atlas,'textures/color.webp'));
+  const resumed=await buildTextureQuality({...options,outRoot:path.join(root,'from-snapshot'),resume:true});
+  assert.deepEqual(resumed.maps,report.maps);
   assert.equal(mipBytes([4,2]),44);
 });
 

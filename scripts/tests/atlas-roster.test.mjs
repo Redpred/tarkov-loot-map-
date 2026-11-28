@@ -57,14 +57,16 @@ for(const map of Object.values(ATLAS_MAPS))test(`${map.id}: current source, coor
   const geometry=read('site/'+map.geometry);
   assert.ok(geometry.stats.exportedInstances>0);
   for(const key of ['min','max'])assert.ok(geometry.bounds[key].every(Number.isFinite));
-  const groups=map.streamed?geometry.sectors:[geometry];
+  const geometryBase=`site/data/geometry-quality/${map.id}/low/`;
+  const rendered=read(geometryBase+'manifest.json'),groups=map.streamed?rendered.sectors:[rendered];
   assert.ok(groups.length>0);
   for(const g of groups){
-    const binary=path.join(root,'site',map.textureBase,map.streamed?g.binary:geometry.binary);
+    const binary=path.join(root,geometryBase,g.binary);
     assert.equal(fs.statSync(binary).size,g.stats.bytes,binary);
     assert.match(g.sha256,/^[a-f0-9]{64}$/);
   }
-  for(const texture of Object.values(geometry.textures))assert.ok(fs.existsSync(path.join(root,'site',map.textureBase,texture.file)),texture.file);
+  const textureBase=`site/data/model-quality/${map.id}/`,textures=read(textureBase+'manifest.json').variants.medium.textures;
+  for(const texture of Object.values(textures))assert.equal(fs.statSync(path.join(root,textureBase,texture.file)).size,texture.bytes,texture.file);
   const regions=read(`site/data/${map.id}-regions.json`);
   for(const label of regions.labels){
     assert.ok(label.name&&label.en);

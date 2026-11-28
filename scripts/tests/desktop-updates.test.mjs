@@ -6,7 +6,7 @@ import path from 'node:path';
 import os from 'node:os';
 import {createHash} from 'node:crypto';
 import {createDesktopUpdates} from '../../desktop/updates.mjs';
-import {findDesktopRelease, selectDesktopRelease, UPDATE_RELEASES, validateUpdateInfo} from '../../desktop/update-release.mjs';
+import {findDesktopRelease, findServerDesktopRelease, selectDesktopRelease, SERVER_UPDATE_URL, UPDATE_RELEASES, validateUpdateInfo} from '../../desktop/update-release.mjs';
 
 const current = '1.4.0-alpha.9', version = '1.4.0-alpha.10';
 function release(ver = version, extra = {}) {
@@ -58,6 +58,28 @@ test('anonymous release lookup paginates, handles unpublished repos and rate lim
   await assert.rejects(findDesktopRelease(current, async () => Response.json({error: true})), {code: 'INVALID_UPDATE'});
 });
 
+test('server lookup binds the program update to a version directory and pinned SHA-512', async () => {
+  const selected = selectDesktopRelease([release()], current), info = metadata(selected);
+  const manifest = {schemaVersion: 1, kind: 'program', version, installer: {name: selected.name, size: selected.size, sha512: info.sha512}};
+  const offered = await findServerDesktopRelease(current, async (url, init) => {
+    assert.equal(url, SERVER_UPDATE_URL + 'latest.json');
+    assert.equal(init.redirect, 'error'); assert.equal(init.cache, 'no-store');
+    return Response.json(manifest);
+  });
+  assert.deepEqual(offered, {...selected, baseUrl: SERVER_UPDATE_URL + version + '/', sha512: info.sha512});
+  assert.equal(await findServerDesktopRelease('1.3.0', async () => Response.json(manifest)), null);
+  assert.equal(await findServerDesktopRelease(current, async () => new Response(null, {status: 404})), null);
+  for (const mutate of [m => { m.kind = 'offline'; }, m => { m.version = '../outside'; },
+    m => { m.installer.name = 'https://elsewhere.invalid/setup.exe'; }, m => { m.installer.size = 0; },
+    m => { m.installer.sha512 = 'invalid'; }]) {
+    const copy = structuredClone(manifest); mutate(copy);
+    await assert.rejects(findServerDesktopRelease(current, async () => Response.json(copy)), {code: 'INVALID_UPDATE'});
+  }
+  await assert.rejects(findServerDesktopRelease(current, async () => new Response(' '.repeat(17000))), {code: 'INVALID_UPDATE'});
+  assert.throws(() => validateUpdateInfo(info, {...offered, sha512: createHash('sha512').update('different').digest('base64')}, current),
+    {code: 'INVALID_UPDATE'});
+});
+
 test('metadata binds exact version, installer, size and SHA-512 and disallows web installers', () => {
   const selected = selectDesktopRelease([release()], current), info = metadata(selected);
   assert.equal(validateUpdateInfo(info, selected, current), info);
@@ -69,9 +91,15 @@ test('metadata binds exact version, installer, size and SHA-512 and disallows we
   }
 });
 
-test('automatic check downloads with progress, but installs only after explicit request', async t => {
+test('automatic check offers an update once and download and install each require an explicit action', async t => {
   const f = await fixture(t);
-  assert.equal((await f.service.check({automatic: true})).phase, 'downloaded');
+  const offered = await f.service.check({automatic: true});
+  assert.equal(offered.phase, 'available'); assert.equal(offered.noticeVersion, version);
+  assert.ok(!f.calls.some(call => call[0] === 'download'));
+  await f.service.acknowledge(version);
+  f.advance();
+  assert.equal((await f.service.check({automatic: true})).noticeVersion, '');
+  assert.equal((await f.service.download()).phase, 'downloaded');
   assert.ok(f.notifications.some(state => state.phase === 'downloading' && state.percent === 25));
   assert.equal(f.updater.autoInstallOnAppQuit, false); assert.equal(f.updater.allowDowngrade, false);
   assert.equal(f.calls.filter(call => call[0] === 'install').length, 0);
@@ -84,7 +112,8 @@ test('disabled automatic updates persist and manual check/download still work', 
   const f = await fixture(t);
   await f.service.preference(false);
   await f.service.check({automatic: true}); assert.equal(f.calls.length, 0);
-  assert.equal((await f.service.check()).phase, 'available');
+  const offered = await f.service.check();
+  assert.equal(offered.phase, 'available'); assert.equal(offered.noticeVersion, '');
   assert.equal((await f.service.download()).phase, 'downloaded');
   const other = createDesktopUpdates({updater: new EventEmitter(), currentVersion: current, settingsFile: f.settingsFile, canInstall: true});
   t.after(() => other.dispose()); assert.equal((await other.status()).autoUpdate, false);
@@ -103,13 +132,17 @@ test('concurrent checks and download requests do not start duplicate downloads',
   const f = await fixture(t, {findRelease: async () => { await waiting; return selectDesktopRelease([release()], current); }});
   const first = f.service.check(); await new Promise(resolve => setImmediate(resolve));
   await f.service.check(); await f.service.download(); finish(); await first;
-  await f.service.check(); assert.equal(f.calls.filter(call => call[0] === 'download').length, 1);
+  assert.equal(f.calls.filter(call => call[0] === 'download').length, 0);
+  await Promise.all([f.service.download(), f.service.download()]);
+  assert.equal(f.calls.filter(call => call[0] === 'download').length, 1);
 });
 
 test('unpublished, current and older releases never download or downgrade', async t => {
   for (const selected of [null, selectDesktopRelease([release(current)], current), selectDesktopRelease([release('1.3.0')], current)]) {
     const f = await fixture(t, {findRelease: async () => selected});
-    assert.equal((await f.service.check()).phase, selected ? 'up-to-date' : 'unpublished'); assert.equal(f.calls.length, 0);
+    const checked = await f.service.check();
+    assert.equal(checked.phase, selected ? 'up-to-date' : 'unpublished'); assert.equal(f.calls.length, 0);
+    assert.equal(checked.version, selected?.version || '');
   }
 });
 
@@ -122,7 +155,8 @@ test('invalid remote metadata is rejected before fetching executable bytes', asy
 test('network failure is recoverable and malformed user settings can be saved again', async t => {
   const f = await fixture(t); let attempt = 0;
   f.updater.downloadUpdate = async () => { if (!attempt++) throw Error('offline'); await fs.writeFile(f.file, Buffer.alloc(128, 9)); return [f.file]; };
-  assert.equal((await f.service.check()).phase, 'error');
+  assert.equal((await f.service.check()).phase, 'available');
+  assert.equal((await f.service.download()).phase, 'error');
   assert.equal((await f.service.download()).phase, 'downloaded');
   const config = path.join(f.directory, 'bad.json'); await fs.writeFile(config, '{bad');
   const other = createDesktopUpdates({updater: new EventEmitter(), currentVersion: current, settingsFile: config, canInstall: true});
@@ -131,7 +165,7 @@ test('network failure is recoverable and malformed user settings can be saved ag
 });
 
 test('cached installer changed after download is rejected immediately before installation', async t => {
-  const f = await fixture(t); await f.service.check(); await fs.writeFile(f.file, Buffer.alloc(128, 7));
+  const f = await fixture(t); await f.service.check(); await f.service.download(); await fs.writeFile(f.file, Buffer.alloc(128, 7));
   const result = await f.service.install(); assert.equal(result.phase, 'error'); assert.match(result.message, /校验失败/);
   assert.ok(!f.calls.some(call => call[0] === 'install'));
 });

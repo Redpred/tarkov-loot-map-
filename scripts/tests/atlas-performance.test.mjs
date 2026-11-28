@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {budgetSectors,limitMarkers,renderPixelRatio,performancePresets} from '../../site/atlas-performance.js';
 import {validateViewSettings} from '../../site/atlas-view-settings.js';
-import {HOME_VIEW_KEY,readHomeViewSettings,readMapViewSettings,saveHomeViewSettings} from '../../site/atlas-view-preferences.js';
+import {HOME_VIEW_KEY,readHomeViewSettings,readMapViewSettings,saveHomeViewSettings,saveMapViewSettings} from '../../site/atlas-view-preferences.js';
 const preferences=entries=>{const values=new Map(entries);return {values,getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value)};};
 test('home settings reach new and previously visited maps while preserving independent controls',()=>{
   const stored=preferences([['factory-view-settings-v1',JSON.stringify({maxFps:120,pivot:'manual',manualPivot:[10,20,30],walkSpeed:7,rotationSpeed:.9})],['streets-view-settings-v1',JSON.stringify({maxFps:15,markerSize:32})]]);
@@ -26,6 +26,19 @@ test('home presets and reset preserve map pivots and reset only shared controls'
   const reset=readMapViewSettings('factory',stored);
   assert.equal(reset.maxFps,60);assert.equal(reset.flySpeed,3);assert.equal(reset.mode,'view');assert.equal(reset.pivot,'manual');assert.deepEqual(reset.manualPivot,[1,2,3]);assert.equal(reset.rotationSpeed,.8);
   assert.equal(saveHomeViewSettings({pivot:'map'},'pivot',stored),false);
+});
+test('a map edit preserves newer home settings and keeps independent map preferences',()=>{
+  const stored=preferences([['factory-view-settings-v1',JSON.stringify({pivot:'map'})]]);
+  const openMap=readMapViewSettings('factory',stored);
+  assert.equal(saveHomeViewSettings({maxFps:45},'maxFps',stored),true);
+  openMap.rotationSpeed=.85;
+  assert.equal(saveMapViewSettings('factory',openMap,'rotationSpeed',stored),true);
+  assert.equal(readMapViewSettings('factory',stored).maxFps,45);
+  assert.equal(readMapViewSettings('factory',stored).rotationSpeed,.85);
+  assert.equal(readMapViewSettings('factory',stored).pivot,'map');
+  assert.equal(readMapViewSettings('woods',stored).rotationSpeed,.55);
+  assert.equal(saveMapViewSettings('factory',{pivot:'manual',manualPivot:[1,2,3]},'manualPivot',stored),true);
+  assert.deepEqual(readMapViewSettings('factory',stored).manualPivot,[1,2,3]);
 });
 test('home settings tolerate corrupt storage and report saving failures',()=>{
   const stored=preferences([[HOME_VIEW_KEY,'null'],['factory-view-settings-v1','broken']]);

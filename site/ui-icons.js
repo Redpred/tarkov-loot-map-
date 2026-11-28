@@ -13,6 +13,7 @@ const paths={
   reset:'<path d="M3 10a9 9 0 1 1 2 8M3 4v6h6"/>',
   layers:'<path d="m12 3 10 5-10 5L2 8zM2 12l10 5 10-5M2 16l10 5 10-5"/>',
   fly:'<path d="m3 11 18-8-8 18-2-8zM11 13l10-10"/>',
+  ruler:'<path d="m3 15 12-12 6 6L9 21zM7 11l3 3m1-7 3 3m1-7 3 3"/>',
   settings:'<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/>',
   focus:'<path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5"/><circle cx="12" cy="12" r="3"/>',
   help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 4 2c-1.5 1-1.5 1-1.5 3M12 17h.01"/>',

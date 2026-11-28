@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {appUrl, externalUrl, resourcePath} from '../../desktop/policy.mjs';
+import {APP_ORIGIN, appPermission, appUrl, externalUrl, resourcePath} from '../../desktop/policy.mjs';
 import {createDesktopResources} from '../../desktop/resources.mjs';
 import {pageRoute} from '../../site/atlas-page-routes.js';
 import {createClientResourceStore} from '../../desktop/local-resources.mjs';
@@ -20,6 +20,8 @@ test('desktop origin and browser links reject lookalikes and dangerous schemes',
   for (const url of ['file:///C:/secret', 'tarkov://app.evil/', 'tarkov://user@app/', 'https://app/']) assert.equal(appUrl(url), false);
   assert.ok(externalUrl('https://github.com/Redpred/tarkov-loot-map/releases'));
   assert.ok(externalUrl('https://beian.miit.gov.cn/'));
+  assert.ok(externalUrl('https://space.bilibili.com/434445528?spm_id_from=333.788.0.0'));
+  for (const url of ['http://space.bilibili.com/434445528', 'https://space.bilibili.com.evil/434445528', 'https://space.bilibili.com@evil.com/', 'https://space.bilibili.com:8443/', 'https://user@space.bilibili.com/']) assert.equal(externalUrl(url), false);
   assert.ok(externalUrl('https://beian.mps.gov.cn/#/query/webSearch?code=31011202023890'));
   assert.equal(externalUrl('https://beian.mps.gov.cn.evil/'),false);
   for (const url of ['https://tarkov.dev/api', 'https://creativecommons.org/licenses/by-nc-sa/4.0/']) assert.ok(externalUrl(url));
@@ -30,6 +32,30 @@ test('resource paths cannot leave the site root or use Windows alternate streams
   for (const value of ['../private', '/data/file', 'data//file', 'data/../../x', 'C:/x', 'data\\file', 'data/x:secret', 'data/%2e%2e/x', 'x\0']) assert.throws(() => resourcePath(value));
 });
 
+test('desktop pointer lock is available only to the main frame of a map page', () => {
+  const map = `${APP_ORIGIN}/map.html?map=woods#location`;
+  const main = {requestingUrl: map, isMainFrame: true};
+  for (const route of ['factory.html', 'streets.html', 'map.html?map=woods#location']) {
+    const url = `${APP_ORIGIN}/${route}`;
+    const details = {requestingUrl: url, isMainFrame: true};
+    assert.equal(appPermission('pointerLock', url, APP_ORIGIN, details), true);
+    assert.equal(appPermission('pointerLock', url, url, details), true);
+  }
+  for (const route of ['index.html', 'tasks.html', 'map.html?map=unknown']) {
+    const url = `${APP_ORIGIN}/${route}`;
+    assert.equal(appPermission('pointerLock', url, APP_ORIGIN, {requestingUrl: url, isMainFrame: true}), false);
+  }
+  assert.equal(appPermission('pointerLock', map, APP_ORIGIN, {...main, isMainFrame: false}), false);
+  assert.equal(appPermission('pointerLock', map, APP_ORIGIN, {isMainFrame: true}), false);
+  assert.equal(appPermission('pointerLock', map, APP_ORIGIN, {...main, requestingUrl: `${APP_ORIGIN}/factory.html`}), false);
+  assert.equal(appPermission('pointerLock', map, 'https://tarkovlootmap.com', main), false);
+  assert.equal(appPermission('pointerLock', 'tarkov://app.evil/factory.html', APP_ORIGIN, main), false);
+  for (const permission of ['fileSystem', 'clipboard-sanitized-write', 'persistent-storage']) {
+    assert.equal(appPermission(permission, map, APP_ORIGIN), true);
+  }
+  assert.equal(appPermission('media', map, APP_ORIGIN, main), false);
+});
+
 test('first parallel native downloads can share newly created object and model directories', async t => {
   const root=await fs.mkdtemp(path.join(os.tmpdir(),'tarkov-parallel-cache-'));
   t.after(()=>fs.rm(root,{recursive:true,force:true}));
@@ -37,6 +63,21 @@ test('first parallel native downloads can share newly created object and model d
   const files=Array.from({length:48},(_,i)=>Buffer.from('parallel resource '+i));
   await Promise.all(files.flatMap(bytes=>[store.putObject(hash(bytes),bytes),store.putChunk(hash(bytes),0,bytes,bytes.length)]));
   for(const bytes of files){assert.deepEqual(await store.getObject(hash(bytes),bytes.length),bytes);assert.deepEqual(await store.getChunk(hash(bytes),0,bytes.length,bytes.length),bytes);}
+});
+test('a denied native replacement succeeds only if the requested bytes are already saved', async t => {
+  const options=await fixture(t),store=createClientResourceStore(path.join(options.siteRoot,'..','map-resources'));
+  const bytes=Buffer.from('same texture'),sha=hash(bytes),folder=path.join(store.root,'objects');
+  await store.putObject(sha,bytes);
+  const rename=fs.rename,target=path.join(folder,sha);
+  t.mock.method(fs,'rename',async(from,to)=>{
+    if(to===target)throw Object.assign(Error('file is in use'),{code:'EPERM'});
+    return rename(from,to);
+  });
+  await store.putObject(sha,bytes);
+  assert.deepEqual(await store.getObject(sha,bytes.length),bytes);
+  await fs.writeFile(target,Buffer.alloc(bytes.length));
+  await assert.rejects(store.putObject(sha,bytes),/无法保存/);
+  assert.deepEqual(await fs.readdir(folder),[sha]);
 });
 test('retained map navigation supports desktop without accepting another custom origin', () => {
   assert.equal(pageRoute('tasks.html', 'tarkov://app/factory.html').kind, 'tasks');
@@ -75,6 +116,39 @@ test('unknown files, changed bytes and oversized remote bodies are never cached'
   await assert.rejects(oversized.read(file), /超过预期/);
   await assert.rejects(fs.stat(path.join(options.cacheRoot, hash(data))));
 });
+test('legacy live catalogs can restore a pinned desktop tier after an archive miss', async t => {
+  for (const [kind,tier,indent] of [['geometry-quality','low'],['model-quality','medium',2],['scenery-details','low']]) {
+    const file = `data/${kind}/factory/manifest.json`;
+    const selected = {file: 'selected.json', stats: {bytes: 42}};
+    const catalog = {schemaVersion: 1, mapId: 'factory', variants: {[tier]: selected}};
+    const pinned = Buffer.from(JSON.stringify(catalog,null,indent)+'\n');
+    let requests = 0, changed = false;
+    const options = await fixture(t, {[file]:[hash(pinned),pinned.length]}, {}, async url => {
+      requests++;
+      if (new URL(url).pathname.startsWith('/desktop-resources/')) return new Response(null,{status:404});
+      const variant = changed ? {...selected, file:'different.json'} : selected;
+      return Response.json({...catalog,variants:{original:{file:'original.json'},[tier]:variant}});
+    });
+    const service = createDesktopResources(options);
+    assert.deepEqual(await service.read(file),pinned);assert.equal(requests,2);
+    changed = true;
+    assert.deepEqual(await service.read(file),pinned);assert.equal(requests,2);
+    const fresh = createDesktopResources({...options,cacheRoot:path.join(options.cacheRoot,'other')});
+    await assert.rejects(fresh.read(file),/当前客户端版本不一致/);
+    assert.equal(requests,4);
+  }
+});
+test('desktop protocol preserves a website diagnostic after an archive miss',async t=>{
+  const bytes=Buffer.from('fixture texture'),file='data/model-quality/factory/medium/sample.webp';
+  const options=await fixture(t,{[file]:[hash(bytes),bytes.length]}, {},async url=>{
+    if(new URL(url).pathname.startsWith('/desktop-resources/'))return new Response(null,{status:404});
+    return new Response(null,{status:503,headers:{'X-Map-Error-Code':'SERVER-FILE-PERMISSION'}});
+  });
+  const response=await createDesktopResources(options).handle(new Request('tarkov://app/'+file));
+  assert.equal(response.status,503);
+  assert.equal(response.headers.get('X-Map-Error-Code'),'CLIENT-WEBSITE-HTTP-503');
+  assert.equal(response.headers.get('X-Map-Upstream-Error-Code'),'SERVER-FILE-PERMISSION');
+});
 test('geometry gateway validates locked version, chunk range, total and checksum', async t => {
   const data = Buffer.from('geometry'), version = hash(data), route = 'api/factory-geometry/low'; let calls = 0;
   const options = await fixture(t, {}, {[route]: [version, data.length]}, async () => { calls++; return new Response(JSON.stringify({offset: 0, total: data.length, encoding: 'base64', sha256: version, data: data.toString('base64')})); });
@@ -85,10 +159,16 @@ test('geometry gateway validates locked version, chunk range, total and checksum
   const bad = createDesktopResources({...options, fetcher: async () => new Response(JSON.stringify({offset: 0, total: 999, data: data.toString('base64')}))});
   assert.equal((await bad.handle(new Request(url))).status, 503);
 });
-test('map preparation rejects invalid map and quality before accessing the network', async t => {
-  const service = createDesktopResources(await fixture(t));
-  await assert.rejects(service.prepare('../secret', {geometry: 'low', texture: 'medium', scenery: 'full'}), /无效/);
-  await assert.rejects(service.prepare('factory', {geometry: 'ultra', texture: 'medium', scenery: 'full'}), /无效/);
+test('cache plan rejects invalid map and quality before accessing the network', async t => {
+  let requests=0;
+  const service=createDesktopResources(await fixture(t, {}, {}, async()=>{requests++;throw Error('offline');}));
+  const plan='tarkov://app/api/cache-plan/';
+  for(const [map,geometry] of [['unknown','low'],['factory','ultra']]){
+    const response=await service.handle(new Request(`${plan}${map}?geometry=${geometry}&texture=medium&scenery=full`));
+    assert.equal(response.status,400);
+    assert.match((await response.json()).error,/无效/);
+  }
+  assert.equal(requests,0);
 });
 
 test('client folder persists textures, metadata and model chunks across offline processes without browser storage',async t=>{
@@ -122,24 +202,4 @@ test('client store refuses foreign folders and directory links without modifying
   await fs.symlink(folder,path.join(clean.root,'objects'),process.platform==='win32'?'junction':'dir');
   await assert.rejects(clean.putObject(hash(Buffer.from('x')),Buffer.from('x')),/链接|联接/);
   assert.deepEqual(await fs.readdir(folder),['personal.txt']);
-});
-test('failed metadata preparation stops scheduling and joins its in-flight workers', {timeout: 5000}, async t => {
-  const body = Buffer.from('{}'), files = Object.fromEntries(Array.from({length: 8}, (_, i) => [`data/atlas/sectors/${i}.json`, [hash(Buffer.from(`{"id":${i}}`)), Buffer.byteLength(`{"id":${i}}`)]]));
-  // Distinct hashes prevent the intentional cross-window metadata deduplication.
-  const calls = []; let release, started;
-  const gate = new Promise(resolve => { release = resolve; }), fourStarted = new Promise(resolve => { started = resolve; });
-  const options = await fixture(t, files, {}, async url => {
-    const id = Number(new URL(url).pathname.match(/(\d+)\.json$/)[1]);
-    calls.push(id); if (calls.length === 4) started();
-    if (id === 0) throw Error('test metadata failure');
-    await gate; return new Response(JSON.stringify({id}));
-  });
-  await fs.mkdir(path.join(options.siteRoot, 'data/atlas'), {recursive: true});
-  await fs.writeFile(path.join(options.siteRoot, 'data/atlas/factory-geometry.json'), JSON.stringify({sha256: hash(body),stats: {bytes: body.length},meshes: [],materials: {},textures: {}}));
-  const pending = createDesktopResources(options).prepare('factory', {geometry: 'original',texture: 'original',scenery: 'full'});
-  let settled = false; void pending.then(() => { settled = true; }, () => { settled = true; });
-  await fourStarted;
-  assert.equal(settled, false, 'do not let a new job overlap the old workers');
-  release(); await assert.rejects(pending, /test metadata failure/);
-  assert.equal(calls.length, 4);
 });

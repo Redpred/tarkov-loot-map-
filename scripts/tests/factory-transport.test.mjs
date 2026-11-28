@@ -128,7 +128,10 @@ test('geometry JSON transport works without requesting a downloadable binary',as
   await t.test('a binary currently being rebuilt returns an explicit error',async()=>{
     await fs.truncate(path.join(atlas,'factory-geometry.bin'),16);
     const response=await fetch(url());assert.equal(response.status,503);
+    assert.equal(response.headers.get('X-Map-Error-Code'),'SERVER-MODEL-SIZE');
     assert.match((await response.json()).error,/重建/);
+    const missing=await fetch(base+'/data/atlas/textures/missing.webp');
+    assert.equal(missing.status,404);assert.equal(missing.headers.get('X-Map-Error-Code'),'SERVER-FILE-MISSING');
   });
 
   await t.test('street sectors use independent checked JSON transport and cannot select arbitrary files',async()=>{

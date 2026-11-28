@@ -1,10 +1,15 @@
 import {createItemIndex} from './atlas-item-index.js';
+import {mapInterfaceKey,readPagePreferences,savePagePreferences} from './atlas-page-session.js';
 
 const MAX_TARGETS=100;
 let instanceCount=0;
 
 export function createItemSearch({data,mapId,input,sectionHost,iconHtml,onChange=()=>{},index=createItemIndex(data),taskPoints=null}){
   const storageKey=`tarkov-target-items-v1:${mapId}`;
+  const interfaceKey=mapInterfaceKey(mapId),query=readPagePreferences(interfaceKey).search;
+  input.maxLength=200;
+  if(typeof query==='string')input.value=query.slice(0,input.maxLength);
+  const rememberQuery=()=>savePagePreferences(interfaceKey,{search:input.value.slice(0,input.maxLength)});
   const targets=new Map();
   let itemId=null,exactSearch=false,internalInput=false,composing=false,results=[],positionFrame=0;
   let selectedIds=new Set(),enabledTargets=new Set();
@@ -128,18 +133,18 @@ export function createItemSearch({data,mapId,input,sectionHost,iconHtml,onChange
     resultList.replaceChildren(fragment);resultList.scrollTop=0;popup.hidden=false;input.setAttribute('aria-expanded','true');positionPopup();
   }
   function dispatchInput(){internalInput=true;input.dispatchEvent(new Event('input',{bubbles:true}));internalInput=false;}
-  function clearQuery(){itemId=null;exactSearch=false;selectedIds.clear();input.value='';closePopup();}
+  function clearQuery(){itemId=null;exactSearch=false;selectedIds.clear();input.value='';rememberQuery();closePopup();}
   function selectItem(tpl){
     const item=index.byId.get(tpl);if(!item)return;
     if(!targets.has(tpl)&&targets.size>=MAX_TARGETS)return;
     targets.set(tpl,true);clearQuery();sectionHost.open=true;changeTargets();input.focus({preventScroll:true});closePopup();
   }
   function changeTargets(){save();renderTargets();onChange();}
-  input.addEventListener('input',()=>{if(internalInput)return;itemId=null;exactSearch=false;selectedIds.clear();renderSuggestions();});
+  input.addEventListener('input',()=>{if(internalInput||composing)return;rememberQuery();itemId=null;exactSearch=false;selectedIds.clear();renderSuggestions();});
   input.addEventListener('focus',()=>{if(!exactSearch)renderSuggestions();});
   input.addEventListener('click',renderSuggestions);
   input.addEventListener('compositionstart',()=>{composing=true;itemId=null;exactSearch=false;selectedIds.clear();closePopup();});
-  input.addEventListener('compositionend',()=>{composing=false;renderSuggestions();});
+  input.addEventListener('compositionend',()=>{composing=false;rememberQuery();renderSuggestions();});
   input.addEventListener('keydown',event=>{
     if(composing||event.isComposing||event.keyCode===229)return;
     if(event.key==='Escape'&&!popup.hidden){event.preventDefault();event.stopImmediatePropagation();closePopup();return;}

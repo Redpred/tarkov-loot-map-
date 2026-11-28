@@ -71,7 +71,7 @@ try {
     // No website fallback during release builds. Only the pinned GitHub assets.
     args.github = github; args.store = store;
   }
-  console.log('Selecting low geometry, medium textures and full scenery for all maps.');
+  console.log('Selecting low geometry, 128 px textures and full scenery for all maps.');
   const profile = await defaultOfflineProfile({lock, readObject});
   if (args.download) {
     const jobs = [...profile.objects.map(object => async () => readObject(object.source, [object.sha256, object.bytes]))];

@@ -31,7 +31,7 @@ const config=path.join(profile,'app-update.yml');
 await fs.writeFile(config,'provider: generic\nurl: https://github.com/Redpred/tarkov-loot-map/releases/\nupdaterCacheDirName: verified-update\n');
 updater.updateConfigPath=config;
 const events=[];let lastProgress=0;
-service=createDesktopUpdates({updater,currentVersion:currentVersion,settingsFile:path.join(profile,'updates.json'),canInstall:true,
+service=createDesktopUpdates({updater,currentVersion:currentVersion,settingsFile:path.join(profile,'updates.json'),canInstall:true,findRelease:findDesktopRelease,
   notify:state=>{if(events.at(-1)!==state.phase){events.push(state.phase);console.log(state.phase);}if(state.phase==='downloading'&&Date.now()-lastProgress>30000){console.log(JSON.stringify({bytes:state.transferred,total:state.total}));lastProgress=Date.now();}}});
 // Exercise the production selection, metadata, downloader and pre-install hash.
 // A synthetic older version exercises update selection without creating a fake Release.

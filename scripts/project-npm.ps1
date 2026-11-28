@@ -1,14 +1,15 @@
-﻿# Use the project runtime even when an older system Node precedes it in PATH.
+﻿# Run npm and its child scripts with the supported Node from the system PATH.
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
-$runtime = Join-Path $root 'work/runtimes/node-v24.22.1-win-x64'
-$node = Join-Path $runtime 'node.exe'
-if (!(Test-Path -LiteralPath $node)) { throw '缺少项目 Node.js 24.22.1，请按 README.md 将官方 Windows x64 发行包解压至 work/runtimes/node-v24.22.1-win-x64/。' }
+$node = & (Join-Path $PSScriptRoot 'resolve-project-node.ps1')
+$nodeDirectory = Split-Path -Parent $node
+$npm = Join-Path $nodeDirectory 'node_modules/npm/bin/npm-cli.js'
+if (!(Test-Path -LiteralPath $npm -PathType Leaf)) { throw "所选 Node.js 安装目录缺少随附的 npm（$nodeDirectory）。" }
 $previousPath = $env:PATH
 try {
-    $env:PATH = $runtime + [IO.Path]::PathSeparator + $env:PATH
+    $env:PATH = $nodeDirectory + [IO.Path]::PathSeparator + $env:PATH
     Push-Location -LiteralPath $root
-    try { & $node (Join-Path $runtime 'node_modules/npm/bin/npm-cli.js') @args; $code = $LASTEXITCODE }
+    try { & $node $npm @args; $code = $LASTEXITCODE }
     finally { Pop-Location }
 } finally { $env:PATH = $previousPath }
 exit $code

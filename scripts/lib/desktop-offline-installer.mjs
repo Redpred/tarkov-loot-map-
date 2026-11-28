@@ -16,7 +16,7 @@ const lines=[
   '!include FileFunc.nsh',
   '!macro customWelcomePage',
   '  !define MUI_WELCOMEPAGE_TITLE "塔科夫物资地图 · 离线版"',
-  '  !define MUI_WELCOMEPAGE_TEXT "已包含 13 张地图的默认资源（低档模型、中档贴图、完整场景）。安装后可直接使用，无需另外下载资源包。$\\r$\\n$\\r$\\n其他画质选项仍然保留，使用时需要补充对应资源。$\\r$\\n$\\r$\\n安装及临时解压建议预留 10 GiB 可用空间。安装完成后，可从桌面快捷方式打开。"',
+  '  !define MUI_WELCOMEPAGE_TEXT "已包含 13 张地图的默认资源（低档模型、长边最多 128 像素的贴图、完整装饰）。安装后可离线打开地图。$\\r$\\n$\\r$\\n安装及临时解压建议预留 10 GiB 可用空间。安装完成后，可从桌面快捷方式打开。"',
   '  !insertmacro MUI_PAGE_WELCOME',
   '!macroend',
   '!macro customInit',

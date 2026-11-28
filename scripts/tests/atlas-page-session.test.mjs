@@ -2,6 +2,19 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {pageRoute,pageAction,plainPageClick} from '../../site/atlas-page-routes.js';
 import {ATLAS_MAPS,atlasMapHref} from '../../site/atlas-maps.js';
+import {mapInterfaceKey,readPagePreferences,savePagePreferences} from '../../site/atlas-page-session.js';
+
+test('independent page choices merge into the latest valid local record',()=>{
+  const mapKey=mapInterfaceKey('factory'),values=new Map([[mapKey,'[1,2,3]']]);
+  const storage={getItem:key=>values.get(key),setItem:(key,value)=>values.set(key,value)};
+  assert.deepEqual(readPagePreferences(mapKey,storage),{});
+  assert.equal(savePagePreferences(mapKey,{settingsTab:'resources'},storage),true);
+  assert.equal(savePagePreferences(mapKey,{geometry:false,search:''},storage),true);
+  assert.deepEqual(readPagePreferences(mapKey,storage),{settingsTab:'resources',geometry:false,search:''});
+  assert.deepEqual(readPagePreferences(mapInterfaceKey('woods'),storage),{});
+  assert.equal(savePagePreferences(mapKey,{geometry:true},null),false);
+  assert.deepEqual(readPagePreferences(mapKey,{getItem(){throw Error('blocked');}}),{});
+});
 
 const base='http://127.0.0.1:4175/streets.html';
 test('home, tasks and all 13 map routes work at root and under a subdirectory',()=>{

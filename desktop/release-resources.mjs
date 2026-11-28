@@ -4,13 +4,17 @@ import {createHash, randomUUID} from 'node:crypto';
 import {gunzip} from 'node:zlib';
 import {promisify} from 'node:util';
 import {createReleasePackCache} from './release-pack-cache.mjs';
+import {mapLoadError} from '../site/atlas-map-diagnostics.js';
 const unzip = promisify(gunzip), hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const PACK_LIMIT = 1900 * 2**20, MEMBER_LIMIT = 64 * 2**20, hosts = new Set(['github.com', 'release-assets.githubusercontent.com', 'objects.githubusercontent.com']);
 export function releaseDownloadUrl(value) {
   try { const url = new URL(value); return url.protocol === 'https:' && hosts.has(url.hostname) && !url.port && !url.username && !url.password && !url.hash; } catch { return false; }
 }
-async function bounded(response, limit) {
-  if (!response.ok) throw Error(`GitHub 资源下载失败（${response.status}）`);
+async function bounded(response, limit, source) {
+  if (!response.ok) {
+    await response.body?.cancel().catch(() => {});
+    throw mapLoadError(`${source}-HTTP-${response.status}`, `GitHub 资源下载失败（${response.status}）`);
+  }
   if (Number(response.headers.get('content-length')) > limit) { await response.body?.cancel(); throw Error('资源超过预期大小'); }
   const reader = response.body.getReader(), parts = []; let size = 0;
   try { while (true) { const {done, value} = await reader.read(); if (done) break; size += value.length; if (size > limit) throw Error('资源超过预期大小'); parts.push(value); } }
@@ -50,8 +54,8 @@ export function createReleaseResources({release, lock, cacheRoot, fetcher = fetc
         // Local previews can still use the old service before the resource
         // Release is public. Published-but-broken packs never use this fallback.
         if (response.status === 404) { await response.body?.cancel(); absentUntil = Date.now()+60000; return null; }
-        bytes = await bounded(response, release.index.bytes);
-        if (bytes.length !== release.index.bytes || hash(bytes) !== release.index.sha256) throw Error('GitHub 资源索引校验失败');
+        bytes = await bounded(response, release.index.bytes, 'CLIENT-GITHUB-INDEX');
+        if (bytes.length !== release.index.bytes || hash(bytes) !== release.index.sha256) throw mapLoadError('CLIENT-GITHUB-INDEX-HASH', 'GitHub 资源索引校验失败');
         await fs.mkdir(cacheRoot, {recursive: true}); const temp = `${saved}.${randomUUID()}.tmp`;
         try { await fs.writeFile(temp, bytes, {flag: 'wx'}); await fs.rename(temp, saved); } finally { await fs.rm(temp, {force: true}); }
       }
@@ -71,15 +75,15 @@ export function createReleaseResources({release, lock, cacheRoot, fetcher = fetc
     if (!bytes) {
       const response = await request(pack.name, signal, {Range: `bytes=${offset}-${offset+length-1}`}, 2*60*60*1000);
       if (response.status === 206) {
-        if (response.headers.get('content-range') !== `bytes ${offset}-${offset+length-1}/${pack.bytes}`) { await response.body?.cancel(); throw Error('GitHub 资源范围响应无效'); }
-        bytes = await bounded(response, length);
+        if (response.headers.get('content-range') !== `bytes ${offset}-${offset+length-1}/${pack.bytes}`) { await response.body?.cancel(); throw mapLoadError('CLIENT-GITHUB-PACK-RANGE', 'GitHub 资源范围响应无效'); }
+        bytes = await bounded(response, length, 'CLIENT-GITHUB-PACK');
       } else if (response.status === 200) {
         // Stream and hash at most one whole pack on disk. RAM remains bounded
         // by the requested member even when a proxy ignores the byte range.
         bytes = await fullPacks.read(pack,offset,length,response,signal);
-      } else { await response.body?.cancel(); throw Error(`GitHub 资源包下载失败（${response.status}）`); }
+      } else { await response.body?.cancel(); throw mapLoadError(`CLIENT-GITHUB-PACK-HTTP-${response.status}`, `GitHub 资源包下载失败（${response.status}）`); }
     }
-    if (bytes.length !== length || hash(bytes) !== digest) throw Error('GitHub 资源内容校验失败');
+    if (bytes.length !== length || hash(bytes) !== digest) throw mapLoadError('CLIENT-GITHUB-MEMBER-HASH', 'GitHub 资源内容校验失败');
     return bytes;
   }
   return {

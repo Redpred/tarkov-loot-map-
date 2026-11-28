@@ -48,13 +48,22 @@ test('prepared delivery bypasses source reads, supports gzip/identity/ETag and p
   t.after(async()=>{assert.equal(path.dirname(directory),work);assert.ok(path.basename(directory).startsWith('delivery-test-'));await fs.rm(directory,{recursive:true,force:true});});
   await fs.mkdir(path.join(root,'data/atlas'),{recursive:true});
   const data=Buffer.alloc(chunkSize+23,42),manifest={stats:{bytes:data.length},sha256:hash(data),meshes:[],materials:[],textures:{}};
-  const binary=path.join(root,'data/atlas/factory-geometry.bin');await fs.writeFile(binary,data);await fs.writeFile(path.join(root,'data/atlas/factory-geometry.json'),JSON.stringify(manifest));
-  const catalog=await buildResourceDelivery({root,out,mapIds:['factory'],quality:{geometry:'original',texture:'original',scenery:'full'},zip:false,onProgress(){}});
+  const sourceManifestSha256=hash(JSON.stringify(manifest));
+  await fs.writeFile(path.join(root,'data/atlas/factory-geometry.json'),JSON.stringify(manifest));
+  const geometry=path.join(root,'data/geometry-quality/factory'),texture=path.join(root,'data/model-quality/factory');
+  await fs.mkdir(path.join(geometry,'low'),{recursive:true});await fs.mkdir(texture,{recursive:true});
+  const selected={...manifest,geometryQuality:{quality:'low',sourceManifestSha256}};
+  const binary=path.join(geometry,'low/model.bin');await fs.writeFile(binary,data);
+  await fs.writeFile(path.join(geometry,'low/manifest.json'),JSON.stringify(selected));
+  await fs.writeFile(path.join(geometry,'manifest.json'),JSON.stringify({schemaVersion:1,mapId:'factory',sourceManifestSha256,variants:{low:{file:'low/manifest.json',manifestSha256:hash(JSON.stringify(selected))}}}));
+  await fs.writeFile(path.join(texture,'manifest.json'),JSON.stringify({schemaVersion:1,mapId:'factory',sourceManifestSha256,variants:{medium:{textures:{}}}}));
+  await assert.rejects(buildResourceDelivery({root,out,mapIds:['factory'],quality:{geometry:'original',texture:'original',scenery:'full'}}),/128/);
+  const catalog=await buildResourceDelivery({root,out,mapIds:['factory'],zip:false,onProgress(){}});
   assert.equal(catalog.packs[0].resourceBytes,data.length);
   await fs.cp(out,path.join(root,'data/resource-delivery'),{recursive:true});await fs.rename(binary,binary+'.saved');
   const pack=Buffer.from('sample archive bytes'),packHash=hash(pack);await fs.writeFile(path.join(root,'data/resource-delivery/packs',packHash+'.zip'),pack);
   const server=createSiteServer(root);server.listen(0,'127.0.0.1');await once(server,'listening');t.after(()=>new Promise(resolve=>server.close(resolve)));
-  const base=`http://127.0.0.1:${server.address().port}`,url=base+'/api/factory-geometry?'+new URLSearchParams({offset:0,length:chunkSize,version:manifest.sha256});
+  const base=`http://127.0.0.1:${server.address().port}`,url=base+'/api/factory-geometry/low?'+new URLSearchParams({offset:0,length:chunkSize,version:manifest.sha256});
   for(const encoding of ['gzip','identity']){const response=await fetch(url,{headers:{'accept-encoding':encoding}});assert.equal(response.status,200);assert.equal(response.headers.get('x-resource-delivery'),'prepared');assert.deepEqual(Buffer.from((await response.json()).data,'base64'),data.subarray(0,chunkSize));assert.equal((await fetch(url,{headers:{'if-none-match':response.headers.get('etag'),'accept-encoding':encoding}})).status,304);}
   assert.equal((await fetch(url.replace(manifest.sha256,'a'.repeat(64)))).status,409);
   assert.equal((await fetch(base+'/data/resource-delivery/_bundles/anything')).status,404);

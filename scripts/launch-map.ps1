@@ -62,8 +62,7 @@ try {
             throw '4175 端口已有服务，但不是当前地图服务。若之前用 npm start 启动过旧版本，请先关闭那个终端中的服务。'
         }
 
-        $nodePath = Join-Path $projectRoot 'work/runtimes/node-v24.22.1-win-x64/node.exe'
-        if (!(Test-Path -LiteralPath $nodePath)) { throw '未找到项目 Node.js 24.22.1，请按安全修复记录恢复项目运行时。' }
+        $nodePath = & (Join-Path $PSScriptRoot 'resolve-project-node.ps1')
 
         $serverScript = Join-Path $PSScriptRoot 'serve.mjs'
         # Do not inherit an unrelated PORT override from the caller.

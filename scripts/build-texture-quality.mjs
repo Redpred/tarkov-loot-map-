@@ -5,7 +5,7 @@ import {createHash} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
 import sharp from 'sharp';
 import {ATLAS_MAPS} from '../site/atlas-maps.js';
-import {TEXTURE_QUALITIES,textureSourceVersion} from '../site/atlas-texture-quality.js';
+import {DEFAULT_TEXTURE_QUALITY,TEXTURE_QUALITIES,textureSourceVersion} from '../site/atlas-texture-quality.js';
 
 const digest=bytes=>createHash('sha256').update(bytes).digest('hex');
 async function fileHash(file){const hash=createHash('sha256');for await(const chunk of createReadStream(file))hash.update(chunk);return hash.digest('hex');}
@@ -21,7 +21,7 @@ export async function buildTextureQuality({siteRoot,snapshotRoot,outRoot,maps=Ob
   await fs.mkdir(snapshotRoot,{recursive:true});await fs.mkdir(outRoot,{recursive:true});
   const report={schemaVersion:1,createdAt:new Date().toISOString(),source:'Current project exports; no game installation reads',snapshotRoot,maps:[]};
   for(const map of maps){
-    onProgress(`${map.id}: copying active model and texture resources`);
+    onProgress(`${map.id}: preparing verified model and texture sources`);
     const sourceFile=inside(siteRoot,map.geometry),savedFile=inside(snapshotRoot,map.geometry);
     await fs.mkdir(path.dirname(savedFile),{recursive:true});
     try{await fs.copyFile(sourceFile,savedFile,fs.constants.COPYFILE_EXCL);}catch(error){if(!resume||error.code!=='EEXIST'||await fileHash(sourceFile)!==await fileHash(savedFile))throw error;}
@@ -29,7 +29,10 @@ export async function buildTextureQuality({siteRoot,snapshotRoot,outRoot,maps=Ob
     const inventory=[{file:map.geometry,bytes:raw.length,sha256:digest(raw)}];
     async function copy(relative,expected){
       const target=inside(snapshotRoot,relative);await fs.mkdir(path.dirname(target),{recursive:true});
-      try{await fs.copyFile(inside(siteRoot,relative),target,fs.constants.COPYFILE_EXCL);}catch(error){if(!resume||error.code!=='EEXIST'||(!expected&&await fileHash(inside(siteRoot,relative))!==await fileHash(target)))throw error;}
+      try{await fs.copyFile(inside(siteRoot,relative),target,fs.constants.COPYFILE_EXCL);}catch(error){
+        // The versioned snapshot remains the source after original runtime payloads are pruned.
+        if(!resume||(error.code!=='EEXIST'&&!(expected&&error.code==='ENOENT'))||(!expected&&await fileHash(inside(siteRoot,relative))!==await fileHash(target)))throw error;
+      }
       const bytes=(await fs.stat(target)).size,sha256=await fileHash(target);
       if(expected&&(sha256!==expected.sha256||bytes!==expected.bytes))throw new Error(`Snapshot source mismatch: ${relative}`);
       inventory.push({file:relative,bytes,sha256});return target;
@@ -45,31 +48,30 @@ export async function buildTextureQuality({siteRoot,snapshotRoot,outRoot,maps=Ob
     // Copy first, then inspect/resize only the independent snapshot.
     await pool(Object.values(manifest.textures),entry=>copy(path.join(base,entry.file),entry));
     await json(path.join(snapshotRoot,`${map.id}-inventory.json`),{sourceManifestSha256:digest(raw),files:inventory.sort((a,b)=>a.file.localeCompare(b.file))},resume);
-    onProgress(`${map.id}: generating 128px / 64px textures from snapshot`);
+    onProgress(`${map.id}: generating 128px textures from snapshot`);
     const catalog={schemaVersion:1,mapId:map.id,sourceManifestSha256:await textureSourceVersion(manifest),source:{sceneSha256:manifest.sceneSha256,geometrySha256:manifest.sourceGeometrySha256||manifest.sha256,textureMaxSize:manifest.textureMaxSize},variants:{}};
-    for(const quality of ['medium','low']){
-      const maxSize=TEXTURE_QUALITIES[quality].maxSize,textures={};
-      await fs.mkdir(path.join(outRoot,map.id,quality),{recursive:true});
-      await pool(Object.entries(manifest.textures),async([name,entry])=>{
-        const source=await fs.readFile(inside(snapshotRoot,path.join(base,entry.file))),metadata=await sharp(source).metadata();
-        if(metadata.width!==entry.size[0]||metadata.height!==entry.size[1])throw new Error(`Texture dimensions mismatch: ${name}`);
-        const buffer=Math.max(...entry.size)<=maxSize?source:await sharp(source).resize({width:maxSize,height:maxSize,fit:'inside',withoutEnlargement:true}).webp({lossless:true,effort:4}).toBuffer();
-        const sha256=digest(buffer),file=`${quality}/${sha256}.webp`,{width,height,hasAlpha}=await sharp(buffer).metadata();
-        if(metadata.hasAlpha&&!hasAlpha){
-          // WebP legitimately omits an alpha channel when every resized pixel
-          // is opaque. Check the resized pixels instead of the container flag.
-          const rgba=await sharp(source).resize({width:maxSize,height:maxSize,fit:'inside',withoutEnlargement:true}).ensureAlpha().raw().toBuffer();
-          for(let i=3;i<rgba.length;i+=4)if(rgba[i]!==255)throw new Error(`Lost texture alpha: ${name}`);
-        }
-        // Content-addressed names may be shared by equivalent textures.
-        try{await fs.writeFile(path.join(outRoot,map.id,file),buffer,{flag:'wx'});}catch(error){if(error.code!=='EEXIST')throw error;if(await fileHash(path.join(outRoot,map.id,file))!==sha256)throw error;}
-        textures[name]={file,size:[width,height],bytes:buffer.length,sha256,colorSpace:entry.colorSpace,sourceSha256:entry.sha256};
-      });
-      const sorted=Object.fromEntries(Object.keys(textures).sort().map(name=>[name,textures[name]]));
-      catalog.variants[quality]={maxSize,stats:{textureBytes:Object.values(sorted).reduce((n,t)=>n+t.bytes,0),rgbaMipBytes:Object.values(sorted).reduce((n,t)=>n+mipBytes(t.size),0)},textures:sorted};
-    }
+    const quality=DEFAULT_TEXTURE_QUALITY;
+    const maxSize=TEXTURE_QUALITIES[quality].maxSize,textures={};
+    await fs.mkdir(path.join(outRoot,map.id,quality),{recursive:true});
+    await pool(Object.entries(manifest.textures),async([name,entry])=>{
+      const source=await fs.readFile(inside(snapshotRoot,path.join(base,entry.file))),metadata=await sharp(source).metadata();
+      if(metadata.width!==entry.size[0]||metadata.height!==entry.size[1])throw new Error(`Texture dimensions mismatch: ${name}`);
+      const buffer=Math.max(...entry.size)<=maxSize?source:await sharp(source).resize({width:maxSize,height:maxSize,fit:'inside',withoutEnlargement:true}).webp({lossless:true,effort:4}).toBuffer();
+      const sha256=digest(buffer),file=`${quality}/${sha256}.webp`,{width,height,hasAlpha}=await sharp(buffer).metadata();
+      if(metadata.hasAlpha&&!hasAlpha){
+        // WebP legitimately omits an alpha channel when every resized pixel
+        // is opaque. Check the resized pixels instead of the container flag.
+        const rgba=await sharp(source).resize({width:maxSize,height:maxSize,fit:'inside',withoutEnlargement:true}).ensureAlpha().raw().toBuffer();
+        for(let i=3;i<rgba.length;i+=4)if(rgba[i]!==255)throw new Error(`Lost texture alpha: ${name}`);
+      }
+      // Content-addressed names may be shared by equivalent textures.
+      try{await fs.writeFile(path.join(outRoot,map.id,file),buffer,{flag:'wx'});}catch(error){if(error.code!=='EEXIST')throw error;if(await fileHash(path.join(outRoot,map.id,file))!==sha256)throw error;}
+      textures[name]={file,size:[width,height],bytes:buffer.length,sha256,colorSpace:entry.colorSpace,sourceSha256:entry.sha256};
+    });
+    const sorted=Object.fromEntries(Object.keys(textures).sort().map(name=>[name,textures[name]]));
+    catalog.variants[quality]={maxSize,stats:{textureBytes:Object.values(sorted).reduce((n,t)=>n+t.bytes,0),rgbaMipBytes:Object.values(sorted).reduce((n,t)=>n+mipBytes(t.size),0)},textures:sorted};
     await json(path.join(outRoot,map.id,'manifest.json'),catalog,resume);
-    report.maps.push({mapId:map.id,geometryBytes:manifest.stats.sectorBytes||manifest.stats.bytes,textureCount:Object.keys(manifest.textures).length,original:{textureBytes:Object.values(manifest.textures).reduce((n,t)=>n+t.bytes,0),rgbaMipBytes:Object.values(manifest.textures).reduce((n,t)=>n+mipBytes(t.size),0)},medium:catalog.variants.medium.stats,low:catalog.variants.low.stats});
+    report.maps.push({mapId:map.id,geometryBytes:manifest.stats.sectorBytes||manifest.stats.bytes,textureCount:Object.keys(manifest.textures).length,original:{textureBytes:Object.values(manifest.textures).reduce((n,t)=>n+t.bytes,0),rgbaMipBytes:Object.values(manifest.textures).reduce((n,t)=>n+mipBytes(t.size),0)},[DEFAULT_TEXTURE_QUALITY]:catalog.variants[DEFAULT_TEXTURE_QUALITY].stats});
     onProgress(`${map.id}: complete`);
   }
   await json(path.join(outRoot,'report.json'),report);return report;

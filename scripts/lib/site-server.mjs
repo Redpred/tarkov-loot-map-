@@ -2,6 +2,8 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
+import {once} from 'node:events';
+import {pipeline} from 'node:stream';
 import {ATLAS_MAPS} from '../../site/atlas-maps.js';
 import {acceptsGzip,matchesEtag,createResponseCache} from './http-resource-cache.mjs';
 import {createRuntimeResourceIndex} from './runtime-resource-index.mjs';
@@ -14,12 +16,17 @@ import {createDesktopArchiveHandler} from './desktop-resource-archive.mjs';
 export const MAX_GEOMETRY_CHUNK = 4 * 1024 * 1024;
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.wasm':'application/wasm','.bin':'application/octet-stream','.txt':'text/plain; charset=utf-8'};
 
-function json(res,status,value){
+function json(res,status,value,code){
   const body=JSON.stringify(value);
   res.writeHead(status,{'Content-Type':'application/json; charset=utf-8',
     'Content-Disposition':'inline','X-Content-Type-Options':'nosniff',
-    'Cache-Control':'no-store','Content-Length':Buffer.byteLength(body)});
+    'Cache-Control':'no-store','Content-Length':Buffer.byteLength(body),...(code?{'X-Map-Error-Code':code}:{})});
   res.end(body);
+}
+
+function fileErrorCode(resource, error){
+  const cause=({ENOENT:'MISSING',EACCES:'PERMISSION',EPERM:'PERMISSION',EMFILE:'LIMIT',ENFILE:'LIMIT'})[error.code]||'IO';
+  return `SERVER-${resource}-${cause}`;
 }
 
 const immutable='public, max-age=31536000, immutable';
@@ -34,7 +41,7 @@ async function geometryChunk(root,url,req,res,map,sectorId,readManifest,response
   if(!/^\d+$/.test(offsetText??'') || !/^\d+$/.test(lengthText??'') ||
       !Number.isSafeInteger(offset) || !Number.isSafeInteger(length) || length<1 || length>MAX_GEOMETRY_CHUNK ||
       !/^[a-f0-9]{64}$/.test(version??'')){
-    json(res,400,{error:'模型分块参数无效'});return;
+    json(res,400,{error:'模型分块参数无效'},'SERVER-MODEL-RANGE');return;
   }
   let file;
   try{
@@ -42,36 +49,36 @@ async function geometryChunk(root,url,req,res,map,sectorId,readManifest,response
     if(quality){
       const base=`data/geometry-quality/${map.id}/${quality}/`;index=await readManifest(path.join(root,base,'manifest.json'));
       const source=await readManifest(path.join(root,map.geometry));
-      if(index.geometryQuality?.sourceManifestSha256!==manifestDigest(source)||index.geometryQuality.quality!==quality){json(res,409,{error:'模型精度资源已过期，请刷新页面'});return;}
+      if(index.geometryQuality?.sourceManifestSha256!==manifestDigest(source)||index.geometryQuality.quality!==quality){json(res,409,{error:'模型精度资源已过期，请刷新页面'},'SERVER-MODEL-VERSION');return;}
       manifest=sectorId?index.sectors.find(s=>s.id===sectorId):index;
-      if(!manifest){json(res,404,{error:'地图分区不存在'});return;}
+      if(!manifest){json(res,404,{error:'地图分区不存在'},'SERVER-MODEL-SECTOR-MISSING');return;}
       binary=base+(sectorId?`sectors/${sectorId}.bin`:'model.bin');
     }else if(sectorId){
       index=await readManifest(path.join(root,map.geometry));
       manifest=index.sectors.find(s=>s.id===sectorId);
-      if(!manifest){json(res,404,{error:'地图分区不存在'});return;}
+      if(!manifest){json(res,404,{error:'地图分区不存在'},'SERVER-MODEL-SECTOR-MISSING');return;}
       binary=`${map.textureBase}sectors/${sectorId}.bin`;
     }else manifest=index=await readManifest(path.join(root,map.geometry));
     const sourceManifest=manifest;
     if(scenery==='simple'){
       const tier=quality||'original',base=`data/scenery-details/${map.id}/`,catalog=await readManifest(path.join(root,base,'manifest.json'));
       const variant=catalog.variants?.[tier],selected=await readManifest(path.join(root,base,tier,'manifest.json')),sourceVersion=manifestDigest(index);
-      if(catalog.schemaVersion!==1||catalog.recipeVersion!==1||catalog.mapId!==map.id||catalog.sceneSha256!==index.sceneSha256||variant?.file!==`${tier}/manifest.json`||variant.sourceManifestSha256!==sourceVersion||variant.manifestSha256!==manifestDigest(selected)||selected.decorationFilter?.sourceManifestSha256!==sourceVersion){json(res,409,{error:'装饰筛选资源已过期，请刷新页面'});return;}
+      if(catalog.schemaVersion!==1||catalog.recipeVersion!==1||catalog.mapId!==map.id||catalog.sceneSha256!==index.sceneSha256||variant?.file!==`${tier}/manifest.json`||variant.sourceManifestSha256!==sourceVersion||variant.manifestSha256!==manifestDigest(selected)||selected.decorationFilter?.sourceManifestSha256!==sourceVersion){json(res,409,{error:'装饰筛选资源已过期，请刷新页面'},'SERVER-SCENERY-VERSION');return;}
       const entry=sectorId?selected.sectors?.find(s=>s.id===sectorId):selected;
-      if(!entry){json(res,404,{error:'地图分区不存在'});return;}
+      if(!entry){json(res,404,{error:'地图分区不存在'},'SERVER-MODEL-SECTOR-MISSING');return;}
       manifest=sectorId?await readManifest(path.join(root,base,tier,'sectors',sectorId+'.json')):selected;
       const filter=manifest.decorationFilter,prepared=variant.runtime?.geometry?.[sectorId||'whole'];
       if(manifest.sha256!==entry.sha256||manifest.stats?.bytes!==entry.stats?.bytes||filter?.recipeVersion!==1||filter.sourceManifestSha256!==sourceVersion||filter.sourceGeometrySha256!==sourceManifest.sha256||filter.sourceBytes!==sourceManifest.stats.bytes||!Number.isSafeInteger(filter.removedMeshes)||filter.removedMeshes<0||prepared?.manifestSha256!==manifestDigest(manifest)){
-        json(res,409,{error:'装饰筛选资源已过期，请刷新页面'});return;
+        json(res,409,{error:'装饰筛选资源已过期，请刷新页面'},'SERVER-SCENERY-VERSION');return;
       }
       spans=filter.spans;validateSpans(spans,manifest.stats.bytes,filter.sourceBytes);
     }
-    if(manifest.sha256!==version){json(res,409,{error:'模型已更新，请刷新页面'});return;}
+    if(manifest.sha256!==version){json(res,409,{error:'模型已更新，请刷新页面'},'SERVER-MODEL-VERSION');return;}
     if(preparedDelivery&&await servePreparedGeometry(root,{version,offset,length,size:manifest.stats.bytes},req,res))return;
     file=await fs.promises.open(path.join(root,binary),'r');
     const stat=await file.stat(),size=manifest.stats.bytes;
-    if(stat.size!==sourceManifest.stats.bytes){json(res,503,{error:'模型正在重建，请稍后刷新'});return;}
-    if(offset>=size){json(res,416,{error:'模型分块超出范围'});return;}
+    if(stat.size!==sourceManifest.stats.bytes){json(res,503,{error:'模型正在重建，请稍后刷新'},'SERVER-MODEL-SIZE');return;}
+    if(offset>=size){json(res,416,{error:'模型分块超出范围'},'SERVER-MODEL-RANGE');return;}
     const compressed=acceptsGzip(req.headers['accept-encoding']);
     const etag=`W/"${version}-${offset}-${length}-${stamp(stat)}"`;
     const headers={'Content-Type':'application/json; charset=utf-8','Content-Disposition':'inline',
@@ -91,7 +98,7 @@ async function geometryChunk(root,url,req,res,map,sectorId,readManifest,response
     if(compressed)headers['Content-Encoding']='gzip';
     headers['Content-Length']=body.length;res.writeHead(200,headers).end(body);
   }catch(error){
-    json(res,error.code==='ENOENT'?404:503,{error:'模型数据暂不可用，请确认场景已提取完成。'});
+    json(res,error.code==='ENOENT'?404:503,{error:'模型数据暂不可用，请确认场景已提取完成。'},fileErrorCode('MODEL',error));
   }finally{await file?.close();}
 }
 
@@ -175,7 +182,7 @@ export function createSiteServer(siteRoot,{marketPrices,preparedDelivery=true,re
     if(!file.startsWith(root+path.sep)){res.writeHead(403).end();return;}
     if(!['GET','HEAD'].includes(req.method)){res.writeHead(405).end();return;}
     async function serveStatic(){
-      const stat=await fs.promises.stat(file);if(!stat.isFile()){res.writeHead(404).end('Not found');return;}
+      const stat=await fs.promises.stat(file);if(!stat.isFile()){res.writeHead(404,{'Cache-Control':'no-store','X-Map-Error-Code':'SERVER-FILE-MISSING'}).end('Not found');return;}
       const extension=path.extname(file),etag=`W/"${stamp(stat)}"`;
       const prepared=/^\/data\/runtime\/[a-f0-9]{64}\.json$/.test(url.pathname);
       const versioned=prepared||(/^[a-f0-9]{64}$/.test(url.searchParams.get('v')||'')&&/\.(webp|png|svg)$/.test(file));
@@ -196,11 +203,18 @@ export function createSiteServer(siteRoot,{marketPrices,preparedDelivery=true,re
         const body=await responseBody(`${file}:${stamp(stat)}`,()=>fs.promises.readFile(file),true);
         headers['Content-Encoding']='gzip';headers['Content-Length']=body.length;res.writeHead(200,headers).end(req.method==='HEAD'?undefined:body);
       }else{
-        headers['Content-Length']=stat.size;res.writeHead(200,headers);
-        if(req.method==='HEAD'){res.end();return;}
-        fs.createReadStream(file).on('error',()=>res.destroy()).pipe(res);
+        headers['Content-Length']=stat.size;
+        if(req.method==='HEAD'){res.writeHead(200,headers).end();return;}
+        const stream=fs.createReadStream(file);
+        await once(stream,'open');
+        if(res.destroyed){stream.destroy();return;}
+        res.writeHead(200,headers);
+        pipeline(stream,res,()=>{});
       }
     }
-    serveStatic().catch(error=>{if(res.headersSent)res.destroy();else res.writeHead(error.code==='ENOENT'?404:503).end('Resource unavailable');});
+    serveStatic().catch(error=>{
+      if(res.headersSent)res.destroy();
+      else if(!res.destroyed)res.writeHead(error.code==='ENOENT'?404:503,{'Cache-Control':'no-store','X-Map-Error-Code':fileErrorCode('FILE',error)}).end('Resource unavailable');
+    });
   });
 }

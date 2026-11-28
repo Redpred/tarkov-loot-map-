@@ -15,7 +15,7 @@ let refreshHomeCache=()=>{};
 const settings=readHomeViewSettings();
 const viewUI=createViewSettingsUI({home:true,settings,onChange:key=>{
   $('homeSettingsNotice').textContent=saveHomeViewSettings(settings,key)?'设置已保存，下次进入地图时生效。':'当前浏览器无法保存设置，请允许网站存储后重试。';
-},onQualityApplied(){
+},onSceneryApplied(){
   $('homeSettingsNotice').textContent='资源设置已保存，下次进入地图时生效。';refreshHomeCache();
 }});
 $('openHomeSettings').onclick=()=>viewUI.open();

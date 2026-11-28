@@ -89,13 +89,13 @@ try {
 }
 const yaml = require('js-yaml');
 const updateInfo = yaml.load(await fs.readFile(path.join(output, 'latest.yml'), 'utf8'));
-const {validateUpdateInfo} = await import('../desktop/update-release.mjs');
+const {SERVER_UPDATE_URL, validateUpdateInfo} = await import('../desktop/update-release.mjs');
 validateUpdateInfo(updateInfo, {version: pkg.version, name: installerName, size: installer.size}, '0.0.0');
 assert.equal(updateInfo.files[0].sha512, await fileDigest(installerPath, 'sha512', 'base64'));
 const updateConfig = yaml.load(await fs.readFile(path.join(appOutput, 'win-unpacked/resources/app-update.yml'), 'utf8'));
 assert.equal(updateConfig.provider, 'generic');
 assert.equal(updateConfig.channel, 'latest');
-assert.equal(updateConfig.url.replace(/\/$/, ''), `https://github.com/Redpred/tarkov-loot-map/releases/download/desktop-v${pkg.version}`);
+assert.equal(updateConfig.url.replace(/\/$/, ''), SERVER_UPDATE_URL + pkg.version);
 assert.ok(!updateConfig.token && !updateConfig.requestHeaders);
 const installerSha256 = await fileDigest(installerPath), asarSha256 = await fileDigest(archive);
 let offlineResources = null, bundle;
@@ -115,6 +115,6 @@ if (bundle) {
   offlineResources = {profile: bundle.profile, quality: bundle.quality, maps: bundle.maps.length, files: bundle.resourceFiles, bytes: bundle.resourceBytes, archive: embedded, inventorySha256: bundle.inventorySha256};
 }
 const result = {version: pkg.version, verifiedPayloadFiles: inventory.files.length, verifiedRuntimeFiles, runtimeDependencies, updateMetadataVerified: true, sourceMatched: true, privatePaths: false, installerName, installerBytes: installer.size,
-  installerSha256, asarSha256, resourceLockSha256: digest(await fs.readFile(path.join(root, 'desktop/resources.lock.json'))), resourceRelease, installerPayloadMatched, offlineResources, githubSingleAssetFits: true};
+  installerSha256, installerSha512: updateInfo.files[0].sha512, asarSha256, resourceLockSha256: digest(await fs.readFile(path.join(root, 'desktop/resources.lock.json'))), resourceRelease, installerPayloadMatched, offlineResources, githubSingleAssetFits: true};
 await fs.writeFile(path.join(output, 'package-verification.json'), JSON.stringify(result, null, 2) + '\n');
 console.log(JSON.stringify(result));

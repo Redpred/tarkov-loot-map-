@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "site": "https://tarkovlootmap.com/",
+  "releaseId": "web-features-20261124T090620Z",
+  "previousReleaseId": "web-latest-20261112T091343Z",
+  "deployedAt": "2026-11-24T09:09:14.982171+00:00",
+  "source": {
+    "baseCommit": "2c172ee630ee7b41ae0301cb075f9b67fe8c8377",
+    "workingTree": true
+  },
+  "features": [
+    "三种视角测距",
+    "自由飞行楼层和高度剖切",
+    "街区缩远自动居中显示全图",
+    "整项完成后移出我的任务",
+    "63 项任务的钥匙、门卡与路线提示"
+  ],
+  "files": [
+    {
+      "file": "site/atlas-height-range.js",
+      "sha256": "5dc5373bee99ed7bf890c3e2d261c38460f10f97cd6141e636962e704297fa82",
+      "bytes": 1385
+    },
+    {
+      "file": "site/atlas-maps.js",
+      "sha256": "ae20f906b2b11a3768691aff0cb17e585593ae448f205580cd145246f3032f63",
+      "bytes": 6077
+    },
+    {
+      "file": "site/atlas-measurement.js",
+      "sha256": "3302b6d769032d12d57c23429b4ff41a5af463dfaa4839fc2139f7ac8c51d175",
+      "bytes": 3754
+    },
+    {
+      "file": "site/atlas-navigation.js",
+      "sha256": "383bcdcdda5ea264a814f39e0ec92ec8fc9c61d4b9def7d0bb624a9e1667bacb",
+      "bytes": 6250
+    },
+    {
+      "file": "site/atlas-region-labels.js",
+      "sha256": "3e1c7ef6dcbe17a784c4248ba14ef2eb810e3d0bfdb86d611600560fd7528833",
+      "bytes": 8718
+    },
+    {
+      "file": "site/atlas-sectors.js",
+      "sha256": "0965259125f994ebd20aa63a4ce44a7bbb7e30032d78a8f654445c6c06c623a4",
+      "bytes": 12226
+    },
+    {
+      "file": "site/atlas-touch.js",
+      "sha256": "8188dda7574f4066949b86339ce71c6793e0713292201dd60e8d264d69496d70",
+      "bytes": 6280
+    },
+    {
+      "file": "site/factory.js",
+      "sha256": "04caa2b2735f76f4aff0ce397bbd0792d3ea3adfdcf918d0431256ad2c1aab47",
+      "bytes": 77946
+    },
+    {
+      "file": "site/map-ui.css",
+      "sha256": "61bad6f46e4aefbb873159fe497e0c67091813abc739f257b6de5b8c53c3e8f0",
+      "bytes": 31748
+    },
+    {
+      "file": "site/map-ui.js",
+      "sha256": "3bb87e7b39b7fd539ba33402acc220ffb04afe976788734ba696873a49439293",
+      "bytes": 17028
+    },
+    {
+      "file": "site/task-access-data.js",
+      "sha256": "d636786b738ac260557d147d0b01f404eb6433e60e102c02d07f406c3314a673",
+      "bytes": 37314
+    },
+    {
+      "file": "site/task-preparation-ui.js",
+      "sha256": "3bb58a984c6c2243cb37dc84fd04898347e7b7c04631d72fa672f6a84b167516",
+      "bytes": 10334
+    },
+    {
+      "file": "site/task-preparation.js",
+      "sha256": "ad9c98201937c13159f2aea78d0ecdfe423a5582f226c485eb4a7fc43f54da3a",
+      "bytes": 5083
+    },
+    {
+      "file": "site/task-store.js",
+      "sha256": "602382a3bc2e7c31aad800db9f30a8f0de13113a91c7781478c9e3c7bed34320",
+      "bytes": 5441
+    },
+    {
+      "file": "site/tasks.css",
+      "sha256": "79a1556a610c698ca33e1feae85269937ac319a6308463f6cf2c2ab7c6bc337d",
+      "bytes": 21121
+    },
+    {
+      "file": "site/tasks.js",
+      "sha256": "ad61445db85edfdbc3a10f8c272584b6e035b74d0ca5365774ec569903c3dd92",
+      "bytes": 39176
+    },
+    {
+      "file": "site/ui-icons.js",
+      "sha256": "9f058a8788af8b09fdb5b01e59f0a94c07b5f881af4d4aadfb5af400420065d4",
+      "bytes": 1731
+    }
+  ],
+  "downloadUrl": "https://pan.quark.cn/s/adeaebc575dd",
+  "mapResources": {
+    "geometry": "low",
+    "texture": "medium",
+    "maximumTextureEdge": 128,
+    "scenery": [
+      "full",
+      "simple"
+    ],
+    "fileCount": 28604,
+    "bytes": 8888199147,
+    "metadataSha256": "4d21c2cbda84a4ebeafd4e141c1c177b2188a690721bfe2ee3be3bea14d21b6a",
+    "runtimeManifestSha256": "a7424ab69b3cb31a1230ff00fa28437978c67d5bb3d7a670ad58e8828d751448"
+  },
+  "verification": {
+    "staticFiles": 17,
+    "etag304": 17,
+    "downloadLinks": 5,
+    "runtimeMaps": 13,
+    "cachePlans": 26,
+    "retiredResource404s": 8,
+    "hiddenBrowserMaps": [
+      "customs",
+      "factory",
+      "ground_zero",
+      "icebreaker",
+      "interchange",
+      "labs",
+      "labyrinth",
+      "lighthouse",
+      "reserve",
+      "shoreline",
+      "streets",
+      "terminal",
+      "woods"
+    ],
+    "localInteractionChecks": [
+      "measurement",
+      "height",
+      "tasks",
+      "access-mobile",
+      "streets"
+    ],
+    "publicInteractionChecks": [
+      "measurement",
+      "access-mobile"
+    ]
+  }
+}

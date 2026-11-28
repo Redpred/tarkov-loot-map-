@@ -15,7 +15,7 @@ export function createFirstPerson({canvas,settings,onChange,onNotice}){
   window.addEventListener('blur',stop);document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});
   window.addEventListener('keydown',e=>{
     if(suspended||!mode||editing()||document.activeElement!==canvas)return;
-    if(['KeyW','KeyA','KeyS','KeyD','KeyQ','KeyE','ShiftLeft','ShiftRight','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.code)){e.preventDefault();keys.add(e.code);if(!e.repeat)pendingKeys.add(e.code);}
+    if(['KeyW','KeyA','KeyS','KeyD','KeyQ','KeyE','Space','ControlLeft','ShiftLeft','ShiftRight','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.code)){e.preventDefault();keys.add(e.code);if(!e.repeat)pendingKeys.add(e.code);}
   });
   window.addEventListener('keyup',e=>keys.delete(e.code));
   canvas.addEventListener('pointerdown',e=>{
@@ -48,7 +48,8 @@ export function createFirstPerson({canvas,settings,onChange,onNotice}){
     // Keep a brief key tap for one frame even if keydown and keyup arrive
     // between two renders, which also helps when a heavy scene lowers FPS.
     const movement=new THREE.Vector3().addScaledVector(forward,THREE.MathUtils.clamp(Number(pressed('KeyW'))-Number(pressed('KeyS'))+touch.forward,-1,1)).addScaledVector(right,THREE.MathUtils.clamp(Number(pressed('KeyD'))-Number(pressed('KeyA'))+touch.right,-1,1));
-    movement.y+=THREE.MathUtils.clamp(Number(pressed('KeyE'))-Number(pressed('KeyQ'))+touch.up,-1,1);
+    const ascend=pressed('KeyE')||pressed('Space'),descend=pressed('KeyQ')||pressed('ControlLeft');
+    movement.y+=THREE.MathUtils.clamp(Number(ascend)-Number(descend)+touch.up,-1,1);
     if(movement.lengthSq()>1)movement.normalize();
     const boost=pressed('ShiftLeft')||pressed('ShiftRight');movement.multiplyScalar(settings.flySpeed*(boost?2.5:1)*dt);
     const before=camera.position.clone();

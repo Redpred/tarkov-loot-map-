@@ -2,21 +2,22 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {createReadStream} from 'node:fs';
-import {findDesktopRelease, isNewerVersion, validateUpdateInfo} from './update-release.mjs';
+import {findServerDesktopRelease, isNewerVersion, validateUpdateInfo} from './update-release.mjs';
 
 export function createDesktopUpdates({updater, currentVersion, settingsFile, canInstall, enabled = true,
-  findRelease = findDesktopRelease, notify = () => {}, beforeInstall = () => {}, now = Date.now,
-  startupDelay = 20000, checkInterval = 6 * 60 * 60 * 1000}) {
+  findRelease = findServerDesktopRelease, notify = () => {}, beforeInstall = () => {}, now = Date.now,
+  startupDelay = 5000, checkInterval = 6 * 60 * 60 * 1000}) {
   let state = {phase: enabled ? 'idle' : 'unsupported', currentVersion, version: '', percent: 0, transferred: 0, total: 0,
-    autoUpdate: true, canInstall, message: '', checkedAt: null};
-  let operation, preferenceWrite = Promise.resolve(), nextCheck = 0, timer, interval, selected, info, downloadedFile, disposed = false;
+    autoUpdate: true, canInstall, message: '', checkedAt: null, noticeVersion: ''};
+  let operation, preferenceWrite = Promise.resolve(), timer, interval, selected, info, downloadedFile, disposed = false;
+  let announcedVersion = '';
   const snapshot = () => ({...state, retryDownload: Boolean(info && selected && canInstall && state.phase === 'error')});
   const change = patch => { state = {...state, ...patch}; if (!disposed) notify(snapshot()); return snapshot(); };
   const errorText = error => {
     if (['INVALID_UPDATE', 'RATE_LIMIT'].includes(error?.code)) return error.message;
     if (/sha512|checksum|signature/i.test(String(error?.message))) return '更新文件校验失败，请重新检查并下载。';
     if (error?.code === 'ENOSPC') return '磁盘空间不足，请释放空间后重试。';
-    return '更新未完成，请检查网络和磁盘空间后重试。也可以打开发布页下载安装包。';
+    return state.phase === 'checking' ? '暂时无法检查更新，请检查网络后重试。' : '更新未完成，请检查网络和磁盘空间后重试。';
   };
   const fail = error => change({phase: 'error', message: errorText(error)});
   updater.autoDownload = false; // Validate the selected release before downloading.
@@ -61,22 +62,29 @@ export function createDesktopUpdates({updater, currentVersion, settingsFile, can
     async status() { await ready; return snapshot(); },
     async check({automatic = false} = {}) {
       await ready;
-      if (!enabled || operation || ['downloaded', 'installing'].includes(state.phase) || (automatic && !state.autoUpdate) || now() < nextCheck) return snapshot();
-      nextCheck = now() + 30000;
+      if (!enabled || disposed || operation || ['downloaded', 'installing'].includes(state.phase)) return snapshot();
+      if (automatic && (!state.autoUpdate || state.checkedAt != null && now() - state.checkedAt < 30000)) return snapshot();
       return exclusive(async () => {
         selected = null; info = null; downloadedFile = null;
-        change({phase: 'checking', message: '', version: '', percent: 0});
+        change({phase: 'checking', message: '', version: '', noticeVersion: '', percent: 0, transferred: 0, total: 0});
         selected = await findRelease(currentVersion);
         change({checkedAt: now()});
         if (!selected) { change({phase: 'unpublished'}); return; }
-        if (!isNewerVersion(selected.version, currentVersion)) { change({phase: 'up-to-date'}); return; }
+        if (!isNewerVersion(selected.version, currentVersion)) { change({phase: 'up-to-date', version: selected.version}); return; }
         updater.setFeedURL({provider: 'generic', url: selected.baseUrl, channel: 'latest', useMultipleRangeRequest: false});
         const result = await updater.checkForUpdates();
-        info = validateUpdateInfo(result?.updateInfo, selected, currentVersion);
-        if (result?.isUpdateAvailable === false) { info = null; change({phase: 'up-to-date'}); return; }
-        change({phase: 'available', version: selected.version, total: selected.size});
-        if (state.autoUpdate && canInstall) await download();
+        const validated = validateUpdateInfo(result?.updateInfo, selected, currentVersion);
+        if (result.isUpdateAvailable === false) throw Object.assign(Error('新版暂时无法用于当前客户端，请稍后重试。'), {code: 'INVALID_UPDATE'});
+        info = validated;
+        const noticeVersion = automatic && state.autoUpdate && selected.version !== announcedVersion ? selected.version : '';
+        change({phase: 'available', version: selected.version, total: selected.size, noticeVersion});
       });
+    },
+    async acknowledge(version) {
+      await ready;
+      if (!version || version !== state.noticeVersion) return snapshot();
+      announcedVersion = version;
+      return change({noticeVersion: ''});
     },
     async download() {
       await ready;
@@ -113,7 +121,7 @@ export function createDesktopUpdates({updater, currentVersion, settingsFile, can
         const temporary = settingsFile + '.tmp';
         await fs.writeFile(temporary, JSON.stringify({autoUpdate: value}) + '\n');
         await fs.rename(temporary, settingsFile);
-        return change({autoUpdate: value});
+        return change({autoUpdate: value, ...(!value && {noticeVersion: ''})});
       });
       preferenceWrite = write.catch(() => {});
       return write;

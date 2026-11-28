@@ -33,13 +33,19 @@ test('storage failure keeps current progress usable and reports that it is not p
   s.toggleTask('q',true);s.setCompleted('q','o',true);assert.equal(s.isSelected('q'),true);assert.equal(s.isCompleted('q','o'),true);assert.equal(s.getStatus().persistent,false);
 });
 
-test('whole-task completion syncs, hides map goals and restores partial progress on undo',()=>{
+test('whole-task completion removes only that task from selection and syncs its progress',()=>{
   const storage=memory(),bus=new EventTarget(),a=createTaskStore({storage,eventTarget:bus}),b=createTaskStore({storage,eventTarget:bus});
-  a.toggleTask('q',true);a.setCompleted('q','o1',true);a.setObjectiveVisible('factory','q','o2',true);
+  a.toggleTask('q',true);a.toggleTask('other',true);a.setCompleted('q','o1',true);a.setObjectiveVisible('factory','q','o2',true);
+  assert.equal(a.isSelected('q'),true);
+  const updates=[];const unsubscribe=b.subscribe(()=>updates.push(b.getState()));
   a.setTaskCompleted('q',true);assert.equal(b.isTaskCompleted('q'),true);assert.equal(b.isCompleted('q','o2'),true);
+  assert.equal(updates.length,1);assert.deepEqual(updates[0].finished,['q']);assert.deepEqual(updates[0].selected,['other']);
+  unsubscribe();
   assert.equal(b.objectiveVisible('factory','q','o2'),false);assert.deepEqual(b.getState().completed,{q:['o1']});
   const reopened=createTaskStore({storage,eventTarget:new EventTarget()});assert.equal(reopened.isTaskCompleted('q'),true);
-  b.setTaskCompleted('q',false);assert.equal(a.isCompleted('q','o1'),true);assert.equal(a.isCompleted('q','o2'),false);assert.equal(a.isSelected('q'),true);
+  assert.deepEqual(reopened.getState().selected,['other']);
+  b.setTaskCompleted('q',false);assert.equal(a.isCompleted('q','o1'),true);assert.equal(a.isCompleted('q','o2'),false);assert.equal(a.isSelected('q'),false);
+  a.toggleTask('q',true);assert.equal(a.isSelected('q'),true);
   a.setCompleted('q','o2',true);assert.equal(a.isTaskCompleted('q'),false,'objective checklists do not mean submitted quests');
   a.destroy();b.destroy();reopened.destroy();
 });

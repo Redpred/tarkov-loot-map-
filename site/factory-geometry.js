@@ -2,14 +2,16 @@ import {resourceCache,sha256} from './atlas-resource-cache.js';
 import {sceneryEndpoint} from './atlas-scenery-details.js';
 import {localResources} from './atlas-local-resources.js';
 import {managedResources} from './atlas-managed-resources.js';
-export const geometryProgressText=(done,total,source)=>({cache:'读取本地模型缓存',local:'读取本地资源包',resume:'恢复已下载分块',verify:'校验模型',network:'在线读取模型'}[source]||'在线读取模型')+` ${Math.round(done/total*100)}%`;
+import {readMapResource} from './atlas-resource-request.js';
+import {mapLoadError} from './atlas-map-diagnostics.js';
+export const geometryProgressText=(done,total,source)=>({cache:'读取本地模型缓存',local:'读取本地资源包',resume:'恢复已下载分块',verify:'校验模型',network:'在线读取模型',retry:'正在重试模型分块'}[source]||'在线读取模型')+` ${Math.round(done/total*100)}%`;
 // Keep the binary on disk for the exporter, but transfer it as ordinary JSON.
 // Download-manager browser extensions can otherwise capture the .bin fetch.
 export async function loadFactoryGeometry(manifest,onProgress=()=>{},endpoint='api/factory-geometry',signal,cache=resourceCache){
   endpoint=sceneryEndpoint(endpoint,manifest);
-  const total=manifest.stats.bytes,chunkSize=4*1024*1024;
+  const total=manifest?.stats?.bytes,chunkSize=4*1024*1024;
   if(!Number.isSafeInteger(total)||total<=0||!/^[a-f0-9]{64}$/.test(manifest.sha256))
-    throw new Error('模型清单无效，请重新生成几何数据');
+    throw mapLoadError('MODEL-MANIFEST', '模型清单无效', {url:endpoint});
   signal?.throwIfAborted();
   const identity=`geometry:${new URL(endpoint,globalThis.location?.href||'http://localhost/').pathname}`;
   const useExternal=cache===resourceCache;
@@ -42,10 +44,10 @@ export async function loadFactoryGeometry(manifest,onProgress=()=>{},endpoint='a
       if(valid){
         const derived=new Uint8Array(total);let cursor=0,previousEnd=0;
         for(const [out,start,length] of filter.spans){
-          if(![out,start,length].every(Number.isSafeInteger)||out!==cursor||start<previousEnd||length<1||start+length>raw.byteLength||out+length>total)throw Error('装饰筛选范围无效');
+          if(![out,start,length].every(Number.isSafeInteger)||out!==cursor||start<previousEnd||length<1||start+length>raw.byteLength||out+length>total)throw mapLoadError('SCENERY-MODEL-RANGE', '装饰筛选范围无效', {url:endpoint});
           derived.set(new Uint8Array(raw,start,length),out);cursor+=length;previousEnd=start+length;
         }
-        if(cursor!==total||await sha256(derived)!==manifest.sha256)throw Error('装饰筛选校验失败');signal?.throwIfAborted();
+        if(cursor!==total||await sha256(derived)!==manifest.sha256)throw mapLoadError('SCENERY-MODEL-HASH', '装饰筛选校验失败', {url:endpoint});signal?.throwIfAborted();
         if(!externalSource&&cache.enabled?.()!==false)await cache.put(identity,manifest.sha256,new Blob([derived]),startTicket);
         signal?.throwIfAborted();onProgress(total,total,externalSource?'local':'cache');return derived.buffer;
       }
@@ -53,8 +55,8 @@ export async function loadFactoryGeometry(manifest,onProgress=()=>{},endpoint='a
     }
   }
   const output=new Uint8Array(total),controller=new AbortController();
-  const abort=()=>controller.abort();signal?.addEventListener('abort',abort,{once:true});
-  if(signal?.aborted)controller.abort();
+  const abort=()=>controller.abort(signal.reason);signal?.addEventListener('abort',abort,{once:true});
+  if(signal?.aborted)abort();
   let next=0,loaded=0;
   const partials=[];
   const partialIdentity=(offset,length)=>`geometry-chunk:${identity.slice(9)}:${offset}:${length}`;
@@ -74,35 +76,31 @@ export async function loadFactoryGeometry(manifest,onProgress=()=>{},endpoint='a
         await cache.remove(partial,manifest.sha256);
       }
       const query=new URLSearchParams({offset,length,version:manifest.sha256});
-      const response=await fetch(`${endpoint}?${query}`,{
-        cache:cache.managed?'no-store':'default',headers:{Accept:'application/json',...(cache.client?{'X-Tarkov-Storage':'client'}:{})},signal:controller.signal});
-      if(!response.ok){
-        if(response.status===404)throw new Error('地图服务暂不可用，请稍后刷新页面');
-        if(cache.client){const detail=await response.json().catch(()=>null);if(detail?.error)throw Error(detail.error);}
-        throw new Error(`模型分块读取失败（HTTP ${response.status}），请刷新页面`);
-      }
-      const chunk=await response.json();
+      const url=`${endpoint}?${query}`;
+      const {chunk,source}=await readMapResource(url,'模型分块读取',async response=>({
+        chunk:await response.json(),source:response.headers.get('X-Resource-Source')
+      }),{
+        code:'MODEL-CHUNK',cache:cache.managed?'no-store':'default',headers:{Accept:'application/json',...(cache.client?{'X-Tarkov-Storage':'client'}:{})},
+        signal:controller.signal,timeout:globalThis.location?.protocol==='tarkov:'?0:60000,readError:true,onRetry:()=>onProgress(loaded,total,'retry')
+      });
       controller.signal.throwIfAborted();
-      if(chunk.offset!==offset||chunk.total!==total||chunk.encoding!=='base64'||
+      if(chunk?.offset!==offset||chunk.total!==total||chunk.encoding!=='base64'||
           typeof chunk.data!=='string'||chunk.data.length!==Math.ceil(length/3)*4)
-        throw new Error('模型分块不完整，请刷新页面重试');
-      if(typeof Uint8Array.fromBase64==='function'){
-        const decoded=Uint8Array.fromBase64(chunk.data);
-        if(decoded.length!==length)throw new Error('模型分块长度不符，请刷新页面重试');
-        output.set(decoded,offset);
-      }else{
-        const decoded=atob(chunk.data);
-        if(decoded.length!==length)throw new Error('模型分块长度不符，请刷新页面重试');
-        for(let i=0;i<length;i++)output[offset+i]=decoded.charCodeAt(i);
-      }
+        throw mapLoadError('MODEL-CHUNK-FORMAT', '模型分块不完整，请刷新页面重试', {url});
+      let bytes;
+      try{bytes=typeof Uint8Array.fromBase64==='function'?Uint8Array.fromBase64(chunk.data):atob(chunk.data);}
+      catch(cause){throw mapLoadError('MODEL-CHUNK-BASE64', '模型分块编码无效', {url,cause});}
+      if(bytes.length!==length)throw mapLoadError('MODEL-CHUNK-LENGTH', '模型分块长度不符，请刷新页面重试', {url});
+      if(typeof bytes==='string')for(let i=0;i<length;i++)output[offset+i]=bytes.charCodeAt(i);
+      else output.set(bytes,offset);
       const decoded=output.subarray(offset,offset+length);
       cache.recordFetch?.(length);
       if(chunk.sha256){
-        if(!/^[a-f0-9]{64}$/.test(chunk.sha256)||await sha256(decoded)!==chunk.sha256)throw Error('模型分块校验失败，请重试');
+        if(!/^[a-f0-9]{64}$/.test(chunk.sha256)||await sha256(decoded)!==chunk.sha256)throw mapLoadError('MODEL-CHUNK-HASH', '模型分块校验失败，请重试', {url});
         controller.signal.throwIfAborted();
         await cache.put(partial,manifest.sha256,new Blob([chunk.sha256,decoded]),startTicket);
       }
-      loaded+=length;onProgress(loaded,total,response.headers.get('X-Resource-Source')==='local'?'cache':'network');
+      loaded+=length;onProgress(loaded,total,source==='local'?'cache':'network');
     }
   }
   try{
@@ -112,7 +110,7 @@ export async function loadFactoryGeometry(manifest,onProgress=()=>{},endpoint='a
     controller.signal.throwIfAborted();
     onProgress(total,total,'verify');const hash=await sha256(output);
     controller.signal.throwIfAborted();
-    if(hash!==manifest.sha256){await discardPartials();throw new Error('模型完整性校验失败，请等待重建完成后刷新');}
+    if(hash!==manifest.sha256){await discardPartials();throw mapLoadError('MODEL-HASH', '模型完整性校验失败，请等待重建完成后刷新', {url:`${endpoint}?version=${manifest.sha256}`});}
     if(cache.enabled?.()!==false)await cache.put(identity,manifest.sha256,new Blob([output]),startTicket,partials);
     controller.signal.throwIfAborted();
     return output.buffer;

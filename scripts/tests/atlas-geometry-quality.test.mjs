@@ -8,9 +8,8 @@ import {buildGeometryQuality} from '../build-geometry-quality.mjs';
 import {verifyGeometryQuality,verifyMesh} from '../verify-geometry-quality.mjs';
 import {simplifyGeometry,views,digest,bytesOf,manifestDigest} from '../lib/geometry-quality.mjs';
 import {buildGeometryGroups} from '../../site/atlas-sectors.js';
-import {GEOMETRY_QUALITY_KEY,readGeometryQuality,saveGeometryQuality,loadGeometryQuality} from '../../site/atlas-geometry-quality.js';
-import {TEXTURE_QUALITY_KEY,readTextureQuality} from '../../site/atlas-texture-quality.js';
-import {createTextureSettings} from '../../site/atlas-texture-settings.js';
+import {loadGeometryQuality} from '../../site/atlas-geometry-quality.js';
+import {selectedCacheQuality} from '../../site/atlas-map-cache.js';
 import {createSiteServer} from '../lib/site-server.mjs';
 import {loadFactoryGeometry} from '../../site/factory-geometry.js';
 
@@ -25,39 +24,14 @@ function fixture(segments=24,materials=[{}, {role:'cutout'}, {vp:{layers:[]}}]){
   }
   const raw=Buffer.concat(parts);return {raw,buffer:raw.buffer.slice(raw.byteOffset,raw.byteOffset+raw.length),manifest:{schemaVersion:1,binary:'factory-geometry.bin',sha256:digest(raw),sceneSha256:'a'.repeat(64),bounds:{min:[-5,-2,5],max:[11,6,5]},materials,textures:{},meshes,stats:{bytes:raw.length,exportedInstances:meshes.length}}};
 }
-test('geometry preference defaults to low, validates storage and preserves explicit choices',()=>{
-  const entries=new Map(),storage={getItem:k=>entries.get(k),setItem:(k,v)=>entries.set(k,v)};
-  assert.equal(readGeometryQuality(storage),'low');assert.equal(readTextureQuality(storage),'medium');
-  assert.equal(saveGeometryQuality('medium',storage),true);assert.equal(readGeometryQuality(storage),'medium');
-  assert.equal(saveGeometryQuality('original',storage),true);assert.equal(readGeometryQuality(storage),'original');
-  assert.equal(entries.get(GEOMETRY_QUALITY_KEY),'original');entries.set(GEOMETRY_QUALITY_KEY,'__proto__');assert.equal(readGeometryQuality(storage),'low');
-  const blocked={getItem(){throw Error();},setItem(){throw Error();}};assert.equal(readGeometryQuality(blocked),'low');assert.equal(saveGeometryQuality('low',blocked),false);
-});
-test('quality reset uses low geometry and medium textures while editor geometry stays original',()=>{
-  const before={storage:Object.getOwnPropertyDescriptor(globalThis,'localStorage'),location:Object.getOwnPropertyDescriptor(globalThis,'location')};
-  const values=new Map([[TEXTURE_QUALITY_KEY,'original'],[GEOMETRY_QUALITY_KEY,'original']]);let reloads=0;
-  Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:k=>values.get(k),setItem:(k,v)=>values.set(k,v)}});
-  Object.defineProperty(globalThis,'location',{configurable:true,value:{reload:()=>reloads++}});
+test('map and download plans use fixed geometry and textures with legacy preferences present',()=>{
+  const before=Object.getOwnPropertyDescriptor(globalThis,'localStorage');
+  const values=new Map([['atlas-geometry-quality-v1','original'],['atlas-texture-quality-v1','low']]);
+  Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:key=>values.get(key)}});
   try{
-    const nodes=Object.fromEntries(['textureQuality','textureQualityStatus','geometryQuality','geometryQualityStatus','applyTextureQuality','loadSceneryDetails','sceneryDetailsStatus'].map(id=>['#'+id,{}]));
-    const ui=createTextureSettings({querySelector:id=>nodes[id]});ui.reset();
-    assert.equal(nodes['#geometryQuality'].value,'low');assert.equal(nodes['#textureQuality'].value,'medium');assert.equal(nodes['#applyTextureQuality'].hidden,false);
-    nodes['#applyTextureQuality'].onclick();assert.equal(reloads,1);assert.equal(values.get(GEOMETRY_QUALITY_KEY),'low');assert.equal(values.get(TEXTURE_QUALITY_KEY),'medium');
-    ui.geometryLoaded({quality:'original',locked:true});ui.reset();assert.equal(nodes['#geometryQuality'].value,'original');assert.equal(nodes['#geometryQuality'].disabled,true);
-    nodes['#applyTextureQuality'].onclick();assert.equal(values.get(GEOMETRY_QUALITY_KEY),'low','editor does not overwrite shared geometry preference');
-  }finally{for(const [key,desc] of [['localStorage',before.storage],['location',before.location]]){if(desc)Object.defineProperty(globalThis,key,desc);else delete globalThis[key];}}
-});
-test('home quality controls save without reloading and remain usable for subsequent changes',()=>{
-  const before=Object.getOwnPropertyDescriptor(globalThis,'localStorage'),values=new Map();let applied=0;
-  Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:key=>values.get(key),setItem:(key,value)=>values.set(key,value)}});
-  try{
-    const nodes=Object.fromEntries(['textureQuality','textureQualityStatus','geometryQuality','geometryQualityStatus','applyTextureQuality','loadSceneryDetails','sceneryDetailsStatus'].map(id=>['#'+id,{}]));
-    const ui=createTextureSettings({querySelector:id=>nodes[id]},{home:true,onApplied:()=>applied++});
-    nodes['#geometryQuality'].value='low';nodes['#textureQuality'].value='low';nodes['#loadSceneryDetails'].checked=false;nodes['#geometryQuality'].onchange();
-    assert.equal(nodes['#applyTextureQuality'].hidden,false);assert.equal(nodes['#applyTextureQuality'].textContent,'保存资源设置');
-    nodes['#applyTextureQuality'].onclick();assert.equal(applied,1);assert.equal(nodes['#applyTextureQuality'].hidden,true);
-    assert.equal(values.get(GEOMETRY_QUALITY_KEY),'low');assert.equal(values.get(TEXTURE_QUALITY_KEY),'low');
-    ui.reset();nodes['#applyTextureQuality'].onclick();assert.equal(applied,2);assert.equal(values.get(GEOMETRY_QUALITY_KEY),'low');assert.equal(values.get(TEXTURE_QUALITY_KEY),'medium');
+    assert.deepEqual(selectedCacheQuality(),{geometry:'low',texture:'medium',scenery:'full'});
+    values.set('atlas-scenery-details-v1','simple');
+    assert.deepEqual(selectedCacheQuality(),{geometry:'low',texture:'medium',scenery:'simple'});
   }finally{if(before)Object.defineProperty(globalThis,'localStorage',before);else delete globalThis.localStorage;}
 });
 test('simplification preserves instance coordinates, material seams and cutout triangles; renderer accepts compact indices and omitted paint',async()=>{
@@ -87,7 +61,7 @@ test('derived versions are source-bound, independently cached and served only th
   const server=createSiteServer(site);server.listen(0,'127.0.0.1');await once(server,'listening');t.after(()=>new Promise(resolve=>server.close(resolve)));
   const base=`http://127.0.0.1:${server.address().port}`,fetcher=url=>fetch(new URL(url,base+'/'));
   const entries=new Map(),keys=[],cache={get:async(key,version)=>{keys.push(key);return entries.get(key+'|'+version);},put:async(key,version,blob)=>entries.set(key+'|'+version,blob),ticket:()=>1};
-  for(const quality of ['original','medium','low']){
+  for(const quality of ['original','low']){
     const chosen=await loadGeometryQuality(f.manifest,map,quality,{fetcher});assert.equal(chosen.quality,quality,chosen.reason);
     const endpoint=new URL(chosen.endpoint,base+'/').href;
     const bytes=await loadFactoryGeometry(chosen.manifest,()=>{},endpoint,undefined,cache);assert.equal(digest(new Uint8Array(bytes)),chosen.manifest.sha256);
@@ -96,10 +70,10 @@ test('derived versions are source-bound, independently cached and served only th
     const hit=await fetch(endpoint+'?'+query,{headers:{'if-none-match':response.headers.get('etag')}});assert.equal(hit.status,304);
     const stale=await fetch(endpoint+'?'+new URLSearchParams({offset:0,length:32,version:'0'.repeat(64)}));assert.equal(stale.status,409);
   }
-  assert.equal(new Set(keys.filter(key=>key.startsWith('geometry:'))).size,3);
+  assert.equal(new Set(keys.filter(key=>key.startsWith('geometry:'))).size,2);
   for(const route of ['/api/factory-geometry/ultra','/api/factory-geometry/medium/s_0_0','/api/unknown-geometry/low'])assert.equal((await fetch(base+route)).status,404);
-  const changed={...f.manifest,manualCull:'updated'};const fallback=await loadGeometryQuality(changed,map,'medium',{fetcher});assert.equal(fallback.quality,'original');assert.match(fallback.warning,/原始模型/);
+  const changed={...f.manifest,manualCull:'updated'};const fallback=await loadGeometryQuality(changed,map,'low',{fetcher});assert.equal(fallback.quality,'original');assert.match(fallback.warning,/原始模型/);
   await fs.writeFile(path.join(site,map.geometry),JSON.stringify(changed));
-  const derived=JSON.parse(await fs.readFile(path.join(site,'data/geometry-quality/factory/medium/manifest.json')));
-  assert.equal((await fetch(base+'/api/factory-geometry/medium?'+new URLSearchParams({offset:0,length:32,version:derived.sha256}))).status,409);
+  const derived=JSON.parse(await fs.readFile(path.join(site,'data/geometry-quality/factory/low/manifest.json')));
+  assert.equal((await fetch(base+'/api/factory-geometry/low?'+new URLSearchParams({offset:0,length:32,version:derived.sha256}))).status,409);
 });

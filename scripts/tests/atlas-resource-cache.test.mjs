@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {IDBFactory,IDBObjectStore} from 'fake-indexeddb';
 import {createResourceCache,loadCachedTexture,sha256} from '../../site/atlas-resource-cache.js';
 import {loadFactoryGeometry} from '../../site/factory-geometry.js';
+import {readMapJson} from '../../site/atlas-resource-request.js';
+import {formatMapDiagnostic,mapLoadError} from '../../site/atlas-map-diagnostics.js';
 
 function fixture(t,quota=2**30){
   const values=new Map(),indexedDB=new IDBFactory();
@@ -47,10 +49,10 @@ test('incomplete or corrupt downloads are never saved',async t=>{
   t.after(()=>{globalThis.fetch=original;});
   const manifest={stats:{bytes:3},sha256:await sha256(source)};
   globalThis.fetch=async()=>Response.json({offset:0,total:3,encoding:'base64',data:'AAAA'});
-  await assert.rejects(loadFactoryGeometry(manifest,()=>{},'api/factory-geometry',undefined,cache),/完整性校验失败/);
+  await assert.rejects(loadFactoryGeometry(manifest,()=>{},'api/factory-geometry',undefined,cache),{diagnosticCode:'MODEL-HASH'});
   assert.equal((await cache.stats()).count,0);
   globalThis.fetch=async()=>Response.json({offset:0,total:3,encoding:'base64',data:'AA=='});
-  await assert.rejects(loadFactoryGeometry(manifest,()=>{},'api/factory-geometry',undefined,cache),/长度不符/);
+  await assert.rejects(loadFactoryGeometry(manifest,()=>{},'api/factory-geometry',undefined,cache),{diagnosticCode:'MODEL-CHUNK-LENGTH'});
   assert.equal((await cache.stats()).count,0);
 });
 
@@ -91,6 +93,101 @@ test('cancelling a texture network request does not save incomplete data or star
   await started;controller.abort();await assert.rejects(job,{name:'AbortError'});assert.equal(calls,1);assert.equal((await cache.stats()).count,0);
 });
 
+test('texture and model requests retry a 503 and only persist verified bytes',async t=>{
+  const {cache}=fixture(t),original=globalThis.fetch,bytes=Uint8Array.of(1,2,3),hash=await sha256(bytes);
+  const attempts={texture:[],model:[]},progress=[];
+  globalThis.fetch=async (url,{cache:mode})=>{
+    const type=url.includes('.webp')?'texture':'model';
+    const requests=attempts[type];requests.push(mode);
+    if(requests.length===1)return Response.json({error:'busy'},{status:503});
+    if(type==='texture')return new Response(bytes);
+    return Response.json({offset:0,total:3,encoding:'base64',sha256:hash,data:'AQID'});
+  };
+  t.after(()=>{globalThis.fetch=original;});
+  const [texture,model]=await Promise.all([
+    loadCachedTexture({loadAsync:async()=>({loaded:true})},'data/atlas/textures/retry.webp',{sha256:hash,bytes:3},cache),
+    loadFactoryGeometry({sha256:hash,stats:{bytes:3}},(_done,_total,source)=>progress.push(source),'api/factory-geometry',undefined,cache)
+  ]);
+  assert.equal(texture.loaded,true);assert.deepEqual(new Uint8Array(model),bytes);
+  assert.deepEqual(attempts,{texture:['default','reload'],model:['default','reload']});
+  assert.ok(progress.includes('retry'));assert.equal((await cache.stats()).count,2);
+});
+
+test('retry stops on a version conflict, a long Retry-After, or cancellation',async()=>{
+  for(const [status,headers] of [[409,{}],[503,{'Retry-After':'60'}]]){
+    let calls=0;
+    await assert.rejects(readMapJson('map.json','模型目录读取',{
+      fetcher:async()=>{calls++;return Response.json({error:'版本或容量问题'},{status,headers});},readError:true
+    }),error=>error.status===status&&error.message.includes('版本或容量问题')&&error.diagnosticCode===`MAP-RESOURCE-HTTP-${status}`&&error.attempts===1);
+    assert.equal(calls,1);
+  }
+  const controller=new AbortController();let calls=0;
+  await assert.rejects(readMapJson('map.json','模型目录读取',{
+    fetcher:async()=>{calls++;return new Response(null,{status:503});},signal:controller.signal,onRetry:()=>controller.abort()
+  }),{name:'AbortError'});
+  assert.equal(calls,1);
+});
+
+test('the request deadline covers an interrupted response body and retries are bounded',async()=>{
+  let calls=0;
+  const fetcher=async (_url,{signal})=>{
+    calls++;
+    if(calls>1)return new Response(null,{status:503});
+    return {ok:true,json:()=>new Promise((_,reject)=>{
+      signal.addEventListener('abort',()=>reject(signal.reason),{once:true});
+    })};
+  };
+  const retries=[];
+  await assert.rejects(readMapJson('map.json','模型目录读取',{code:'MODEL-CATALOG',fetcher,timeout:30,retries:1,onRetry:error=>retries.push(error.diagnosticCode)}),{diagnosticCode:'MODEL-CATALOG-HTTP-503',attempts:2});
+  assert.equal(calls,2);assert.deepEqual(retries,['MODEL-CATALOG-TIMEOUT']);
+});
+
+test('diagnostic copy retains a chunk location and source codes without credentials, paths or raw errors',async()=>{
+  const version='a'.repeat(64);
+  const url=`https://user:token@example.invalid/api/woods-geometry/low/s_0_1?version=${version}&offset=0&length=4194304&secret=hidden`;
+  const fetcher=async()=>Response.json({error:'C:/test-profile/private/resource.bin'},{
+    status:503,headers:{'X-Map-Error-Code':'CLIENT-WEBSITE-HTTP-503','X-Map-Upstream-Error-Code':'SERVER-FILE-PERMISSION'}
+  });
+  await assert.rejects(readMapJson(url,'模型分块读取',{code:'MODEL-CHUNK',fetcher,retries:0,readError:true}),error=>{
+    const report=formatMapDiagnostic(error,{mapId:'woods',sectorId:'s_0_1',mode:'client'});
+    assert.match(report,/错误码 MODEL-CHUNK-HTTP-503/);
+    assert.match(report,/来源错误码 CLIENT-WEBSITE-HTTP-503/);
+    assert.match(report,/上游错误码 SERVER-FILE-PERMISSION/);
+    assert.match(report,/分区 s_0_1/);
+    assert.match(report,/资源 \/api\/woods-geometry\/low\/s_0_1/);
+    assert.match(report,new RegExp('资源版本 '+version));
+    assert.match(report,/分块偏移 0\n分块长度 4194304\nHTTP 503\n请求次数 1/);
+    assert.doesNotMatch(report,/token|example\.invalid|hidden|test-profile|private/);
+    return true;
+  });
+  const local=formatMapDiagnostic(mapLoadError('STORAGE-IO','C:/test-profile',{url:'file:///C:/test-profile/resources.bin'}));
+  assert.doesNotMatch(local,/资源 |test-profile/);
+});
+
+test('a decodable texture with the wrong hash is bypassed in both disk and HTTP caches',async t=>{
+  const {cache}=fixture(t),original=globalThis.fetch,bytes=Uint8Array.of(1,2,3),wrong=Uint8Array.of(1,2,4),hash=await sha256(bytes);
+  const path='data/atlas/textures/damaged.webp',identity='texture:/'+path,attempts=[];
+  await cache.put(identity,hash,new Blob([wrong]));
+  globalThis.fetch=async (_url,{cache:mode})=>{attempts.push(mode);return new Response(mode==='reload'?bytes:wrong);};
+  t.after(()=>{globalThis.fetch=original;});
+  const loader={async loadAsync(url){return new Uint8Array(await (await original(url)).arrayBuffer());}};
+  assert.deepEqual(await loadCachedTexture(loader,path,{sha256:hash,bytes:3},cache),bytes);
+  assert.deepEqual(attempts,['default','reload']);
+  assert.deepEqual(new Uint8Array(await (await cache.get(identity,hash)).arrayBuffer()),bytes);
+});
+
+test('texture hash and decoder failures expose distinct diagnostics and save neither texture',async t=>{
+  const {cache}=fixture(t),original=globalThis.fetch,bytes=Uint8Array.of(1,2,3);
+  const info={sha256:await sha256(bytes),bytes:3},url='data/atlas/textures/bad.webp';
+  const loader={async loadAsync(){throw Error('invalid image encoding');}};
+  t.after(()=>{globalThis.fetch=original;});
+  globalThis.fetch=async()=>new Response(Uint8Array.of(1,2,4));
+  await assert.rejects(loadCachedTexture(loader,url,info,cache),{diagnosticCode:'TEXTURE-HASH'});
+  globalThis.fetch=async()=>new Response(bytes);
+  await assert.rejects(loadCachedTexture(loader,url,info,cache),{diagnosticCode:'TEXTURE-DECODE',url});
+  assert.equal((await cache.stats()).count,0);
+});
+
 test('legacy capacity limits and low quota estimates never evict saved resources',async t=>{
   const {cache,values}=fixture(t,500),blob=new Blob([new Uint8Array(200)]);
   values.set('atlas-resource-cache-gib','16');
@@ -111,7 +208,7 @@ test('quota failure preserves every existing resource and reports a manual-clean
   IDBObjectStore.prototype.put=function(value,...args){if(this.name==='data')throw new DOMException('full','QuotaExceededError');return original.call(this,value,...args);};
   t.after(()=>{IDBObjectStore.prototype.put=original;});
   assert.equal(await cache.put('new','v1',new Blob(['new'])),false);
-  const stats=await cache.stats();assert.equal(stats.bytes,4);assert.equal(stats.count,1);assert.equal(stats.writeFailures,1);assert.match(stats.reason,/已有缓存保留/);
+  const stats=await cache.stats();assert.equal(stats.bytes,4);assert.equal(stats.count,1);assert.equal(stats.writeFailures,1);assert.match(stats.reason,/已有缓存保留.*CACHE-QUOTA/);
   assert.equal(await (await cache.get('saved','v1')).text(),'keep');
 });
 

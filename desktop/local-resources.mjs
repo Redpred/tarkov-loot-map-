@@ -3,6 +3,7 @@ import path from 'node:path';
 import {createHash, randomUUID} from 'node:crypto';
 import {gunzip} from 'node:zlib';
 import {promisify} from 'node:util';
+import {mapLoadError} from '../site/atlas-map-diagnostics.js';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const decompress = promisify(gunzip);
@@ -70,7 +71,17 @@ export function createClientResourceStore(root) {
     const file = await safe(relative, true), tempRelative = relative + '.' + randomUUID() + '.tmp';
     const temp = await safe(tempRelative);
     try { await fs.writeFile(temp, bytes, {flag: 'wx'}); await safe(relative); await fs.rename(temp, file); }
-    catch(error){if(['EACCES','EPERM','ENOSPC'].includes(error.code))throw Error('无法保存到客户端资源目录，请清理磁盘空间或更改资源位置后重试。');throw error;}
+    catch(error){
+      // A parallel request may already have saved these bytes while Windows
+      // prevents replacing the file being read by another request.
+      if(error.code==='EACCES'||error.code==='EPERM'){
+        const saved=await read(relative,bytes.length).catch(()=>null);
+        if(saved?.equals(bytes))return;
+      }
+      if(error.code==='ENOSPC')throw mapLoadError('CLIENT-DISK-FULL', '客户端资源目录所在磁盘空间不足', {cause:error});
+      if(['EACCES','EPERM'].includes(error.code))throw mapLoadError('CLIENT-DISK-PERMISSION', '无法保存到客户端资源目录，请检查权限或更改资源位置后重试。', {cause:error});
+      throw error;
+    }
     finally { await fs.rm(temp, {force: true}); }
   }
   function objectName(sha) { if (!validHash(sha)) throw Error('资源版本无效'); return 'objects/' + sha; }
@@ -99,7 +110,7 @@ export function createClientResourceStore(root) {
     root,
     async status() {
       try { await ready(); return {path: root, available: true, error: ''}; }
-      catch (error) { return {path: root, available: false, error: `客户端资源目录不可用：${error.message}。请在资源设置中选择其他位置。`}; }
+      catch (error) { return {path: root, available: false, code:error.diagnosticCode||'CLIENT-DIRECTORY-UNAVAILABLE', error: `客户端资源目录不可用：${error.message}。请在资源设置中选择其他位置。`}; }
     },
     async getObject(sha, size) { const bytes = await read(objectName(sha),size); return bytes?.length === size && hash(bytes) === sha ? bytes : null; },
     async putObject(sha, bytes) { if (hash(bytes) !== sha) throw Error('资源校验失败'); await write(objectName(sha), bytes); },

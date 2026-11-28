@@ -31,11 +31,12 @@ function harness(t,{sectors=[sector('a',0),sector('b',100)],lib=library(),loadGe
   const camera=new THREE.PerspectiveCamera(60,1,.1,200),center=new THREE.Vector3(),environment=new EventTarget();environment.hidden=false;
   camera.position.set(0,2,0);camera.lookAt(0,2,-10);camera.updateMatrixWorld();
   const fetched=[],added=[],removed=[],statuses=[],fixtures={a:fixture([0,1,2,3,4,5,6,7,8]),b:fixture([20]),c:fixture([30])};
-  const streamer=createSectorStreamer({manifest:{sectors},map:{id:'fixture',name:'测试',textureBase:'data/',endpoint:'api/fixture'},getView:()=>({camera,center}),clipping,settings,environment,connection,materialLibrary:lib,
+  const view={camera,center};
+  const streamer=createSectorStreamer({manifest:{sectors},map:{id:'fixture',name:'测试',textureBase:'data/',endpoint:'api/fixture'},getView:()=>view,clipping,settings,environment,connection,materialLibrary:lib,
     fetcher:async(url,{signal})=>{signal.throwIfAborted();const id=url.split('/').at(-1).split('.')[0];fetched.push(id);return Response.json({...fixtures[id].detail,id});},
     loadGeometry:loadGeometry|| (async detail=>fixtures[detail.id].buffer),loadSpatial,
-    onAdd:groups=>added.push(...groups),onRemove:groups=>removed.push(...groups),onStatus:(message,error)=>statuses.push({message,error})});
-  t.after(()=>streamer.dispose());return {streamer,lib,camera,center,environment,fixtures,fetched,added,removed,statuses};
+    onAdd:groups=>added.push(...groups),onRemove:groups=>removed.push(...groups),onStatus:(message,error,_paused,failure,sectorId)=>statuses.push({message,error,failure,sectorId})});
+  t.after(()=>streamer.dispose());return {streamer,lib,camera,center,view,environment,fixtures,fetched,added,removed,statuses};
 }
 
 test('first textured batch appears without waiting for the last material; spatial indices and cutouts stay intact',async()=>{
@@ -54,6 +55,22 @@ test('camera movement cancels a texture batch, removes partial GPU groups, and s
   await until(()=>h.added.length===9&&h.statuses.at(-1).message.includes('1 / 1'));
   assert.deepEqual(h.fetched,['a','b']);assert.equal(h.removed.length,8);assert.equal(lib.refs.get(0),0);assert.equal(lib.refs.get(20),1);assert.ok(h.statuses.every(s=>!s.error));
   h.streamer.dispose();assert.equal(lib.refs.get(20),0);await until(()=>lib.disposed);
+});
+
+test('the scene overview loads distant visible sectors and returns to the configured limit on zoom-in',async t=>{
+  const upper={...sector('c',-20),bounds:{min:[-20,18,0],max:[-19,20,1]}};
+  const settings={mode:'radius',distance:5,sectorBudget:1,retain:false};
+  const h=harness(t,{sectors:[sector('a',0),sector('b',100),upper],settings});
+  const wide=new THREE.OrthographicCamera(-130,130,130,-130,.1,200);
+  wide.position.set(0,100,20);wide.lookAt(0,0,0);h.view.camera=wide;
+  h.streamer.update();
+  await until(()=>h.statuses.at(-1)?.message.includes('1 / 1'));
+  h.view.overview=true;h.streamer.update();
+  await until(()=>h.statuses.at(-1)?.message.includes('2 / 2'));
+  assert.deepEqual(h.fetched,['a','b']);
+  h.view.overview=false;h.streamer.update();
+  await until(()=>h.removed.length===1);
+  assert.match(h.statuses.at(-1).message,/1 \/ 1/);
 });
 
 test('pausing and hiding a page stop pending downloads; resume can retry without a failed-sector state',async t=>{
@@ -86,6 +103,35 @@ test('a sector failure stops its companion request, reports a retry, and does no
     loadSpatial:async(map,id,detail,runtime,{signal})=>{if(fail){try{await blocked(signal);}catch(error){spatialAborted=true;throw error;}}return null;}});
   h.streamer.update();await until(()=>h.statuses.at(-1)?.error);assert.equal(spatialAborted,true);assert.equal(h.added.length,0);assert.equal(h.lib.refs.size,0);
   fail=false;h.streamer.retry();await until(()=>h.statuses.at(-1)?.message.includes('1 / 1'));assert.equal(h.fetched.length,2);assert.equal(h.added.length,9);
+});
+
+test('a missing shared texture leaves the other meshes visible and retry reuses the model',async t=>{
+  const bytes=Uint8Array.of(1,2,3),hash=await sha256(bytes);
+  const previousFetch=globalThis.fetch,previousLoad=THREE.TextureLoader.prototype.loadAsync,previousError=console.error;
+  const requests=[];let available=false,modelReads=0,h;
+  THREE.TextureLoader.prototype.loadAsync=async()=>new THREE.Texture();
+  console.error=()=>{};
+  globalThis.fetch=async url=>{
+    const name=url.split('/').at(-1).split('.')[0];requests.push(name);
+    return name==='missing'&&!available?new Response(null,{status:404}):new Response(bytes);
+  };
+  t.after(()=>{globalThis.fetch=previousFetch;THREE.TextureLoader.prototype.loadAsync=previousLoad;console.error=previousError;});
+  const materials=Array.from({length:9},(_,i)=>({tex:i===0||i===8?'missing':'good',role:i===8?'cutout':'solid'}));
+  const textures=Object.fromEntries(['good','missing'].map(name=>[name,{file:name+'.webp',sha256:hash,bytes:3}]));
+  h=harness(t,{lib:createMaterialLibrary({materials,textures},clipping),loadGeometry:async detail=>{modelReads++;return h.fixtures[detail.id].buffer;}});
+  h.streamer.update();
+  await until(()=>h.statuses.at(-1)?.error);
+  assert.match(h.statuses.at(-1).message,/材质读取失败（HTTP 404）.*TEXTURE-HTTP-404/);
+  assert.equal(h.statuses.at(-1).failure.diagnosticCode,'TEXTURE-HTTP-404');
+  assert.equal(h.statuses.at(-1).sectorId,'a');
+  assert.deepEqual(requests.sort(),['good','missing']);
+  assert.equal(h.added.length,7);assert.equal(h.removed.length,0);
+  const retained=h.added.slice();
+  available=true;h.streamer.retry();
+  await until(()=>h.statuses.at(-1)?.message.includes('1 / 1'));
+  assert.equal(modelReads,1);assert.deepEqual(h.fetched,['a']);assert.equal(h.removed.length,0);
+  assert.deepEqual(h.added.slice(0,7),retained);assert.equal(h.added.length,9);assert.equal(h.added.at(-1).collisionSolid,false);
+  assert.equal(requests.at(-1),'missing');assert.equal(requests.length,3);
 });
 
 test('border prefetch stays within count, bytes, height and remaining budget; near retained sectors replace far ones',()=>{

@@ -47,7 +47,10 @@ export function createTaskStore({storage,eventTarget=globalThis.window}={}){
     setTaskCompleted(taskId,done){if(!safe(taskId))return;change(s=>{
       s.finished=set(s.finished,taskId,Boolean(done));
       // Keep partial checklists intact so undoing task completion restores them.
-      if(done)for(const map of Object.keys(s.shown))if(s.shown[map][taskId])delete s.shown[map][taskId];
+      if(done){
+        s.selected=set(s.selected,taskId,false);
+        for(const map of Object.keys(s.shown))if(s.shown[map][taskId])delete s.shown[map][taskId];
+      }
     });},
     setLoyaltyLevel(traderId,level){if(!safe(traderId)||!(level===null||Number.isInteger(level)&&level>=1&&level<=4))return;change(s=>{if(level===null)delete s.loyaltyLevels[traderId];else s.loyaltyLevels[traderId]=level;});},
     toggleTask(id,selected){if(safe(id))change(s=>{s.selected=set(s.selected,id,Boolean(selected));});},

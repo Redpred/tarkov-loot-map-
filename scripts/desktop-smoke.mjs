@@ -100,6 +100,7 @@ async function run() { try {
   await win.webContents.executeJavaScript(`window.scrollTo(0,0)`);
   await win.webContents.executeJavaScript(`document.querySelector('#desktopTitlebar button').click()`);
   assert.equal(await win.webContents.executeJavaScript(`document.getElementById('desktopAppMenu').matches(':popover-open')`), true);
+  assert.deepEqual(await win.webContents.executeJavaScript(`[...document.querySelectorAll('#desktopAppMenu button')].map(button=>button.dataset.action)`), ['updates','reload','fullscreen','data','about']);
   await capture(win, 'desktop-menu.png');
   await win.webContents.executeJavaScript(`document.getElementById('desktopAppMenu').hidePopover()`);
   if (!hidden) {
@@ -124,11 +125,7 @@ async function run() { try {
   })()`);
   assert(taskImages.portraits > 0 && taskImages.cards > 0 && taskImages.decoded, 'Task portraits and card images must actually decode');
   await checkFooter(win);
-  await win.loadURL('tarkov://app/desktop-downloads.html'); await sleep(300);
-  assert.equal(await win.webContents.executeJavaScript(`document.querySelector('#map').options.length`), 13);
   await win.loadURL('tarkov://app/index.html');
-  const denied = await win.webContents.executeJavaScript(`tarkovDesktop.prepareMap('factory',{geometry:'low',texture:'medium',scenery:'full'}).then(()=>false,()=>true)`);
-  assert.equal(denied, true);
   if (integration) {
     const {runDesktopIntegration} = await import('./desktop-integration.mjs');
     const {runClientDirectoryIntegration} = await import('./desktop-client-integration.mjs');
@@ -167,13 +164,9 @@ async function run() { try {
   assert.equal(await win.webContents.executeJavaScript(`document.querySelectorAll('.map-card').length`), 13);
   await checkFooter(win);
   await capture(win, 'home.png');
-  // A download window may outlive the map window; reopening must focus it safely.
-  await win.webContents.executeJavaScript(`tarkovDesktop.action('downloads')`);
-  const downloads = BrowserWindow.getAllWindows().find(candidate => candidate !== win);
-  assert.ok(downloads); win.close(); app.emit('second-instance');
-  assert.equal(downloads.isDestroyed(), false);
+  assert.deepEqual(BrowserWindow.getAllWindows(),[win]);
   await session.defaultSession.flushStorageData();
-  if (hidden) assert.equal(downloads.isVisible(), false);
+  if (hidden) assert.equal(win.isVisible(), false);
   await fs.writeFile(path.join(evidence, 'result.json'), JSON.stringify({result, windowMode: hidden ? 'hidden' : 'secondary', nativeFullscreenChecked: !hidden, persistedFromPreviousProcess: stored === 'kept', errors}, null, 2));
   assert.deepEqual(errors, []);
   if (releaseStats) await fs.writeFile(path.join(evidence,process.argv.includes('--restore')?'release-restored.json':'release.json'),JSON.stringify(releaseStats,null,2));

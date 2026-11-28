@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {rebaseOrbitPivot,selectSectors,sectorDistance,firstPersonEntryPosition} from '../../site/atlas-navigation.js';
+import {rebaseOrbitPivot,selectSectors,sectorDistance,firstPersonEntryPosition,createSceneOverview} from '../../site/atlas-navigation.js';
 import {volumeDisplayPosition} from '../../site/atlas-volumes.js';
 import {validateViewSettings} from '../../site/atlas-view-settings.js';
 import {SceneCollision} from '../../site/atlas-collision.js';
@@ -28,6 +28,24 @@ test('zoomed orthographic rotation uses the observed surface without a reframe o
   assert.ok(Math.abs(before.x-after.x)<1e-9&&Math.abs(before.y-after.y)<1e-9);assert.equal(camera.zoom,12);
   const offset=camera.position.clone().sub(pivot).applyAxisAngle(new THREE.Vector3(0,1,0),.5);camera.position.copy(pivot).add(offset);controls.update();
   const projected=pivot.clone().project(camera);assert.ok(Math.hypot(projected.x,projected.y)<1e-9);
+});
+
+test('the scene overview keeps the whole model inside the viewport and depth range',()=>{
+  const bounds={min:[-408,-13,-322],max:[475,87,599]},overview=createSceneOverview(bounds);
+  assert.deepEqual(overview.center.toArray(),[33.5,37,-138.5]);
+  for(const aspect of [16/9,390/790]){
+    for(const [pitch,heading] of [[.00001,Math.PI],[.85,.4],[Math.PI/2-.02,1.5]]){
+      const camera=new THREE.OrthographicCamera(-120*aspect,120*aspect,120,-120,.1,2000);
+      camera.position.copy(overview.center).add(new THREE.Vector3().setFromSphericalCoords(overview.distance,pitch,heading));
+      camera.lookAt(overview.center);camera.zoom=overview.zoom(camera);
+      camera.updateProjectionMatrix();camera.updateMatrixWorld();
+      for(const x of [bounds.min[0],bounds.max[0]])for(const y of [bounds.min[1],bounds.max[1]])for(const z of [bounds.min[2],bounds.max[2]]){
+        const point=new THREE.Vector3(x,y,-z).project(camera);
+        assert.ok(Math.max(Math.abs(point.x),Math.abs(point.y))<.91);
+        assert.ok(Math.abs(point.z)<1);
+      }
+    }
+  }
 });
 
 test('full mode selects every sector; radius, view and first-person near coverage differ',()=>{
@@ -73,6 +91,11 @@ test('first-person short key taps move and turn; re-entering never duplicates th
     const fp=createFirstPerson({canvas,settings:validateViewSettings(),onChange(){},onNotice(){}});
     fp.enter(new THREE.Vector3(0,1,0));const before=fp.camera.position.clone();
     tap('KeyW');tap('KeyE');tick();assert.ok(fp.camera.position.z<before.z&&fp.camera.position.y>before.y);
+    const height=fp.camera.position.y;
+    tap('Space');tick();assert.ok(fp.camera.position.y>height);
+    tap('ControlLeft');tick();assert.ok(Math.abs(fp.camera.position.y-height)<1e-9);
+    tap('Space');tap('KeyE');tap('KeyQ');tick();assert.ok(Math.abs(fp.camera.position.y-height)<1e-9);
+    tap('ControlRight');tick();assert.ok(Math.abs(fp.camera.position.y-height)<1e-9);
     tap('ArrowRight');tick();assert.ok(fp.camera.quaternion.y<0);
     const stopped=fp.camera.position.clone();fp.enter();assert.equal(frames.size,1);tick();assert.ok(fp.camera.position.equals(stopped));
     const retainedPosition=fp.camera.position.clone(),retainedRotation=fp.camera.quaternion.clone();

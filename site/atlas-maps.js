@@ -5,7 +5,7 @@ export const ATLAS_MAPS={
     heightBands:[{id:'underground',name:'地下',min:-20,max:-.75},{id:'ground',name:'地面',min:-.75,max:3.25},{id:'upper',name:'上层',min:3.25,max:6.75},{id:'office',name:'高层',min:6.75,max:40}]},
   streets:{id:'streets',spt:'tarkovstreets',atlas:'streets',name:'塔科夫街区',en:'STREETS OF TARKOV',
     data:'data/streets-atlas.json',geometry:'data/atlas/streets/streets-sectors.json',textureBase:'data/atlas/streets/',endpoint:'api/streets-geometry',
-    settingsKey:'streets-marker-icons-v1',cut:4,minHeight:-15,maxHeight:60,streamed:true,initialSpan:240,maxViewSpan:420,
+    settingsKey:'streets-marker-icons-v1',cut:4,minHeight:-15,maxHeight:60,streamed:true,initialSpan:240,fitSceneOnZoomOut:true,
     heightBands:[{id:'underground',name:'地下',min:-15,max:-.75},{id:'ground',name:'地面',min:-.75,max:4},{id:'upper',name:'4–7.5 m',min:4,max:7.5},{id:'third',name:'7.5–11 m',min:7.5,max:11},{id:'fourth',name:'11–15 m',min:11,max:15},{id:'high',name:'15 m 以上',min:15,max:60}]},
 };
 

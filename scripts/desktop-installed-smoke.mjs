@@ -7,6 +7,8 @@ const root=path.resolve(import.meta.dirname,'..');
 const option=name=>process.argv.find(arg=>arg.startsWith(name+'='))?.slice(name.length+1);
 const target=path.resolve(option('--installed')||'');
 const evidence=path.resolve(option('--evidence')||'');
+const scenery=option('--scenery')||'full';
+assert(['full','simple'].includes(scenery),'Invalid scenery mode');
 assert(target.startsWith(path.join(root,'work')+path.sep));
 assert(evidence.startsWith(path.join(root,'work')+path.sep));
 await fs.mkdir(evidence,{recursive:true});
@@ -45,12 +47,23 @@ async function run(){try{
   await win.webContents.debugger.sendCommand('Page.addScriptToEvaluateOnNewDocument',{source:`Object.defineProperty(Document.prototype,'hidden',{configurable:true,get:()=>false});Object.defineProperty(Document.prototype,'visibilityState',{configurable:true,get:()=> 'visible'});`});
   await win.loadURL('tarkov://app/index.html');
   await until(`document.querySelectorAll('.map-card').length===13`,'clean home');
+  await until(`Boolean(document.querySelector('#desktopAppMenu'))`,'application menu');
+  assert.deepEqual(await evaluate(`[...document.querySelectorAll('#desktopAppMenu button')].map(button=>button.dataset.action)`),['updates','reload','fullscreen','data','about']);
+  assert.equal(await evaluate(`typeof tarkovDesktop.prepareMap==='undefined'&&typeof tarkovDesktop.cancelPrepare==='undefined'`),true);
+  assert.equal(await evaluate(`fetch('/desktop-downloads.html').then(response=>response.status)`),404);
+  assert.equal(await evaluate(`tarkovDesktop.action('downloads').then(()=>false,()=>true)`),true);
+  assert.deepEqual(BrowserWindow.getAllWindows(),[win]);
+  await evaluate(`document.getElementById('openHomeSettings').click();document.getElementById('settings-tab-resources').click()`);
+  await until(`document.querySelector('[data-managed-status]')?.textContent==='客户端本地资源'`,'resource settings');
+  assert.equal(await evaluate(`!document.querySelector('[data-managed-downloads]') && !document.querySelector('[data-managed-folder]').hidden`),true);
+  await evaluate(`document.getElementById('viewSettings').close()`);
   assert.equal(await evaluate(`(async()=>(await import('./atlas-managed-resources.js')).managedResources.mode())()`),'client');
   const info=await evaluate(`fetch('/api/client-resources').then(r=>r.json())`);assert.equal(info.available,true);assert.equal(path.resolve(info.path),path.join(target,'map-resources'));
   const {ATLAS_MAPS,atlasMapHref}=await import(pathToFileURL(path.join(archive,'site/atlas-maps.js')).href);
   const requestedMaps=option('--maps')?.split(',')||Object.keys(ATLAS_MAPS);
   assert(requestedMaps.length>0&&requestedMaps.every(id=>Object.hasOwn(ATLAS_MAPS,id))&&new Set(requestedMaps).size===requestedMaps.length,'Invalid smoke map selection');
-  assert.deepEqual(await evaluate(`(async()=>({geometry:(await import('./atlas-geometry-quality.js')).readGeometryQuality(localStorage),texture:(await import('./atlas-texture-quality.js')).readTextureQuality(localStorage),scenery:(await import('./atlas-scenery-details.js')).readSceneryMode(localStorage)}))()`),{geometry:'low',texture:'medium',scenery:'full'});
+  assert.deepEqual(await evaluate(`import('./atlas-map-cache.js').then(module=>module.selectedCacheQuality())`),{geometry:'low',texture:'medium',scenery:'full'});
+  await evaluate(`localStorage.setItem('atlas-scenery-details-v1',${JSON.stringify(scenery)})`);
   const sponsor=await evaluate(`(async()=>{document.getElementById('openSponsor').click();const d=document.getElementById('sponsorDialog');const sections=[...d.querySelectorAll('.sponsor-channel')];const images=[];for(const image of d.querySelectorAll('img')){await image.decode();images.push({src:new URL(image.src).pathname,width:image.naturalWidth,height:image.naturalHeight});}return {open:d.open,channels:sections.map(e=>e.querySelector('h3').textContent),displayed:sections.every(e=>e.getClientRects().length>0),tabs:d.querySelectorAll('[role=tab]').length,images};})()`);
   assert.deepEqual(sponsor.channels,['微信','支付宝','爱发电']);assert(sponsor.open&&sponsor.displayed);assert.equal(sponsor.tabs,0);assert.equal(sponsor.images.length,3);
   for(const channel of ['wechat','alipay','afdian']){
@@ -82,7 +95,7 @@ async function run(){try{
   assert.deepEqual(resourceNetwork,[]);
   assert.equal(win.isVisible(),false);
   if(!process.argv.includes('--visual'))assert.equal(rendered.length,requestedMaps.length);
-  const result={packagedAsar:true,defaultClientDirectory:true,freshBrowserStorage:true,simulatedDocumentVisibility:true,softwareRendering,viewport:win.getContentSize(),deviceScaleFactor:softwareRendering?0.5:null,requestedMaps,sponsor,aboutNotice:true,taskImages:taskImages.length,detailImages:detailImages.length,renderedMaps:rendered,resourceNetworkRequests:resourceNetwork.length,blockedMarketRefreshes:network.length,windowsShown:shown,rendererCrashes:errors.length};
+  const result={packagedAsar:true,defaultClientDirectory:true,manualDownloadRemoved:true,freshBrowserStorage:true,simulatedDocumentVisibility:true,softwareRendering,viewport:win.getContentSize(),deviceScaleFactor:softwareRendering?0.5:null,scenery,requestedMaps,sponsor,aboutNotice:true,taskImages:taskImages.length,detailImages:detailImages.length,renderedMaps:rendered,resourceNetworkRequests:resourceNetwork.length,blockedMarketRefreshes:network.length,windowsShown:shown,rendererCrashes:errors.length};
   await fs.writeFile(path.join(evidence,process.argv.includes('--visual')?'offline-visual.json':'offline-smoke.json'),JSON.stringify({...result,explicitCanvasRender:process.argv.includes('--visual')},null,2)+'\n');console.log(JSON.stringify(result));clearTimeout(timeout);app.exit(0);
 }catch(error){console.error(error);await fs.writeFile(path.join(evidence,'offline-smoke-failure.json'),JSON.stringify({error:String(error.stack||error),softwareRendering,network,windowsShown:shown,rendererErrors:errors},null,2)+'\n').catch(()=>{});clearTimeout(timeout);app.exit(1);}}
 void run();

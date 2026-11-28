@@ -1,12 +1,12 @@
 import {app, BrowserWindow, dialog, ipcMain, Menu, protocol, screen, session, shell} from 'electron';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import {appUrl, externalUrl, APP_ORIGIN, RELEASES_URL} from './policy.mjs';
+import {appPermission, appUrl, externalUrl, APP_ORIGIN, RESOURCE_ORIGIN} from './policy.mjs';
 import {createDesktopResources} from './resources.mjs';
 import {createScreenshotAccess} from './screenshot-access.mjs';
 import updaterPackage from 'electron-updater';
 import {createDesktopUpdates} from './updates.mjs';
-import {projectNoticeText} from '../site/project-notice.js';
+import {projectAuthor, projectNoticeText} from '../site/project-notice.js';
 
 protocol.registerSchemesAsPrivileged([{scheme: 'tarkov', privileges: {standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true}}]);
 app.setName('TarkovLootMap');
@@ -18,11 +18,11 @@ const testWindowMode = testProfile && !app.isPackaged ? process.env.TARKOV_DESKT
 if (testProfile && !app.isPackaged) app.setPath('userData', path.resolve(testProfile));
 else app.setPath('userData', path.join(app.getPath('appData'), 'TarkovLootMap'));
 const root = path.resolve(import.meta.dirname, '..');
-let mainWindow, downloadWindow, resources, updates;
+let mainWindow, resources, updates;
 export let desktopUpdater;
+export {updates as desktopUpdates};
 const defaultResourceRoot = testProfile && !app.isPackaged ? path.join(app.getPath('userData'), 'map-resources') : app.isPackaged ? path.join(path.dirname(app.getPath('exe')), 'map-resources') : path.join(root, 'work/desktop-local/map-resources');
 const resourceSettings = path.join(app.getPath('userData'), 'resource-location.json');
-const jobs = new Map();
 function openExternal(url) { if (externalUrl(url)) void shell.openExternal(url); }
 function focusWindow(win) {
   if (!win || testWindowMode === 'hidden') return;
@@ -30,7 +30,7 @@ function focusWindow(win) {
   if (win.isMinimized()) win.restore();
   win.focus();
 }
-function createWindow(page = 'index.html') {
+function createWindow() {
   let placement = {};
   if (testWindowMode === 'secondary') {
     const display = screen.getAllDisplays().find(item => item.id !== screen.getPrimaryDisplay().id);
@@ -53,13 +53,8 @@ function createWindow(page = 'index.html') {
   });
   for (const name of ['enter-full-screen', 'leave-full-screen']) win.on(name, () => win.webContents.send('desktop:fullscreen', win.isFullScreen()));
   win.webContents.on('did-finish-load', () => win.webContents.send('desktop:fullscreen', win.isFullScreen()));
-  const id = win.webContents.id;
-  win.on('closed', () => { jobs.get(id)?.abort(); jobs.delete(id); });
-  void win.loadURL(`${APP_ORIGIN}/${page}`);
+  void win.loadURL(`${APP_ORIGIN}/index.html`);
   return win;
-}
-function checkSender(event) {
-  if (!event.senderFrame || event.senderFrame !== event.sender.mainFrame || !appUrl(event.senderFrame.url) || new URL(event.senderFrame.url).pathname !== '/desktop-downloads.html') throw Error('不允许的资源请求');
 }
 
 if (!app.requestSingleInstanceLock()) app.quit();
@@ -84,14 +79,13 @@ else {
     updates = createDesktopUpdates({updater: desktopUpdater, currentVersion: app.getVersion(),
       settingsFile: path.join(app.getPath('userData'), 'updates.json'), enabled: app.isPackaged || updateTest,
       canInstall: (app.isPackaged && installed) || updateTest,
-      beforeInstall: () => { for (const job of jobs.values()) job.abort(); },
       notify: value => { for (const win of BrowserWindow.getAllWindows()) if (!win.isDestroyed()) win.webContents.send('desktop:update-state', value); },
     });
     ipcMain.handle('desktop:updates', async (event, action, value) => {
       try {
         if (!event.senderFrame || event.senderFrame !== event.sender.mainFrame || !appUrl(event.senderFrame.url)) throw Error('不允许的更新请求');
-        if (!['status', 'check', 'download', 'install', 'preference'].includes(action)) throw Error('未知更新操作');
-        return {ok: true, value: await (action === 'preference' ? updates.preference(value) : updates[action]())};
+        if (!['status', 'check', 'download', 'install', 'preference', 'acknowledge'].includes(action)) throw Error('未知更新操作');
+        return {ok: true, value: await (['preference', 'acknowledge'].includes(action) ? updates[action](value) : updates[action]())};
       } catch (error) { return {ok: false, message: error.message}; }
     });
     const screenshotServices = new Map();
@@ -115,17 +109,14 @@ else {
         return {ok: true, value: await screenshotServices.get(event.sender.id)[action](id)};
       } catch (error) { return {ok: false, name: error.name, message: error.message}; }
     });
-    session.defaultSession.setPermissionCheckHandler((contents, permission, origin) => appUrl(origin) && appUrl(contents?.getURL()) && ['fileSystem', 'clipboard-sanitized-write', 'persistent-storage'].includes(permission));
-    session.defaultSession.setPermissionRequestHandler((contents, permission, callback, details) => callback(appUrl(details.requestingUrl || contents?.getURL()) && appUrl(contents?.getURL()) && ['fileSystem', 'clipboard-sanitized-write', 'persistent-storage'].includes(permission)));
+    session.defaultSession.setPermissionCheckHandler((contents, permission, origin, details) =>
+      appPermission(permission, contents?.getURL(), origin, details));
+    session.defaultSession.setPermissionRequestHandler((contents, permission, callback, details) => {
+      const pageUrl = contents?.getURL();
+      callback(appPermission(permission, pageUrl, details?.requestingUrl || pageUrl, details));
+    });
     session.defaultSession.on('file-system-access-restricted', (_event, _details, callback) => callback('deny'));
     session.defaultSession.on('will-download', event => event.preventDefault());
-    ipcMain.handle('desktop:prepare-map', async (event, mapId, quality) => {
-      checkSender(event); const id = event.sender.id;
-      if (jobs.has(id)) throw Error('已有地图准备任务');
-      const controller = new AbortController(); jobs.set(id, controller);
-      try { return await resources.prepare(mapId, quality, controller.signal); } finally { if (jobs.get(id) === controller) jobs.delete(id); }
-    });
-    ipcMain.handle('desktop:cancel-prepare', event => { checkSender(event); jobs.get(event.sender.id)?.abort(); });
     ipcMain.handle('desktop:action', async (event, action) => {
       if (!event.senderFrame || event.senderFrame !== event.sender.mainFrame || !appUrl(event.senderFrame.url)) throw Error('不允许的窗口操作');
       const win = BrowserWindow.fromWebContents(event.sender); if (!win) return;
@@ -141,12 +132,15 @@ else {
           await fs.writeFile(resourceSettings, JSON.stringify({path: next}) + '\n');
           resources.setLocalRoot(next); return true;
         }
-        case 'downloads': if (!downloadWindow || downloadWindow.isDestroyed()) downloadWindow = createWindow('desktop-downloads.html'); else focusWindow(downloadWindow); break;
-        case 'updates': openExternal(RELEASES_URL); break;
+        case 'updates': openExternal(RESOURCE_ORIGIN); break;
         case 'data': return shell.openPath(app.getPath('userData'));
         case 'reload': win.reload(); break;
         case 'fullscreen': win.setFullScreen(!win.isFullScreen()); break;
-        case 'about': return dialog.showMessageBox(win, {type: 'info', title: '塔科夫物资地图', message: `塔科夫物资地图 ${app.getVersion()}`, detail: '桌面预览版 · 与网站共用前端界面\n\n默认读取程序旁的 map-resources 文件夹，缺失资源自动下载保存。通过应用菜单的“离线地图”可提前下载完整地图。“检查更新”可下载新版，准备好后由你选择重启安装，地图资源、设置与任务进度保留。\n\n' + projectNoticeText() + '\n\n完整来源与许可见随包 THIRD_PARTY_NOTICES.txt。'});
+        case 'about': {
+          const result = await dialog.showMessageBox(win, {type: 'info', title: '塔科夫物资地图', message: `塔科夫物资地图 ${app.getVersion()}`, detail: '桌面预览版 · 与网站共用前端界面\n\n完整安装包内置 13 张地图的默认资源，安装后可直接打开地图。资源默认保存在程序旁的 map-resources 文件夹。“检查更新”可下载新版，准备好后由你选择重启安装，地图资源、设置与任务进度保留。\n\n' + projectNoticeText() + '\n\n完整来源与许可见随包 THIRD_PARTY_NOTICES.txt。', buttons: ['确定', '作者 B 站主页'], defaultId: 0, cancelId: 0, noLink: true});
+          if (result.response === 1) openExternal(projectAuthor.url);
+          return result;
+        }
         default: throw Error('未知窗口操作');
       }
     });
@@ -155,5 +149,5 @@ else {
     if (!updateTest) void updates.start();
   }).catch(error => { if (testWindowMode) { console.error(error); app.exit(1); } else { dialog.showErrorBox('地图启动失败', error.message); app.quit(); } });
   app.on('window-all-closed', () => app.quit());
-  app.on('before-quit', () => { updates?.dispose(); for (const job of jobs.values()) job.abort(); });
+  app.on('before-quit', () => { updates?.dispose(); });
 }

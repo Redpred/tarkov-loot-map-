@@ -36,7 +36,7 @@
     <div class="heading"><h1>街区 <span>STREETS</span></h1></div>
     <nav class="app-nav" aria-label="主导航"><a href="index.html">首页</a><a href="streets.html" data-map-nav aria-current="page">地图</a><a href="tasks.html" data-task-nav>任务</a></nav>
     <select id="mapSwitch" aria-label="选择地图"><option value="factory">工厂</option><option value="streets" selected>塔科夫街区</option></select>
-    <a class="client-download" href="https://pan.quark.cn/s/6723ba88bd07" target="_blank" rel="noopener noreferrer" aria-label="下载客户端（夸克网盘，新窗口）" title="下载 Windows 客户端（夸克网盘）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4"/></svg><span class="client-download-label">下载客户端</span><span class="client-download-short" aria-hidden="true">下载</span></a>
+    <a class="client-download" href="https://pan.quark.cn/s/adeaebc575dd" target="_blank" rel="noopener noreferrer" aria-label="下载客户端（夸克网盘，新窗口）" title="下载 Windows 客户端（夸克网盘）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4"/></svg><span class="client-download-label">下载客户端</span><span class="client-download-short" aria-hidden="true">下载</span></a>
   </header>
   <main>
     <aside class="floating-panel" id="leftPanel"><button class="panel-toggle" id="leftPanelToggle" aria-expanded="true" aria-controls="filterBody">点位筛选 −</button><div class="filters" id="filterBody">
@@ -80,13 +80,13 @@
     <section class="map-panel" aria-label="塔科夫街区原始场景与物资点位">
       <div id="viewport"></div>
       <div id="clusterCounts" aria-hidden="true"></div>
-      <button id="streamStatus" hidden aria-live="polite" title="分区加载失败时点击重试"></button>
+      <div id="sceneLoadStatus"><button id="streamStatus" type="button" hidden aria-live="polite"></button></div>
       <div id="mapNavigator" hidden><button id="toggleNavigator" aria-expanded="true" aria-controls="navigatorContent">全图导航 −</button><div id="navigatorContent"><span class="navigator-caption">点击跳转 <small>+Z ↑</small></span><canvas id="navigatorCanvas" aria-label="地图俯视预览，点击跳转到对应区域"></canvas></div></div>
       <div class="map-tools"><button id="topView" class="active">俯视</button><button id="orbitView">三维</button><button id="resetView">复位</button><button id="toggleGeometry" class="active">场景</button></div>
       <div class="rotation-tools"><button id="rotateLeft" title="向左旋转 15°" aria-label="向左旋转 15 度">↶</button><button id="resetHeading" title="恢复默认方向（180°）"><span id="headingValue">180°</span></button><button id="rotateRight" title="向右旋转 15°" aria-label="向右旋转 15 度">↷</button></div>
       <div class="compass" title="游戏世界坐标方向：+Z / +X；未将其标为地理北方"><div id="compassNeedle"><span class="axis-z" style="top:7px;bottom:auto">+Z ↑</span><span class="axis-x" style="top:29px">+X →</span></div></div>
       <div class="map-caption"><span id="viewLabel"></span></div>
-      <div id="loading"><strong>正在构建街区视图</strong><span id="loadMessage">读取物资数据库…</span><div class="loading-line"></div></div>
+      <div id="loading" role="status"><strong>正在构建街区视图</strong><span id="loadMessage">加载地图程序…</span><div class="loading-line"></div></div>
       <div id="tooltip" hidden></div>
       <div class="map-help"><span id="interactionHelp" style="margin-left:0;color:inherit;font-family:inherit">左键平移 · 右键旋转 · 滚轮缩放</span><span id="scaleLabel"></span></div>
       <div class="legend" id="markerLegend" hidden><span class="legend-caption">色点</span><span><i class="dot loose"></i>散落</span><span><i class="dot container"></i>容器</span><span><i class="dot forced"></i>强制记录</span><span><i class="dot unknown"></i>物品池未知</span></div>
@@ -94,6 +94,6 @@
     <aside class="floating-panel" id="rightPanel"><button class="panel-toggle" id="rightPanelToggle" aria-expanded="false" aria-controls="details">点位详情 +</button><div class="details" id="details"><div class="empty-detail"><div class="crosshair">⌖</div><p>点击点位查看详情</p></div></div></aside>
   </main>
   <footer class="site-footer" aria-label="网站备案信息"><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" title="工信部备案信息查询（新窗口）"><span>冀ICP备2026046921号-1</span></a></footer>
-  <script type="module" src="factory.js"></script>
+  <script type="module" src="atlas-map-entry.js"></script>
 </body>
 </html>

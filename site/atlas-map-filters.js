@@ -3,19 +3,21 @@ import {getGameMode,subscribeGameMode} from './game-mode.js';
 import {DEFAULT_POINT_TIERS,pointValuePreferences,pointTier,pointTierLabel,pointMatches,createPointValuation,pointModelClient,verifyPointModelSource,shortValue} from './atlas-point-values.js';
 import {marketTime} from './atlas-market-client.js';
 import {createMapMarketSession} from './atlas-map-market.js';
+import {readPagePreferences,savePagePreferences} from './atlas-page-session.js';
 
 const make=(tag,cls,text)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=text;return el;};
-const read=key=>{try{return JSON.parse(localStorage.getItem(key));}catch{return null;}};
 const save=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));}catch{}};
-export function createMapFilters({host,map,data,index,onChange}){
-  const prefs=pointValuePreferences(read('atlas-point-value-preferences-v1'));
-  const itemPrefs=highValuePreferences(read('atlas-high-value-preferences-v1'));
-  // A fresh visit starts with all point tiers and the default expected metric.
-  prefs.metric='expected';prefs.tiers=[0,1,2,3];prefs.unknown=false;prefs.kinds=['loose','container'];
+export function createMapFilters({host,map,data,index,onChange,rememberSection=()=>{}}){
+  const pointKey='atlas-point-value-preferences-v1',itemKey='atlas-high-value-preferences-v1';
+  const filterKey=`${map.id}-value-filter-v1`,saved=readPagePreferences(filterKey);
+  const prefs=pointValuePreferences({...readPagePreferences(pointKey),...saved.point});
+  const itemPrefs=highValuePreferences({...readPagePreferences(itemKey),...saved.item});
   const session=createMapMarketSession({initialMode:getGameMode()});
   subscribeGameMode(mode=>session.load(mode));
-  let dataset=null,modelPending=null,modelError='',values=new Map(),rows=[],priceIds=null,excluded=new Set(),itemQuery='',shown=60;
-  let pointEnabled=false,itemEnabled=false,limitsValid=true,itemValid=true,activated=false;
+  const excluded=new Set(Array.isArray(saved.excludedIds)?saved.excludedIds.filter(id=>index.byId.has(id)):[]);
+  let dataset=null,modelPending=null,modelError='',values=new Map(),rows=[],priceIds=null,shown=60;
+  let itemQuery=typeof saved.itemQuery==='string'?saved.itemQuery.slice(0,200):'';
+  let pointEnabled=saved.pointEnabled===true,itemEnabled=saved.itemEnabled===true,limitsValid=true,itemValid=true,activated=false;
   host.innerHTML=`<summary>价值筛选 <small id="valueFilterSummary">未启用</small></summary>
     <div class="map-price-context"><button type="button" id="mapPriceRefresh">刷新价格</button></div>
     <p id="mapPriceStatus" class="hint" role="status">筛选和点位详情共用价格</p>
@@ -28,6 +30,8 @@ export function createMapFilters({host,map,data,index,onChange}){
     <p class="hint">售价取商人最高收购与跳蚤最低价的较高者。按整个点位计算，未扣手续费；估值不代表单局必得。</p></div>
     <details id="unitPriceAdvanced" class="filter-custom"><summary>高级：候选物品单价</summary><label class="filter-enable"><input id="enableItemPrice" type="checkbox">限定候选物品单价</label><div id="unitPriceControls" hidden><label class="filter-field">售价依据<select id="mapItemBasis"></select></label><label class="filter-field">单件至少 <span><input id="mapItemMinimum" type="number" min="0" max="1000000000" step="1" inputmode="decimal" aria-label="候选物品最低单价，单位 K"> K</span></label><p id="mapItemError" class="filter-error" role="alert" hidden>请输入 0–1,000,000,000 K；目前沿用上次有效单价。</p><p class="hint">与点位收益条件同时满足；不改变完整物资池的估值。</p><details class="filter-custom"><summary>选择符合价格的物品 <span id="mapPriceItemCount">0</span></summary><input id="mapPriceItemSearch" type="search" placeholder="在符合价格的物品中查找…" aria-label="查找符合价格的物品"><div class="type-actions"><button id="mapPriceItemsAll">全选搜索结果</button><button id="mapPriceItemsNone">取消搜索结果</button></div><div id="mapPriceItems" class="map-price-items"></div><button id="mapPriceItemsMore" hidden>显示更多</button></details></div></details>`;
   const $=id=>host.querySelector('#'+id);
+  $('mapPriceItemSearch').maxLength=200;$('mapPriceItemSearch').value=itemQuery;
+  for(const [i,section] of [...host.querySelectorAll('.filter-custom')].entries())rememberSection(section,'value-options:'+i);
   for(const check of host.querySelectorAll('[data-value-kind]'))check.onchange=()=>{prefs.kinds=[...host.querySelectorAll('[data-value-kind]:checked')].map(c=>c.dataset.valueKind);change();};
   const options=(select,entries)=>{for(const [id,name] of entries){const o=make('option','',name);o.value=id;select.append(o);}};
   options($('mapItemBasis'),VALUE_BASES);
@@ -38,9 +42,9 @@ export function createMapFilters({host,map,data,index,onChange}){
     label.append(check,name,count);$('mapValueTiers').append(label);tierChecks.push(check);tierLabels.push(name);tierCounts.push(count);
     check.onchange=()=>{prefs.tiers=tierChecks.flatMap((c,j)=>c.checked?[j]:[]);change();};
     const colorLabel=make('label','',`第 ${i+1} 档`),color=make('input');color.type='color';color.value=prefs.colors[i];color.setAttribute('aria-label',`第 ${i+1} 档颜色`);colorLabel.append(color);$('mapTierColors').append(colorLabel);colors.push(color);
-    color.oninput=()=>{prefs.colors[i]=color.value;change();};
+    color.oninput=()=>{prefs.colors[i]=color.value;savePagePreferences(pointKey,{colors:prefs.colors});change();};
     if(i<3){const label=make('label','',`分界 ${i+1}`),input=make('input');input.type='number';input.min='.001';input.max='1000000000';input.step='any';input.inputMode='decimal';input.value=prefs.thresholds[i]/1000;input.setAttribute('aria-label',`收益分界 ${i+1}，单位 K`);label.append(input,make('span','','K'));$('mapTierLimits').append(label);limits.push(input);
-      input.oninput=()=>{const next=limits.map(c=>c.value.trim()===''?NaN:Number(c.value)*1000);limitsValid=next.every((n,j)=>Number.isFinite(n)&&n>0&&n<=1e12&&(!j||n>next[j-1]));if(limitsValid)prefs.thresholds=next;change();};}
+      input.oninput=()=>{const next=limits.map(c=>c.value.trim()===''?NaN:Number(c.value)*1000);limitsValid=next.every((n,j)=>Number.isFinite(n)&&n>0&&n<=1e12&&(!j||n>next[j-1]));if(limitsValid){prefs.thresholds=next;savePagePreferences(pointKey,{thresholds:next});}change();};}
   }
   function renderRows(){
     const focused=$('mapPriceItems').contains(document.activeElement)?document.activeElement.dataset.pricedItem:null;
@@ -66,31 +70,37 @@ export function createMapFilters({host,map,data,index,onChange}){
     $('enableItemPrice').checked=itemEnabled;$('unitPriceControls').hidden=!itemEnabled;
     $('valueFilterSummary').textContent=pointEnabled?(prefs.metric==='expected'?'每局收益':'有货时价值')+(itemEnabled?' + 单价':''):itemEnabled?'物品单价':'未启用';
     $('mapValueMetric').value=prefs.metric;$('mapValueUnknown').checked=prefs.unknown;
+    for(const check of host.querySelectorAll('[data-value-kind]'))check.checked=prefs.kinds.includes(check.dataset.valueKind);
     tierLabels.forEach((label,i)=>{label.textContent=pointTierLabel(i,prefs.thresholds);label.style.color=prefs.colors[i];tierChecks[i].checked=prefs.tiers.includes(i);});
     $('mapTierError').hidden=limitsValid;$('mapItemError').hidden=itemValid;
     for(const input of limits)input.setAttribute('aria-invalid',String(!limitsValid));$('mapItemMinimum').setAttribute('aria-invalid',String(!itemValid));
   }
-  function change(){render();save('atlas-point-value-preferences-v1',{...prefs,mode:session.state.mode});save('atlas-high-value-preferences-v1',{...itemPrefs,mode:session.state.mode});onChange();}
+  function update(){render();onChange();}
+  function change(){
+    savePagePreferences(filterKey,{point:prefs,item:itemPrefs,pointEnabled,itemEnabled,excludedIds:[...excluded],itemQuery});
+    update();
+  }
   async function ensureModel(){
     if(dataset||modelPending)return modelPending;modelError='';
-    modelPending=pointModelClient.load(map.id).then(d=>{verifyPointModelSource(d,data);dataset=d;if(session.state.market)values=createPointValuation(d,session.state.market);}).catch(()=>{modelError='点位估值资料暂不可用，请刷新重试。';}).finally(()=>{modelPending=null;change();});render();return modelPending;
+    modelPending=pointModelClient.load(map.id).then(d=>{verifyPointModelSource(d,data);dataset=d;if(session.state.market)values=createPointValuation(d,session.state.market);}).catch(()=>{modelError='点位估值资料暂不可用，请刷新重试。';}).finally(()=>{modelPending=null;update();});render();return modelPending;
   }
   $('enablePointValue').onchange=()=>{pointEnabled=$('enablePointValue').checked;if(pointEnabled){ensureModel();session.ensure();}change();};
   $('enableItemPrice').onchange=()=>{itemEnabled=$('enableItemPrice').checked;if(itemEnabled)session.ensure();reprice();change();};
   $('mapPriceRefresh').onclick=()=>{if(pointEnabled)ensureModel();session.load(session.state.mode,{reload:true});};
   $('mapValueMetric').onchange=()=>{prefs.metric=$('mapValueMetric').value;change();};
   $('mapValueUnknown').onchange=()=>{prefs.unknown=$('mapValueUnknown').checked;change();};
-  $('mapItemBasis').onchange=()=>{itemPrefs.basis=$('mapItemBasis').value;reprice();change();};
-  $('mapItemMinimum').oninput=()=>{const n=$('mapItemMinimum').value.trim()===''?NaN:Number($('mapItemMinimum').value)*1000;itemValid=Number.isFinite(n)&&n>=0&&n<=1e12;if(itemValid){itemPrefs.minimum=n;reprice();}change();};
-  $('resetValueTiers').onclick=()=>{prefs.thresholds=[...DEFAULT_POINT_TIERS.thresholds];prefs.colors=[...DEFAULT_POINT_TIERS.colors];limitsValid=true;limits.forEach((c,i)=>c.value=prefs.thresholds[i]/1000);colors.forEach((c,i)=>c.value=prefs.colors[i]);change();};
-  $('mapPriceItemSearch').oninput=()=>{itemQuery=$('mapPriceItemSearch').value;shown=60;renderRows();};
+  $('mapItemBasis').onchange=()=>{itemPrefs.basis=$('mapItemBasis').value;savePagePreferences(itemKey,{basis:itemPrefs.basis});reprice();change();};
+  $('mapItemMinimum').oninput=()=>{const n=$('mapItemMinimum').value.trim()===''?NaN:Number($('mapItemMinimum').value)*1000;itemValid=Number.isFinite(n)&&n>=0&&n<=1e12;if(itemValid){itemPrefs.minimum=n;savePagePreferences(itemKey,{minimum:n});reprice();}change();};
+  $('resetValueTiers').onclick=()=>{prefs.thresholds=[...DEFAULT_POINT_TIERS.thresholds];prefs.colors=[...DEFAULT_POINT_TIERS.colors];savePagePreferences(pointKey,{thresholds:prefs.thresholds,colors:prefs.colors});limitsValid=true;limits.forEach((c,i)=>c.value=prefs.thresholds[i]/1000);colors.forEach((c,i)=>c.value=prefs.colors[i]);change();};
+  $('mapPriceItemSearch').oninput=()=>{itemQuery=$('mapPriceItemSearch').value.slice(0,200);shown=60;renderRows();savePagePreferences(filterKey,{itemQuery});};
   $('mapPriceItemsAll').onclick=()=>{for(const row of searchValueItems(rows,itemQuery))excluded.delete(row.tpl);reprice();change();};
   $('mapPriceItemsNone').onclick=()=>{for(const row of searchValueItems(rows,itemQuery))excluded.add(row.tpl);reprice();change();};
   $('mapPriceItemsMore').onclick=()=>{shown+=60;renderRows();};
-  session.subscribe(s=>{save('atlas-map-price-mode-v1',s.mode);values=dataset&&s.market?createPointValuation(dataset,s.market):new Map();reprice();render();onChange();});
+  session.subscribe(s=>{save('atlas-map-price-mode-v1',s.mode);values=dataset&&s.market?createPointValuation(dataset,s.market):new Map();reprice();update();});
+  render();
   return {session,get pointEnabled(){return pointEnabled;},get itemEnabled(){return itemEnabled;},get priceIds(){return priceIds;},get metric(){return prefs.metric;},
     get ready(){return Boolean(dataset&&session.state.market);},get blocked(){return (pointEnabled&&(!dataset||!session.state.market))||(itemEnabled&&!session.state.market);},
-    activate(){if(activated)return;activated=true;pointEnabled=true;ensureModel();session.ensure();change();},
+    activate(){if(activated)return;activated=true;if(typeof saved.pointEnabled!=='boolean')pointEnabled=true;if(pointEnabled)ensureModel();if(pointEnabled||itemEnabled)session.ensure();update();},
     matchesKind:p=>prefs.kinds.includes(p.kind),
     matches:p=>prefs.kinds.includes(p.kind)&&(!pointEnabled||Boolean(dataset&&session.state.market&&pointMatches(p,values.get(p.id),prefs))),value:p=>values.get(p.id),
     color(p){if(!pointEnabled||!dataset||!session.state.market||p.kind==='poi')return null;const t=pointTier(values.get(p.id)?.[prefs.metric],prefs.thresholds);return t===null?'#84939f':prefs.colors[t];},

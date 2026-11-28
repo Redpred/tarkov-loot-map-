@@ -1,16 +1,17 @@
-import {installMapSession} from './atlas-page-session.js';
+import {installMapSession,mapInterfaceKey,readPagePreferences,savePagePreferences} from './atlas-page-session.js';
 import * as THREE from 'three';
 import { OrbitControls } from './vendor/OrbitControls.js';
 import { candidatesFor } from './factory-data.js';
 import { createMaterialLibrary } from './factory-materials.js';
-import {readTextureQuality,loadTextureQuality} from './atlas-texture-quality.js';
-import {readGeometryQuality,loadGeometryQuality} from './atlas-geometry-quality.js';
+import {loadTextureQuality} from './atlas-texture-quality.js';
+import {loadGeometryQuality} from './atlas-geometry-quality.js';
 import {readSceneryMode,loadSceneryDetails} from './atlas-scenery-details.js';
-const geometryQualityLocked=false;
-const requestedGeometryQuality=geometryQualityLocked?'original':readGeometryQuality();
 import { UNITY_TO_VIEW_SCALE, unityToView } from './factory-coordinates.js';
 import { loadFactoryGeometry,geometryProgressText } from './factory-geometry.js';
-import {makeMapCachePlan} from './atlas-map-cache.js';
+import {readMapJson} from './atlas-resource-request.js';
+import {createMapDiagnosticCopy,formatMapDiagnostic,mapErrorMessage,mapLoadError} from './atlas-map-diagnostics.js';
+import {managedResources} from './atlas-managed-resources.js';
+import {makeMapCachePlan,selectedCacheQuality} from './atlas-map-cache.js';
 import {prepareResourceLocation} from './atlas-resource-location-ui.js';
 import { loadMarkerIcons, createMarkerCloud } from './factory-markers.js';
 import { classifyPointMarker } from './factory-marker-rules.js';
@@ -19,9 +20,9 @@ import { createIconEditor } from './factory-icon-editor.js';
 import { ATLAS_MAPS,atlasMapHref } from './atlas-maps.js';
 import { createSectorStreamer,texturedGroupBatches } from './atlas-sectors.js';
 import { clusterScreenPoints } from './atlas-clusters.js';
-import { rebaseOrbitPivot,pickSceneSurface,planePivot,firstPersonEntryPosition } from './atlas-navigation.js';
+import { rebaseOrbitPivot,pickSceneSurface,planePivot,firstPersonEntryPosition,createSceneOverview } from './atlas-navigation.js';
 import { createViewSettingsUI } from './atlas-view-settings.js';
-import {readMapViewSettings} from './atlas-view-preferences.js';
+import {readMapViewSettings,saveMapViewSettings} from './atlas-view-preferences.js';
 import { mapSkinPalette } from './atlas-map-skin.js';
 import { SceneCollision } from './atlas-collision.js';
 import { createFirstPerson } from './atlas-first-person.js';
@@ -31,6 +32,7 @@ import { createRegionLabels } from './atlas-region-labels.js';
 import {previewMinimapTransform} from './atlas-minimap.js';
 import {renderPixelRatio,limitMarkers} from './atlas-performance.js';
 import {installMapUI} from './map-ui.js';
+import {createMeasurementLayer,formatMeasurement} from './atlas-measurement.js';
 import {createMapTapTracker,createPointDoubleTapTracker,markerHitRadius,createTouchNavigation} from './atlas-touch.js';
 import {createItemSearch} from './atlas-item-search.js';
 import {createMyTasks} from './atlas-my-tasks.js';
@@ -62,7 +64,7 @@ const escape = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;',
 const COLORS={loose:'#e7c087',container:'#72b5d9',forced:'#c1a1d7',unknown:'#f09e7c'};
 const requestedMap=new URLSearchParams(location.search).get('map')||document.documentElement.dataset.map||'factory';
 const MAP=Object.hasOwn(ATLAS_MAPS,requestedMap)?ATLAS_MAPS[requestedMap]:null;
-if(!MAP)throw new Error('未收录此地图');
+if(!MAP)throw mapLoadError('MAP-NOT-FOUND', '未收录此地图');
 document.documentElement.dataset.map=MAP.id;document.title=`${MAP.name} · 塔科夫物资地图`;
 document.querySelector('.heading h1').innerHTML=`${MAP.name} <span>${MAP.en}</span>`;
 document.querySelector('.map-panel').setAttribute('aria-label',`${MAP.name}原始场景与物资点位`);
@@ -79,6 +81,8 @@ fetch('data/atlas-catalog.json').then(r=>r.ok?r.json():null).then(catalog=>{
 }).catch(()=>{});
 const DEFAULT_HEADING=Math.PI;
 const layout=createFloatingLayout(MAP.id);
+const interfaceKey=mapInterfaceKey(MAP.id),savedInterface=readPagePreferences(interfaceKey);
+let cameraScene,cameraSaveTimer;
 let pointTypes,itemSearch,myTasks,mapKeys,mapFilters,mapItemIndex,ammoTree,heightRange,bossUI,bossData;
 let buildingCuts=null,cutProfile=null,previousHeight=null;
 const buildingCutView=createBuildingCutView(),buildingCutGPU=createBuildingCutUniforms();
@@ -86,10 +90,9 @@ const pointSelection=createPointSelection(MAP.id);
 const poiOutlines=new THREE.Group();
 const pointVolumes=createVolumeLayer(),regionVolumes=createVolumeLayer({region:true});
 const bossRanges=createVolumeLayer();
-const state={data:null,visible:[],selected:null,entryPoint:null,band:'all',cut:MAP.maxHeight,mode:'top',groups:[],geometry:true,heading:DEFAULT_HEADING,markerStyle:'icons',markerSize:26};
+const state={data:null,visible:[],selected:null,entryPoint:null,band:'all',cut:MAP.maxHeight,mode:savedInterface.camera?.mode==='orbit'?'orbit':'top',groups:[],geometry:savedInterface.geometry!==false,heading:DEFAULT_HEADING,markerStyle:'icons',markerSize:26};
 $('cutHeight').min=MAP.minHeight;$('cutHeight').max=MAP.maxHeight;$('cutHeight').value=state.cut;
-const viewSettingsKey=MAP.id+'-view-settings-v1';
-const requestedTextureQuality=readTextureQuality(),requestedSceneryMode=readSceneryMode();
+const requestedQuality=selectedCacheQuality();
 let pageSuspended=false;
 let viewSettings=readMapViewSettings(MAP.id);
 state.markerSize=viewSettings.markerSize;state.markerStyle=viewSettings.markerStyle;
@@ -99,13 +102,32 @@ const markerDescriptors=new Map();
 const baseMarkerDescriptors=new Map();
 let iconSettings=emptySettings(),iconEditor;
 let sectorStreamer=null,navigatorDraw=null;
-window.addEventListener('pagehide',event=>{if(!event.persisted)sectorStreamer?.dispose();});
+window.addEventListener('pagehide',event=>{flushCamera();if(!event.persisted)sectorStreamer?.dispose();});
 const displayClusters=new Map();
 const displayPositions=new Map();
 const viewport=$('viewport'), scene=new THREE.Scene();
 const regionLabels=createRegionLabels({map:MAP.id,viewport,onChange:()=>{refreshRegionVolumes();invalidate();}});
 scene.background=new THREE.Color('#101820');
-const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+let renderer;
+try{
+  renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+}catch(cause){
+  throw mapLoadError('GPU-WEBGL2-INIT', '无法启动 WebGL 2，请检查浏览器的硬件加速或显卡支持后重试。', {cause});
+}
+const reloadMap=()=>location.reload();
+const sceneCopy=createMapDiagnosticCopy();
+$('sceneLoadStatus').append(sceneCopy.button);
+let graphicsIssue=null,sceneStatus={message:'',action:null,failure:null};
+renderer.domElement.addEventListener('webglcontextlost',()=>{
+  graphicsIssue=mapLoadError('GPU-CONTEXT-LOST', '图形渲染已中断，正在等待恢复');syncSceneStatus();
+});
+renderer.domElement.addEventListener('webglcontextrestored',()=>{
+  graphicsIssue=null;syncSceneStatus();invalidate();
+});
+renderer.debug.onShaderError=(gl,program,vertex,fragment)=>{
+  console.error('GPU-SHADER',gl.getProgramInfoLog(program),gl.getShaderInfoLog(vertex),gl.getShaderInfoLog(fragment));
+  graphicsIssue=mapLoadError('GPU-SHADER', '地图图形程序编译失败');syncSceneStatus();
+};
 renderer.setPixelRatio(renderPixelRatio(devicePixelRatio,viewSettings.renderScale)); viewport.appendChild(renderer.domElement);
 viewport.addEventListener('contextmenu',event=>event.preventDefault(),{capture:true});
 renderer.domElement.setAttribute('aria-label',`${MAP.name}地图：拖动平移，滚轮缩放，点击物资点位`);
@@ -120,9 +142,10 @@ controls.touches={ONE:THREE.TOUCH.PAN,TWO:THREE.TOUCH.DOLLY_ROTATE};
 controls.minZoom=.35;controls.maxZoom=35;
 controls.minPolarAngle=controls.maxPolarAngle=.00001;
 const gameWorld=new THREE.Group();gameWorld.scale.set(...UNITY_TO_VIEW_SCALE);scene.add(gameWorld);
-const geometryGroup=new THREE.Group();gameWorld.add(geometryGroup);
+const geometryGroup=new THREE.Group();geometryGroup.visible=state.geometry;gameWorld.add(geometryGroup);
+$('toggleGeometry').classList.toggle('active',state.geometry);
 const uniforms={low:{value:MAP.minHeight},high:{value:state.cut},...buildingCutGPU.uniforms};
-let markerObject=null, selectedObject=null, grid=null, requested=false, initialSpan=160;
+let markerObject=null, selectedObject=null, grid=null, requested=false, initialSpan=160,sceneOverview=null;
 let currentMapPalette=mapSkinPalette('night');
 let lastRender=-Infinity,lastOverlay=-Infinity,overlayTimer=null,markerSignature='',selectedSignature='',iconRevision=0;
 const collisionWorld=new SceneCollision();
@@ -131,13 +154,15 @@ const firstPerson=createFirstPerson({canvas:renderer.domElement,settings:viewSet
 bindFirstPersonDetailsWheel({surface:viewport,details:$('details'),isActive:()=>Boolean(firstPerson.mode)&&!document.querySelector('dialog[open]')});
 document.querySelector('.map-tools').insertAdjacentHTML('beforeend','<button id="flyView">自由飞行</button><button id="openViewSettings">设置</button>');
 document.querySelector('.map-panel').insertAdjacentHTML('beforeend','<div id="navigationStatus" role="status"></div><div id="firstPersonHud" hidden><span id="playerPosition"></span><button id="lockLook">锁定鼠标</button><button id="leaveFirstPerson">退出第一人称</button></div><span id="firstPersonCrosshair" hidden>+</span>');
-const tapTracker=createMapTapTracker(),doubleTapTracker=createPointDoubleTapTracker();
+const tapTracker=createMapTapTracker(),measurementRightTap=createMapTapTracker(2),doubleTapTracker=createPointDoubleTapTracker();
+const measurements=createMeasurementLayer({scene,viewport});
+let measuring=false;
 let pointTapTimer=null;
 function cancelPointTap(){clearTimeout(pointTapTimer);pointTapTimer=null;}
-function resetPointGestures(){tapTracker.reset();doubleTapTracker.reset();cancelPointTap();}
+function resetPointGestures(){tapTracker.reset();measurementRightTap.reset();doubleTapTracker.reset();cancelPointTap();}
 const touchNavigation=createTouchNavigation({parent:document.querySelector('.map-panel'),canvas:renderer.domElement,onMove:input=>{firstPerson.setTouchMovement(input);if(firstPerson.touchMoving)resetPointGestures();}});
 window.addEventListener('blur',resetPointGestures);
-document.addEventListener('visibilitychange',()=>{if(document.hidden)resetPointGestures();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){resetPointGestures();flushCamera();}});
 document.addEventListener('pointerdown',e=>{cancelPointTap();if(e.target!==renderer.domElement)doubleTapTracker.reset();},true);
 renderer.domElement.addEventListener('wheel',()=>{doubleTapTracker.reset();cancelPointTap();},{passive:true});
 const viewUI=createViewSettingsUI({map:MAP,settings:viewSettings,onChange:key=>{
@@ -145,11 +170,13 @@ const viewUI=createViewSettingsUI({map:MAP,settings:viewSettings,onChange:key=>{
   state.markerSize=viewSettings.markerSize;state.markerStyle=viewSettings.markerStyle;$('markerSizeValue').value=state.markerSize+' px';$('markerLegend').hidden=state.markerStyle==='icons';
   if(['renderScale','anisotropy','showDecals','preset','reset'].includes(key))applySceneQuality();lastOverlay=-Infinity;
   if(state.data&&pointTypes&&markerIcons&&['markerSize','markerStyle','maxMarkers','showClusterCounts','markerDistance','renderScale','preset','reset'].includes(key))refresh();
-  saveViewSettings();controls.rotateSpeed=viewSettings.rotationSpeed;
+  saveViewSettings(key);controls.rotateSpeed=viewSettings.rotationSpeed;
   firstPerson.camera.fov=viewSettings.fov;firstPerson.camera.far=viewSettings.drawDistance;firstPerson.camera.updateProjectionMatrix();sectorStreamer?.update();invalidate();
-},onPick:()=>{if(firstPerson.mode)leaveFirstPerson('orbit');pickingPivot=true;notice('点击场景表面设为旋转中心；Esc 取消。');renderer.domElement.style.cursor='crosshair';},onFocus:()=>{if(firstPerson.mode)leaveFirstPerson('orbit');preparePivot(true);},onPause:()=>sectorStreamer?.togglePause()});
+},onPick:()=>{if(measuring)setMeasuring(false);if(firstPerson.mode)leaveFirstPerson('orbit');pickingPivot=true;notice('点击场景表面设为旋转中心；Esc 取消。');renderer.domElement.style.cursor='crosshair';},onFocus:()=>{if(firstPerson.mode)leaveFirstPerson('orbit');preparePivot(true);},onPause:()=>sectorStreamer?.togglePause()});
 viewUI.enableFirstPerson();
 const mapUI=installMapUI({map:MAP,layout,isFirstPerson:()=>Boolean(firstPerson.mode),onSkinChange:applyMapSkin,onFilterMode:mode=>{itemSearch?.close();if(mode==='value')mapFilters?.activate();refreshFilter();}});
+$('measureDistance').onclick=()=>setMeasuring(!measuring);
+syncGeometryButton();
 let screenshotBounds=null,screenshotPosition=null;
 const screenshotUI=createScreenshotLocationUI({map:MAP,tools:document.querySelector('.map-tools'),viewport,onNotice:notice,
   onLocate:locateScreenshot,onClear:()=>{screenshotPosition=null;lastOverlay=-Infinity;invalidate();}});
@@ -159,8 +186,80 @@ coarsePointer.addEventListener('change',()=>{updateInteractionHelp();touchNaviga
 updateInteractionHelp();
 gameWorld.add(poiOutlines,pointVolumes.group,regionVolumes.group,bossRanges.group);
 if(manualPivot)viewUI.pivot(manualPivot);
-function saveViewSettings(){try{localStorage.setItem(viewSettingsKey,JSON.stringify(viewSettings));}catch{notice('当前浏览器无法保存视图设置。');}}
+function saveViewSettings(change){if(!saveMapViewSettings(MAP.id,viewSettings,change))notice('当前浏览器无法保存视图设置。');}
+function atSceneOverview(){return Boolean(sceneOverview)&&orbitCamera.zoom<=controls.minZoom;}
+function syncOverviewZoom(keepOverview=atSceneOverview()){
+  if(!sceneOverview)return;
+  controls.minZoom=sceneOverview.zoom(orbitCamera);
+  if(!keepOverview&&orbitCamera.zoom>controls.minZoom)return;
+  orbitCamera.zoom=controls.minZoom;
+  controls.target.copy(sceneOverview.center);
+  orbitCamera.position.set(0,0,sceneOverview.distance).applyQuaternion(orbitCamera.quaternion).add(controls.target);
+  orbitCamera.updateProjectionMatrix();orbitCamera.updateMatrixWorld();
+}
+function updateOrbitFrustum(aspect){
+  orbitCamera.right=initialSpan*aspect/2;orbitCamera.left=-orbitCamera.right;
+  orbitCamera.top=initialSpan/2;orbitCamera.bottom=-orbitCamera.top;
+  orbitCamera.updateProjectionMatrix();
+}
+function rememberCamera(){
+  clearTimeout(cameraSaveTimer);cameraSaveTimer=null;
+  if(!cameraScene||firstPerson.mode)return;
+  const view={scene:cameraScene,mode:state.mode,position:orbitCamera.position.toArray(),target:controls.target.toArray(),zoom:orbitCamera.zoom};
+  if(atSceneOverview())view.overview=true;
+  savePagePreferences(interfaceKey,{camera:view});
+}
+function queueCameraSave(){
+  if(!cameraScene||firstPerson.mode)return;
+  clearTimeout(cameraSaveTimer);cameraSaveTimer=setTimeout(rememberCamera,240);
+}
+function flushCamera(){if(cameraSaveTimer)rememberCamera();}
+function restoreCamera(sceneVersion){
+  const view=savedInterface.camera;
+  const vector=value=>Array.isArray(value)&&value.length===3&&value.every(n=>Number.isFinite(n)&&Math.abs(n)<100000);
+  if(sceneVersion&&view?.scene===sceneVersion&&vector(view.position)&&vector(view.target)&&Number.isFinite(view.zoom)&&view.zoom>0){
+    const offset=view.position.map((value,i)=>value-view.target[i]);
+    if(Math.hypot(...offset)>.01){
+      orbitCamera.position.fromArray(view.position);controls.target.fromArray(view.target);
+      orbitCamera.zoom=THREE.MathUtils.clamp(view.zoom,controls.minZoom,controls.maxZoom);
+      orbitCamera.updateProjectionMatrix();controls.update();
+      if(view.overview===true)syncOverviewZoom(true);
+    }
+  }
+  cameraScene=sceneVersion;
+}
 function notice(message){const el=$('navigationStatus');if(el&&el.textContent!==message)el.textContent=message;}
+function syncSceneStatus(){
+  const button=$('streamStatus');
+  let status=sceneStatus;
+  if(graphicsIssue)status={message:`${mapErrorMessage(graphicsIssue)} · 点击重新加载地图`,action:reloadMap,failure:graphicsIssue};
+  else if(!state.geometry&&!status.failure)status={message:'场景已隐藏 · 点击显示',action:()=>setGeometryVisible(true)};
+  button.hidden=!status.message;
+  if(button.textContent!==status.message)button.textContent=status.message;
+  button.classList.toggle('error',Boolean(status.failure));
+  $('sceneLoadStatus').classList.toggle('graphics-error',Boolean(graphicsIssue));
+  button.setAttribute('aria-disabled',String(!status.action));
+  button.tabIndex=status.action?0:-1;
+  button.onclick=status.action;
+  sceneCopy.update(status.failure?formatMapDiagnostic(status.failure,{
+    mapId:MAP.id,sectorId:status.sectorId,mode:managedResources.mode(),scenery:requestedQuality.scenery
+  }):'');
+}
+function setSceneStatus(message='',action=null,failure=null,sectorId){
+  sceneStatus={message,action,failure,sectorId};syncSceneStatus();
+}
+function syncGeometryButton(){
+  const button=$('toggleGeometry');
+  button.classList.toggle('active',state.geometry);
+  button.setAttribute('aria-pressed',String(state.geometry));
+  button.title=state.geometry?'隐藏场景':'显示场景';
+}
+function setGeometryVisible(visible){
+  state.geometry=visible;geometryGroup.visible=visible;
+  savePagePreferences(interfaceKey,{geometry:visible});
+  if(atSceneOverview())sectorStreamer?.update();
+  syncGeometryButton();syncSceneStatus();invalidate();
+}
 function updateHeading(radians){state.heading=radians;const degrees=((THREE.MathUtils.radToDeg(radians)%360)+360)%360;$('headingValue').textContent=`${Math.round(degrees)%360}°`;$('compassNeedle').style.transform=`rotate(${degrees}deg)`;}
 function applySceneQuality(groups=state.groups){
   const ratio=renderPixelRatio(devicePixelRatio,viewSettings.renderScale);if(renderer.getPixelRatio()!==ratio)renderer.setPixelRatio(ratio);
@@ -181,7 +280,12 @@ function render(now){
     if(state.data&&markerIcons)refreshMarkers();navigatorDraw?.();
     if(state.data)regionLabels.render({camera,band:'all',...floorBounds(),heightAt:buildingCutView.highAt,firstPerson:Boolean(firstPerson.mode),distance:Math.min(viewSettings.drawDistance,160)});
   }else if(!overlayTimer){overlayTimer=setTimeout(()=>{overlayTimer=null;invalidate();},1000/viewSettings.markerHz-(now-lastOverlay)+1);}
-  updateScreenshotMarker();renderer.render(scene,camera);
+  updateScreenshotMarker();
+  measurements.render(camera);
+  try{renderer.render(scene,camera);}catch(error){
+    if(!graphicsIssue){console.error('GPU-RENDER',error);graphicsIssue=mapLoadError('GPU-RENDER', '地图图形渲染失败');syncSceneStatus();}
+    return;
+  }
   if(firstPerson.mode){const p=camera.position;$('playerPosition').textContent=`飞行 · X ${p.x.toFixed(1)} / Y ${p.y.toFixed(1)} / Z ${(-p.z).toFixed(1)}`;$('scaleLabel').textContent='';}
   else{const width=viewport.clientWidth;const span=(camera.right-camera.left)/camera.zoom;$('scaleLabel').textContent=`${(span*100/width).toFixed(1)} m / 100 px`;}}
 function invalidate(){if(!pageSuspended&&!requested){requested=true;requestAnimationFrame(render);}}
@@ -192,9 +296,16 @@ function applyMapSkin(palette){
   invalidate();
 }
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)invalidate();});
-controls.addEventListener('change',()=>{if(firstPerson.mode)return;updateHeading(controls.getAzimuthalAngle());invalidate();});
-controls.addEventListener('change',()=>sectorStreamer?.update());
-new ResizeObserver(()=>{const w=viewport.clientWidth,h=viewport.clientHeight;if(pageSuspended||!w||!h)return;renderer.setSize(w,h);orbitCamera.left=-initialSpan*w/h/2;orbitCamera.right=initialSpan*w/h/2;orbitCamera.top=initialSpan/2;orbitCamera.bottom=-initialSpan/2;orbitCamera.updateProjectionMatrix();firstPerson.camera.aspect=w/h;firstPerson.camera.updateProjectionMatrix();sectorStreamer?.update();invalidate();}).observe(viewport);
+controls.addEventListener('change',()=>{if(!firstPerson.mode){syncOverviewZoom();updateHeading(controls.getAzimuthalAngle());queueCameraSave();invalidate();}sectorStreamer?.update();});
+function resizeViewport(){
+  const w=viewport.clientWidth,h=viewport.clientHeight;
+  if(pageSuspended||!w||!h)return;
+  renderer.setSize(w,h);
+  updateOrbitFrustum(w/h);syncOverviewZoom();
+  firstPerson.camera.aspect=w/h;firstPerson.camera.updateProjectionMatrix();
+  sectorStreamer?.update();invalidate();
+}
+new ResizeObserver(resizeViewport).observe(viewport);
 const pointColor=p=>(mapUI.mode==='value'&&state.lootIds?.has(p.id)&&mapFilters?.color(p))||(p.kind==='poi'?(p.poiTypes.some(t=>['mine','sniper_zone'].includes(t))?'#f3a887':'#b1ddba'):p.joinStatus==='client-only'?COLORS.unknown:p.forced?COLORS.forced:COLORS[p.kind]);
 const itemName=tpl=>state.data.items[tpl]?.zh||tpl;
 function title(p){
@@ -206,21 +317,27 @@ function title(p){
 }
 function cutPreset(){return state.band.startsWith('cut:')?state.band.slice(4):null;}
 function renderFloorButtons(){if(!cutProfile)return;$('floors').innerHTML=[{id:'all',name:'全部'},...cutProfile.presets.map(p=>({id:'cut:'+p.id,name:p.name}))].map(b=>`<button data-band="${escape(b.id)}" class="${b.id===state.band?'active':''}">${escape(b.name)}</button>`).join('');}
-function floorBounds(){return heightRange.bounds(cutPreset()?heightRange.max:state.cut,Boolean(firstPerson.mode));}
-function syncBuildingCuts(){const plan=buildingCutView.set(cutProfile,!firstPerson.mode?cutPreset():null);buildingCutGPU.set(plan,Boolean(plan));buildingCuts?.firstPerson(Boolean(firstPerson.mode));}
-function selectBuildingPreset(id){setHeightCut(heightRange.max,'cut:'+id);buildingCuts?.sync();updateGeometry();refreshFilter();}
+function floorBounds(){return heightRange.bounds(state.cut,Boolean(firstPerson.mode)&&state.band==='all');}
+function syncBuildingCuts(){const plan=buildingCutView.set(cutProfile,cutPreset());buildingCutGPU.set(plan,Boolean(plan));}
+function selectBuildingPreset(id){setHeightCut(heightRange.max,'cut:'+id,true);updateGeometry();refreshFilter();}
 function buildingCutOptions(){return {clipVolume:buildingCutView.clip,cutRevision:buildingCutView.revision};}
-function setHeightCut(cut,band='custom'){
+function setHeightCut(cut,band='custom',remember=false){
   state.cut=heightRange.clamp(cut);state.band=band;$('cutHeight').value=state.cut;
+  if(remember&&!firstPerson.mode)savePagePreferences(interfaceKey,{height:{band,cut:state.cut}});
   syncBuildingCuts();buildingCuts?.sync();
   document.querySelectorAll('[data-band]').forEach(el=>el.classList.toggle('active',el.dataset.band===band));
 }
-function scenePivot(ndc=new THREE.Vector2()){
+function scenePivot(ndc=new THREE.Vector2(),accept=()=>true){
   geometryGroup.updateWorldMatrix(true,true);const {low,high}=floorBounds();
-  return pickSceneSurface(camera,ndc,geometryGroup.children,low,high,p=>p.y<=buildingCutView.highAt({x:p.x,z:-p.z},high));
+  return pickSceneSurface(camera,ndc,geometryGroup.children,low,high,p=>p.y<=buildingCutView.highAt({x:p.x,z:-p.z},high)&&accept(p));
+}
+function mapPointer(event){
+  const {left,top,width,height}=viewport.getBoundingClientRect();
+  const locked=document.pointerLockElement===renderer.domElement;
+  return {x:locked?width/2:event.clientX-left,y:locked?height/2:event.clientY-top,width,height};
 }
 function preparePivot(explicit=false){
-  if(firstPerson.mode)return;
+  if(firstPerson.mode||atSceneOverview())return;
   let point;
   if(viewSettings.pivot==='selected'){const p=state.selected&&unityToView(state.selected.position);point=p?new THREE.Vector3(p.x,p.y,p.z):null;}
   else if(viewSettings.pivot==='manual')point=manualPivot;
@@ -233,26 +350,30 @@ function preparePivot(explicit=false){
 renderer.domElement.addEventListener('pointerdown',e=>{
   if(pickingPivot&&e.button===0){e.stopImmediatePropagation();e.preventDefault();const r=viewport.getBoundingClientRect(),point=scenePivot(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,1-(e.clientY-r.top)/r.height*2));
     if(!point){notice('此处没有可选的已加载表面，请在道路、地板或建筑上点选。');return;}
-    manualPivot=point;pickingPivot=false;renderer.domElement.style.cursor='';viewSettings.pivot='manual';viewSettings.manualPivot=point.toArray();saveViewSettings();viewUI.sync();preparePivot(true);return;}
-  tapTracker.down(e);
+    manualPivot=point;pickingPivot=false;renderer.domElement.style.cursor='';viewSettings.pivot='manual';viewSettings.manualPivot=point.toArray();saveViewSettings('manualPivot');viewUI.sync();preparePivot(true);return;}
+  if(measuring&&!firstPerson.mode&&!controls.enabled)return;
+  tapTracker.down(e);if(measuring)measurementRightTap.down(e);
   if(e.button!==0||tapTracker.pointerCount>1)doubleTapTracker.reset();
-  if((e.button===2||e.pointerType==='touch'&&tapTracker.pointerCount===2)&&state.mode==='orbit'&&state.data)preparePivot();
+  if((!measuring&&e.button===2||e.pointerType==='touch'&&tapTracker.pointerCount===2)&&state.mode==='orbit'&&state.data)preparePivot();
 },true);
-window.addEventListener('keydown',e=>{if(e.code==='Escape'&&pickingPivot){pickingPivot=false;renderer.domElement.style.cursor='';notice('已取消选择旋转中心。');}});
+window.addEventListener('keydown',e=>{
+  if(e.code!=='Escape'||e.defaultPrevented||document.querySelector('dialog[open]'))return;
+  if(pickingPivot){pickingPivot=false;renderer.domElement.style.cursor='';notice('已取消选择旋转中心。');}
+  if(measuring&&!document.pointerLockElement)setMeasuring(false);
+});
 function firstPersonUI(){
   const active=Boolean(firstPerson.mode);$('firstPersonHud').hidden=$('firstPersonCrosshair').hidden=!active;
   buildingCuts?.firstPerson(active);
   touchNavigation.setMode(firstPerson.mode);resetPointGestures();
   $('flyView').classList.toggle('active',firstPerson.mode==='fly');
   $('topView').classList.toggle('active',!active&&state.mode==='top');$('orbitView').classList.toggle('active',!active&&state.mode==='orbit');
-  for(const b of document.querySelectorAll('[data-band]'))b.disabled=active;$('cutHeight').disabled=active;
   document.querySelector('.rotation-tools').hidden=active;document.querySelector('.map-panel').classList.toggle('first-person',active);
   updateInteractionHelp();
   if(grid)grid.visible=!active;
 }
 function updateInteractionHelp(){
   const active=Boolean(firstPerson.mode);
-  $('interactionHelp').textContent=coarsePointer.matches?(active?'拖动画面转向 · 按住方向键移动':'单指平移 · 双指缩放 · 连点两次定位'):active?`左键转向 · WASD 移动 · Q/E 升降 · 滚轮翻阅详情`:'左键平移 · 右键旋转 · 滚轮缩放 · 双击定位';
+  $('interactionHelp').textContent=coarsePointer.matches?(active?'拖动画面转向 · 按住方向键移动':'单指平移 · 双指缩放 · 连点两次定位'):active?`左键转向 · WASD 移动 · E / 空格上升 · Q / 左 Ctrl 下降 · 滚轮翻阅详情`:'左键平移 · 右键旋转 · 滚轮缩放 · 双击定位';
   renderer.domElement.setAttribute('aria-label',`${MAP.name}地图：${coarsePointer.matches?'单指平移，双指缩放与旋转，轻点查看详情，连续轻点两次定位':'拖动平移，滚轮缩放，单击查看详情，双击定位点位'}`);
 }
 function enterFirstPerson(){
@@ -261,8 +382,9 @@ function enterFirstPerson(){
   if(!firstPerson.mode){
     previousHeight={band:state.band,cut:state.cut};
     previousMode=state.mode;const entry=state.entryPoint&&displayPositions.has(state.entryPoint.id)?{...state.entryPoint,position:displayPositions.get(state.entryPoint.id),volumes:[]}:state.entryPoint;position=firstPersonEntryPosition({point:entry,...floorBounds(),surface:scenePivot,target:controls.target,camera:orbitCamera});
+    setHeightCut(heightRange.max,'all');
   }
-  controls.enabled=false;firstPerson.enter(position,state.heading);camera=firstPerson.camera;
+  flushCamera();controls.enabled=false;firstPerson.enter(position,state.heading);camera=firstPerson.camera;
   state.entryPoint=null;
   firstPersonUI();updateGeometry();refresh();sectorStreamer?.update();
   notice('');
@@ -286,23 +408,23 @@ function fit(){
   const center=new THREE.Vector3((Math.min(...xs)+Math.max(...xs))/2,elevations[Math.floor(elevations.length/2)]||0,(Math.min(...zs)+Math.max(...zs))/2);
   mapCenter.copy(center);
   initialSpan=Math.max(Math.max(...zs)-Math.min(...zs)+18,(Math.max(...xs)-Math.min(...xs)+18)*viewport.clientHeight/viewport.clientWidth);
-  if(MAP.streamed){initialSpan=MAP.initialSpan;controls.minZoom=initialSpan/MAP.maxViewSpan;}
+  if(MAP.streamed){initialSpan=MAP.initialSpan;if(!sceneOverview)controls.minZoom=initialSpan/MAP.maxViewSpan;}
   camera.zoom=1;
   const theta=state.heading,phi=state.mode==='top'?.00001:.85;
   camera.position.copy(center).add(new THREE.Vector3().setFromSphericalCoords(250,phi,theta));
   controls.target.copy(center);controls.minPolarAngle=state.mode==='top'?.00001:.05;controls.maxPolarAngle=state.mode==='top'?.00001:Math.PI/2-.02;
-  camera.left=-initialSpan*viewport.clientWidth/viewport.clientHeight/2;camera.right=-camera.left;camera.top=initialSpan/2;camera.bottom=-camera.top;
-  camera.updateProjectionMatrix();controls.update();invalidate();
+  updateOrbitFrustum(viewport.clientWidth/viewport.clientHeight);
+  controls.update();syncOverviewZoom(false);invalidate();
 }
 function setMode(mode){
   if(firstPerson.mode){leaveFirstPerson(mode);return;}
-  const target=controls.target.clone(),zoom=camera.zoom;
+  const target=controls.target.clone(),zoom=camera.zoom,showOverview=atSceneOverview();
   state.mode=mode;$('topView').classList.toggle('active',mode==='top');$('orbitView').classList.toggle('active',mode==='orbit');fit();
-  const delta=target.sub(controls.target);camera.position.add(delta);controls.target.add(delta);camera.zoom=zoom;camera.updateProjectionMatrix();controls.update();invalidate();
+  const delta=target.sub(controls.target);camera.position.add(delta);controls.target.add(delta);camera.zoom=showOverview?controls.minZoom:zoom;
+  camera.updateProjectionMatrix();controls.update();syncOverviewZoom(showOverview);invalidate();
 }
 function rotateView(delta){preparePivot();const offset=camera.position.clone().sub(controls.target);offset.applyAxisAngle(new THREE.Vector3(0,1,0),delta);camera.position.copy(controls.target).add(offset);controls.update();invalidate();}
 function updateGeometry(groups=state.groups){
-  if(Boolean(firstPerson.mode)===Boolean(buildingCutView.plan)&&cutPreset())syncBuildingCuts();
   const {low,high}=floorBounds();uniforms.low.value=low;uniforms.high.value=high;
   const mat=new THREE.Matrix4();
   for(const group of groups){let count=0;const {mesh,matrices,boxes}=group;
@@ -391,7 +513,6 @@ function refresh(){
   displayPositions.clear();for(const point of state.visible){const position=buildingCutView.position(point,low,high);if(position!==point.position)displayPositions.set(point.id,position);}
   if(valueMode&&mapFilters?.pointEnabled){state.visible.sort((a,b)=>mapFilters.compare(a,b));const beforeValue=createLootMatcher({...base,pointMatches:()=>true});mapFilters.counts(state.data.points.filter(p=>p.position&&!p.outsideClientEnvelope&&buildingCutView.visible(p,low,high)&&beforeValue(p)));}
   $('valueFilterStatus').textContent=valueMode?(mapFilters?.blocked?'价格或估值尚未就绪，请稍候或刷新。':result.visible.length?'匹配 '+result.visible.length+' 个物资点位':'没有符合当前价值条件的点位。'):'';
-  $('heightFirstPerson').hidden=!firstPerson.mode;$('cutHeight').disabled=Boolean(firstPerson.mode);for(const button of $('floors').children)button.disabled=Boolean(firstPerson.mode);
   refreshPoiOutlines();refreshMarkers();
   $('resultCount').textContent=state.visible.length;
   $('resultList').innerHTML=state.visible.slice(0,100).map(p=>{
@@ -400,16 +521,17 @@ function refresh(){
   }).join('') || '<p class="hint">暂无点位。请勾选点位或调整价值与高度范围。</p>';
   $('resultMore').textContent=state.visible.length>100?`列表前 100 项 · 地图共 ${state.visible.length} 点`:'';
   const presetName=cutProfile?.presets.find(p=>p.id===cutPreset())?.name;
-  $('heightSummary').textContent=firstPerson.mode?'全高度':presetName?`${presetName} · 分区剖切`:state.band==='all'?'全部':`≤ ${high.toFixed(2)} m`;
-  $('heightValue').textContent=firstPerson.mode?'全高度':presetName?'未启用':`${high.toFixed(2)} m`;
-  $('viewLabel').textContent=firstPerson.mode?'':presetName?`${presetName} · 分区剖切`:state.band==='all'?'全部':`≤ ${high.toFixed(2)} m`;
+  const heightSummary=presetName?`${presetName} · 分区剖切`:state.band==='all'?'全部':`≤ ${high.toFixed(2)} m`;
+  $('heightSummary').textContent=heightSummary;
+  $('heightValue').textContent=presetName?'未启用':`${state.cut.toFixed(2)} m`;
+  $('viewLabel').textContent=firstPerson.mode?'':heightSummary;
   invalidate();
 }
 function refreshFilter(){
   iconRevision++;
   refresh();
 }
-function resetFilterHeight(){setHeightCut(heightRange.max,'all');updateGeometry();refreshFilter();}
+function resetFilterHeight(){setHeightCut(heightRange.max,'all',true);updateGeometry();refreshFilter();}
 function clearPointFilters(){pointSelection.clear();itemSearch.reset();notice('');refreshFilter();}
 function locateScreenshot(screenshot){
   if(!screenshotWithinBounds(screenshot.position,screenshotBounds))throw Error(`截图坐标超出${MAP.name}范围，请切换到游戏中的地图后重试。`);
@@ -470,12 +592,12 @@ function showPoiDetails(p){
 function locateBossPoint(id){
   const p=state.data.points.find(p=>p.id===id);
   if(!p||!bossUI?.eligible(p)){notice('当前模式或场景没有这条点位记录，请切换后查看。');return;}
-  mapUI.showTab('point');bossUI.enable(p.bossRefs[0].role);
+  mapUI.showTab('point',false);bossUI.enable(p.bossRefs[0].role);
   if(firstPerson.mode)leaveFirstPerson('top');
   setHeightCut(heightRange.max,'all');updateGeometry();refreshFilter();choose(p,true);
 }
 function locateKeyDoor(point){
-  mapUI.showTab('point');
+  mapUI.showTab('point',false);
   if(firstPerson.mode)leaveFirstPerson('top');
   const view=keyDoorView(point,state.data.heightBands,MAP);
   const localPreset=presetForCutPoint(cutProfile,point.position,cutPreset());
@@ -489,7 +611,7 @@ function locateKeyDoor(point){
   notice(`已定位：${itemName(point.keyId)}`);
 }
 function selectQuest(questId=''){
-  mapUI.showTab('point');pointTypes.selectTask(questId);layout.openFilters();refreshFilter();
+  mapUI.showTab('point',false);pointTypes.selectTask(questId);layout.openFilters();refreshFilter();
 }
 function showQuestDetails(p){
   $('details').scrollTop=0;
@@ -565,12 +687,48 @@ function setupNavigator(manifest){
   };
 }
 const projected=new THREE.Vector3();
-function hit(event){const r=viewport.getBoundingClientRect(),locked=document.pointerLockElement===renderer.domElement,mx=locked?r.width/2:event.clientX-r.left,my=locked?r.height/2:event.clientY-r.top;let nearest=null,distance=markerHitRadius(state.markerStyle,state.markerSize,event.pointerType);
-  for(const p of state.displayPoints||state.visible){const v=unityToView(displayPositions.get(p.id)||p.position);projected.set(v.x,v.y+.07,v.z).project(camera);if(projected.z < -1 || projected.z>1)continue;const dx=(projected.x+1)*r.width/2-mx,dy=(1-projected.y)*r.height/2-my,d=Math.hypot(dx,dy);if(d<distance){distance=d;nearest=p;}}
-  if(nearest&&firstPerson.mode){const p=unityToView(displayPositions.get(nearest.id)||nearest.position),target=new THREE.Vector3(p.x,p.y+.07,p.z),dir=target.clone().sub(camera.position),length=dir.length();const obstruction=collisionWorld.cast(camera.position,dir.normalize(),Math.max(0,length-.15));if(obstruction)return null;}
+function setMeasuring(active){
+  measuring=active;
+  if(active&&pickingPivot){pickingPivot=false;renderer.domElement.style.cursor='';}
+  if(!active)measurements.end();
+  $('measureDistance').classList.toggle('active',active);
+  viewport.classList.toggle('is-measuring',active);
+  $('tooltip').hidden=true;resetPointGestures();
+  notice(active?'左键标点 · 右键空白另起一条线 · 右键标点删除':'');
+}
+function measureTap(event,right){
+  const position=mapPointer(event),{x,y,width,height}=position;
+  if(right){
+    if(measurements.removeAt(camera,position)){notice('');invalidate();}
+    else{measurements.end();notice('下次标点将另起一条线。');}
+    return;
+  }
+  if(!state.geometry||!heightRange||!width||!height){notice('请点击已加载的地图表面。');return;}
+  const ndc=new THREE.Vector2(x/width*2-1,1-y/height*2);
+  const point=scenePivot(ndc,p=>Math.abs(projected.copy(p).project(camera).z)<=1);
+  if(!point){notice('请点击已加载的地图表面。');return;}
+  const distance=measurements.add(point);
+  notice(distance===null?'已标记起点，左键点击下一点。':`本段 ${formatMeasurement(distance)}`);
+  invalidate();
+}
+function hit(event){const {x,y,width,height}=mapPointer(event);let nearest=null,distance=markerHitRadius(state.markerStyle,state.markerSize,event.pointerType);
+  for(const p of state.displayPoints||state.visible){const v=unityToView(displayPositions.get(p.id)||p.position);projected.set(v.x,v.y+.07,v.z).project(camera);if(projected.z < -1 || projected.z>1)continue;const dx=(projected.x+1)*width/2-x,dy=(1-projected.y)*height/2-y,d=Math.hypot(dx,dy);if(d<distance){distance=d;nearest=p;}}
+  if(nearest&&firstPerson.mode){
+    const p=unityToView(displayPositions.get(nearest.id)||nearest.position),target=new THREE.Vector3(p.x,p.y+.07,p.z),dir=target.clone().sub(camera.position),length=dir.length();
+    const {low,high}=floorBounds();
+    const obstruction=collisionWorld.cast(camera.position,dir.normalize(),Math.max(0,length-.15),({point})=>
+      point.y>=low&&point.y<=high&&point.y<=buildingCutView.highAt({x:point.x,z:-point.z},high));
+    if(obstruction)return null;
+  }
   return nearest;}
 renderer.domElement.addEventListener('pointerup',e=>{
-  if(!tapTracker.up(e)||(firstPerson.mode&&(firstPerson.lookDragged||firstPerson.touchMoving))){doubleTapTracker.reset();return;}
+  const tap=tapTracker.up(e),flyGesture=firstPerson.mode&&(firstPerson.lookDragged||firstPerson.touchMoving);
+  if(measuring){
+    const right=measurementRightTap.up(e);
+    if(right||tap&&!flyGesture)measureTap(e,right);
+    return;
+  }
+  if(!tap||flyGesture){doubleTapTracker.reset();return;}
   const p=hit(e);if(!p){doubleTapTracker.reset();return;}
   const twice=doubleTapTracker.tap(p.id,e),c=displayClusters.get(p.id);
   const select=()=>{
@@ -582,32 +740,52 @@ renderer.domElement.addEventListener('pointerup',e=>{
   // Opening a drawer on the first tap can cover the point before the second.
   if(twice)select();else pointTapTimer=setTimeout(select,450);
 },true);
-renderer.domElement.addEventListener('pointercancel',e=>{tapTracker.cancel(e);doubleTapTracker.reset();cancelPointTap();});
+renderer.domElement.addEventListener('pointercancel',e=>{tapTracker.cancel(e);measurementRightTap.cancel(e);doubleTapTracker.reset();cancelPointTap();});
 // Read a completed tap before controls release capture; an unexpected loss cancels it.
-renderer.domElement.addEventListener('lostpointercapture',e=>{if(tapTracker.pointerCount)doubleTapTracker.reset();tapTracker.cancel(e);});
+renderer.domElement.addEventListener('lostpointercapture',e=>{if(tapTracker.pointerCount)doubleTapTracker.reset();tapTracker.cancel(e);measurementRightTap.cancel(e);});
 renderer.domElement.addEventListener('pointermove',e=>{
-  tapTracker.move(e);
-  if(!state.data||e.buttons||e.pointerType==='touch'){$('tooltip').hidden=true;return;}
+  const relative=measuring&&document.pointerLockElement===renderer.domElement;
+  tapTracker.move(e,relative);
+  if(measuring)measurementRightTap.move(e,relative);
+  if(measuring||!state.data||e.buttons||e.pointerType==='touch'){$('tooltip').hidden=true;return;}
   const p=hit(e);$('tooltip').hidden=!p;
   if(p){const r=viewport.getBoundingClientRect();$('tooltip').style.left=`${Math.min(e.clientX-r.left+14,r.width-245)}px`;$('tooltip').style.top=`${Math.min(e.clientY-r.top+14,r.height-80)}px`;
     $('tooltip').innerHTML=`${escape(title(p))}<small>${displayClusters.get(p.id)?.members.length>1?`${displayClusters.get(p.id).members.length} 个相邻点位 · `:''}高度 ${p.position.y.toFixed(2)} m</small>`;}
 });
 renderer.domElement.addEventListener('pointerleave',()=>{$('tooltip').hidden=true;});
 
-async function start(){
+function addSceneGroups(groups){
+  for(const group of groups)geometryGroup.add(group.mesh);
+  state.groups.push(...groups);collisionWorld.add(groups);updateGeometry(groups);applySceneQuality(groups);invalidate();
+}
+
+export async function startMap(){
   performance.mark('atlas-start');
-  const manifestPromise=fetch(MAP.geometry).then(async response=>{if(!response.ok)throw new Error('此地图场景尚未完成提取，请稍后刷新。');return response.json();});
+  $('loadMessage').textContent='读取地图场景清单…';
+  const manifestPromise=readMapJson(MAP.geometry,'地图场景清单读取',{code:'SCENE-MANIFEST',readError:true});
   const iconsPromise=loadMarkerIcons();
   // Early parallel requests still have handlers if an unrelated data load fails.
   manifestPromise.catch(()=>{});iconsPromise.catch(()=>{});
   const [runtime,manifest]=await Promise.all([loadRuntimeDescriptor(MAP.id),manifestPromise]);
-  const textureQualityPromise=loadTextureQuality(manifest,MAP.id,requestedTextureQuality);
-  const geometryQualityPromise=loadGeometryQuality(manifest,MAP,requestedGeometryQuality).then(result=>loadSceneryDetails(result,MAP,geometryQualityLocked?'full':requestedSceneryMode));
-  const [textureResult,geometryResult]=await Promise.all([textureQualityPromise,geometryQualityPromise]);
+  if(!manifest?.bounds||!Array.isArray(manifest.materials)||!manifest.textures){
+    throw mapLoadError('SCENE-MANIFEST-FORMAT', '地图场景清单不完整', {url:MAP.geometry});
+  }
+  $('loadMessage').textContent='核对模型与贴图目录…';
+  const [textureResult,geometrySelection]=await Promise.all([
+    loadTextureQuality(manifest,MAP.id,requestedQuality.texture),
+    loadGeometryQuality(manifest,MAP,requestedQuality.geometry)
+  ]);
+  if(geometrySelection.quality!==requestedQuality.geometry||textureResult.quality!==requestedQuality.texture){
+    const cause=geometrySelection.error||textureResult.error;
+    throw cause?.diagnosticCode?cause:mapLoadError('SCENE-CATALOG-INVALID', '地图模型或贴图目录暂不可用', {cause});
+  }
+  const geometryResult=await loadSceneryDetails(geometrySelection,MAP,requestedQuality.scenery);
   const textureManifest=textureResult.manifest,renderManifest=geometryResult.manifest,geometryRuntime=geometryResult.runtime||runtime;
   const resourcePlan=makeMapCachePlan(MAP,renderManifest,textureManifest,{geometry:geometryResult.quality,texture:textureResult.quality,scenery:geometryResult.scenery});
   await mapSession.waitUntilActive();
-  await prepareResourceLocation(MAP,resourcePlan,renderManifest);
+  try{await prepareResourceLocation(MAP,resourcePlan,renderManifest);}
+  catch(cause){throw cause?.diagnosticCode?cause:mapLoadError('STORAGE-PREPARE', '无法准备地图资源保存位置', {cause});}
+  $('loadMessage').textContent='读取物资数据库…';
   heightRange=createHeightRange(manifest.bounds);
   $('cutHeight').min=heightRange.min;$('cutHeight').max=heightRange.max;$('cutHeight').step='any';
   setHeightCut(heightRange.max,'all');
@@ -615,7 +793,7 @@ async function start(){
   let poiWarning='',regionData;
   if(prepared){state.data=prepared.data;regionData=prepared.regions;}
   else{
-    const read=async url=>{const response=await fetch(url);if(!response.ok)throw new Error('地图数据读取失败');return response.json();};
+    const read=url=>readMapJson(url,'地图数据读取',{code:'MAP-DATA'});
     const [loot,poi,quests,regions]=await Promise.allSettled([read(MAP.data),read(`data/${MAP.id}-pois.json`),read(`data/tasks/maps/${MAP.id}.json`),read(`data/${MAP.id}-regions.json`)]);
     if(loot.status!=='fulfilled')throw loot.reason;
     state.data=mergeMapData(loot.value,poi.value,quests.value);
@@ -630,6 +808,9 @@ async function start(){
   }catch(error){poiWarning+=' BOSS 资料暂不可用，保留原有区域参考点。';console.warn(error.message);}
   buildingCuts=await createBuildingCutEditor({map:MAP,geometrySha256:manifest.sourceGeometrySha256||manifest.sha256,bounds:manifest.bounds,viewport,canvas:renderer.domElement,controls,getCamera:()=>camera,getPreset:cutPreset,setPreset:selectBuildingPreset,setMode,onChange:profile=>{cutProfile=profile;syncBuildingCuts();renderFloorButtons();updateGeometry();refreshFilter();},invalidate,notice});
   cutProfile=buildingCuts.profile;
+  const height=savedInterface.height;
+  if(height?.band==='custom'&&Number.isFinite(height.cut))setHeightCut(height.cut);
+  else if(cutProfile.presets.some(preset=>height?.band==='cut:'+preset.id))setHeightCut(heightRange.max,height.band);
   if(regionData)regionLabels.setData(regionData);
   const d=state.data,sharedItemIndex=prepared?.itemIndex||createItemIndex(d);mapItemIndex=sharedItemIndex;
   performance.mark('atlas-data-ready');performance.measure('atlas-data-load','atlas-start','atlas-data-ready');
@@ -641,16 +822,19 @@ async function start(){
     const base=p.kind==='poi'?{mode:'poi',key:p.icon,label:p.poiTypes.map(t=>POI_TYPES[t][0]).join(' / '),description:p.note}:classifyPointMarker(p,d,markerIcons.manifest);baseMarkerDescriptors.set(p.id,base);
     markerDescriptors.set(p.id,resolveMarker(p,base,iconSettings,markerIcons.manifest.entries));
   }
-  await markerIcons.prepare([...markerDescriptors.values()].map(d=>d.key));
+  const markerFailure=await markerIcons.prepare([...markerDescriptors.values()].map(d=>d.key),{allowMissing:true});
+  if(markerFailure){
+    settingsWarning+=` 部分点位图标暂不可用，已使用通用图标 · ${markerFailure.diagnosticCode}`;
+  }
   pointTypes=createPointTypesUI(d,$('pointTypes'),refreshFilter,{foldout:layout.foldout,selection:pointSelection});
   if(bossData)bossUI=createMapBosses({catalog:bossData.catalog,map:bossData.map,selection:pointSelection,host:$('pointTypes'),foldout:layout.foldout,details:$('details'),onChange:refreshFilter,
     onOpen:point=>{layout.openDetails();if(!point){state.selected=null;refresh();}},onLocate:locateBossPoint});
   itemSearch=createItemSearch({data:d,mapId:MAP.id,input:$('search'),sectionHost:$('targetItemSection'),iconHtml:itemIconHtml,onChange:refreshFilter,index:sharedItemIndex,taskPoints:pointTypes});
-  ammoTree=createAmmoTree({host:$('pointTypes'),index:sharedItemIndex,selection:pointSelection,onChange:refreshFilter});
+  ammoTree=createAmmoTree({host:$('pointTypes'),index:sharedItemIndex,selection:pointSelection,onChange:refreshFilter,foldout:layout.foldout,rememberSection:layout.rememberSection});
   mapKeys=createMapKeys({data:d,itemIndex:sharedItemIndex,host:$('pointTypes'),selection:pointSelection,foldout:layout.foldout,iconHtml:itemIconHtml,onSelect:locateKeyDoor});
-  mapFilters=createMapFilters({index:sharedItemIndex,map:MAP,data:d,host:$('valueFilterSection'),onChange:refreshFilter});
+  mapFilters=createMapFilters({index:sharedItemIndex,map:MAP,data:d,host:$('valueFilterSection'),onChange:refreshFilter,rememberSection:layout.rememberSection});
   if(mapUI.mode==='value')mapFilters.activate();
-  myTasks=createMyTasks({data:d,mapId:MAP.id,host:$('myTaskSection'),iconHtml:itemIconHtml,onChange:refreshFilter,preparedIndex:prepared?.taskIndex,itemIndex:sharedItemIndex,selection:pointSelection});
+  myTasks=createMyTasks({data:d,mapId:MAP.id,host:$('myTaskSection'),iconHtml:itemIconHtml,onChange:refreshFilter,preparedIndex:prepared?.taskIndex,itemIndex:sharedItemIndex,selection:pointSelection,rememberSection:layout.rememberSection});
   $('poiCoverage').textContent=poiWarning;$('poiCoverage').hidden=!poiWarning;
   $('selectAllTypes').onclick=()=>{pointSelection.setMany([...pointTypes.types.map(t=>t.key),...(ammoTree?.keys||[]),...(mapKeys?.keys||[]),...(myTasks?.keys||[]),...(bossUI?.keys||[])],true);};$('clearAllTypes').onclick=()=>pointSelection.clear();pointSelection.subscribe(refreshFilter);
   iconEditor=createIconEditor({points:d.points,base:baseMarkerDescriptors,icons:markerIcons,getSettings:()=>iconSettings,onChange:applyIconSettings,exportName:MAP.id});
@@ -658,8 +842,8 @@ async function start(){
   $('iconLibraryStatus').textContent=settingsWarning;$('iconLibraryStatus').hidden=!settingsWarning;
   $('versionNote').textContent=`游戏版本 ${d.sources.atlas.clientVersion||'未知'} · ${d.sources.spt?(d.sources.versionMatch?'物资数据适配当前版本':'物资数据与游戏版本存在差异'):'物品池未收录'}`;
   renderFloorButtons();
-  $('floors').onclick=e=>{const b=e.target.dataset.band;if(!b)return;if(b.startsWith('cut:'))selectBuildingPreset(b.slice(4));else{setHeightCut(heightRange.max,'all');updateGeometry();refresh();}};
-  $('cutHeight').oninput=()=>{setHeightCut(+$('cutHeight').value);updateGeometry();refresh();};
+  $('floors').onclick=e=>{const b=e.target.dataset.band;if(!b)return;if(b.startsWith('cut:'))selectBuildingPreset(b.slice(4));else{setHeightCut(heightRange.max,'all',true);updateGeometry();refresh();}};
+  $('cutHeight').oninput=()=>{setHeightCut(+$('cutHeight').value,'custom',true);updateGeometry();refresh();};
 
   $('markerLegend').hidden=state.markerStyle==='icons';
   $('clearSearch').onclick=()=>itemSearch.clearQuery();
@@ -667,67 +851,80 @@ async function start(){
   $('clearValueFilters').onclick=()=>mapFilters.reset();
   applyPageMapRequest(new URL(mapSession.mapUrl));
   $('resultList').onclick=e=>{const id=e.target.closest('[data-id]')?.dataset.id;if(id)choose(d.points.find(p=>p.id===id),true);};
-  $('topView').onclick=()=>setMode('top');$('orbitView').onclick=()=>setMode('orbit');$('resetView').onclick=()=>{state.entryPoint=null;if(firstPerson.mode)leaveFirstPerson(previousMode);state.heading=DEFAULT_HEADING;fit();notice('');};
+  $('topView').onclick=()=>setMode('top');$('orbitView').onclick=()=>setMode('orbit');$('resetView').onclick=()=>{state.entryPoint=null;if(firstPerson.mode)leaveFirstPerson(previousMode);state.heading=DEFAULT_HEADING;fit();rememberCamera();notice('');};
   $('openViewSettings').onclick=()=>viewUI.open();$('flyView').onclick=()=>enterFirstPerson();
   $('leaveFirstPerson').onclick=()=>leaveFirstPerson();$('lockLook').onclick=()=>firstPerson.lock();
   $('rotateLeft').onclick=()=>rotateView(-Math.PI/12);$('rotateRight').onclick=()=>rotateView(Math.PI/12);
   $('resetHeading').onclick=()=>rotateView(DEFAULT_HEADING-controls.getAzimuthalAngle());
-  $('toggleGeometry').onclick=()=>{state.geometry=!state.geometry;geometryGroup.visible=state.geometry;$('toggleGeometry').classList.toggle('active',state.geometry);invalidate();};
+  $('toggleGeometry').onclick=()=>setGeometryVisible(!state.geometry);
   $('exportData').onclick=()=>{const blob=new Blob([JSON.stringify({sources:d.sources,filter:{mode:mapUI.mode,query:$('search').value,types:[...pointTypes.selected],itemSelection:itemSearch.selection(),myTasks:myTasks.selection(),valueFilters:mapFilters.selection(),...floorBounds()},points:state.visible,items:d.items,pools:d.pools},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`${MAP.id}-loot-selection.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
   grid=new THREE.GridHelper(MAP.streamed?1600:300,MAP.streamed?160:60,'#2b404d','#1d2e3a');gameWorld.add(grid);applyMapSkin(currentMapPalette);
-  fit();refresh();
+  if(MAP.fitSceneOnZoomOut)sceneOverview=createSceneOverview(renderManifest.bounds);
+  fit();restoreCamera(manifest.sceneSha256||manifest.sourceGeometrySha256||manifest.sha256);firstPersonUI();refresh();
   screenshotBounds=manifest.bounds;screenshotUI.ready();
   const bossParams=new URL(mapSession.mapUrl).searchParams,requestedBoss=bossParams.get('boss');
   if(requestedBoss&&bossUI&&bossData.catalog.roles.some(r=>r.id===requestedBoss)){
-    mapUI.showTab('point');layout.openFilters();bossUI.enable(requestedBoss);bossUI.openRole(requestedBoss);
+    mapUI.showTab('point',false);layout.openFilters();bossUI.enable(requestedBoss);bossUI.openRole(requestedBoss);
     if(bossParams.get('bossPoint'))locateBossPoint(bossParams.get('bossPoint'));
   }
   $('loadMessage').textContent='加载地图模型…';
   navigatorDraw=setupNavigator(manifest);
-  viewUI.textureQuality(textureResult);
-  viewUI.geometryQuality({...geometryResult,locked:geometryQualityLocked});
-  viewUI.sceneryDetails({...geometryResult,locked:geometryQualityLocked});
-  if(textureResult.warning)notice(textureResult.warning);
-  if(geometryResult.warning)notice(geometryResult.warning);
-  if(geometryResult.sceneryWarning)notice(geometryResult.sceneryWarning);
+  viewUI.sceneryDetails(geometryResult);
+  if(geometryResult.sceneryWarning)notice(`${geometryResult.sceneryWarning} · ${geometryResult.sceneryError?.diagnosticCode||'SCENERY-LOAD'}`);
   if(MAP.streamed){
     viewUI.manifest(renderManifest);
-    sectorStreamer=createSectorStreamer({manifest:renderManifest,map:MAP,runtime:geometryRuntime,textureManifest,geometryBase:geometryResult.base,geometryEndpoint:geometryResult.endpoint,getView:()=>({camera,center:firstPerson.mode?camera.position:controls.target,firstPerson:Boolean(firstPerson.mode)}),clipping:uniforms,settings:viewSettings,
-      onAdd:groups=>{for(const g of groups)geometryGroup.add(g.mesh);state.groups.push(...groups);collisionWorld.add(groups);updateGeometry(groups);applySceneQuality(groups);invalidate();},
+    sectorStreamer=createSectorStreamer({manifest:renderManifest,map:MAP,runtime:geometryRuntime,textureManifest,geometryBase:geometryResult.base,geometryEndpoint:geometryResult.endpoint,getView:()=>({camera,center:firstPerson.mode?camera.position:controls.target,firstPerson:Boolean(firstPerson.mode),overview:state.geometry&&!firstPerson.mode&&atSceneOverview()}),clipping:uniforms,settings:viewSettings,
+      onAdd:addSceneGroups,
       onRemove:groups=>{collisionWorld.remove(groups);const removed=new Set(groups);for(const g of groups)g.mesh.removeFromParent();state.groups=state.groups.filter(g=>!removed.has(g));invalidate();},
-      onStatus:(message,error,paused)=>{$('streamStatus').textContent=message;$('streamStatus').classList.toggle('error',error);viewUI.status(message,paused);}});
-    $('streamStatus').hidden=false;$('streamStatus').onclick=()=>sectorStreamer.retry();
+      onStatus:(message,error,paused,failure,sectorId)=>{
+        const action=error?(failure.status===409||failure.requiresReload?reloadMap:()=>sectorStreamer.retry()):null;
+        setSceneStatus(message,action,failure,sectorId);viewUI.status(message,paused);
+      }});
     sectorStreamer.setSuspended(pageSuspended);updateGeometry();sectorStreamer.update();$('loading').style.display='none';invalidate();return;
   }
   await mapSession.waitUntilActive();
-  const [buffer,spatial]=await Promise.all([loadFactoryGeometry(renderManifest,(done,total,source)=>{
-    $('loadMessage').textContent=geometryProgressText(done,total,source)+'…';
-  },geometryResult.endpoint),loadPreparedSpatial(MAP.id,'whole',renderManifest,geometryRuntime)]);
-  const library=createMaterialLibrary(textureManifest,uniforms);
-  $('streamStatus').hidden=false;
+  const controller=new AbortController();
+  let buffer,spatial;
   try{
-    for await(const {groups} of texturedGroupBatches(renderManifest,buffer,library,spatial,{waitUntilActive:()=>mapSession.waitUntilActive(),progress:(done,total)=>{
-      $('loadMessage').textContent=`加载地图贴图 ${done} / ${total}…`;
-      $('streamStatus').textContent=`${MAP.name}场景 · 补充贴图 ${done}/${total}`;
-    }})){
-      for(const group of groups)geometryGroup.add(group.mesh);state.groups.push(...groups);
-      collisionWorld.add(groups);updateGeometry(groups);applySceneQuality(groups);$('loading').style.display='none';invalidate();
-      $('streamStatus').textContent=`${MAP.name}场景 · 逐步显示 ${state.groups.length}/${renderManifest.meshes.length}`;
-      await new Promise(resolve=>setTimeout(resolve,0));
+    [buffer,spatial]=await Promise.all([loadFactoryGeometry(renderManifest,(done,total,source)=>{
+      $('loadMessage').textContent=geometryProgressText(done,total,source)+'…';
+    },geometryResult.endpoint,controller.signal),loadPreparedSpatial(MAP.id,'whole',renderManifest,geometryRuntime,{signal:controller.signal})]);
+  }finally{controller.abort();}
+  const library=createMaterialLibrary(textureManifest,uniforms);
+  const renderedMaterials=new Set();
+  async function loadMissingMaterials(){
+    $('loadMessage').textContent='加载地图贴图…';
+    setSceneStatus(`${MAP.name}场景 · 加载贴图`);
+    try{
+      for await(const {groups,materialIds} of texturedGroupBatches(renderManifest,buffer,library,spatial,{skipMaterials:renderedMaterials,waitUntilActive:()=>mapSession.waitUntilActive(),progress:(done,total)=>{
+        $('loadMessage').textContent=`加载地图贴图 ${done} / ${total}…`;
+        setSceneStatus(`${MAP.name}场景 · 补充贴图 ${done}/${total}`);
+      }})){
+        addSceneGroups(groups);for(const id of materialIds)renderedMaterials.add(id);
+        $('loading').style.display='none';
+        setSceneStatus(`${MAP.name}场景 · 逐步显示 ${state.groups.length}/${renderManifest.meshes.length}`);
+        await new Promise(resolve=>setTimeout(resolve,0));
+      }
+      setSceneStatus();
+    }catch(error){
+      const failure=error.diagnosticCode?error:mapLoadError('SCENE-MATERIAL-LOAD', '场景材质加载失败', {cause:error});
+      console.error(failure.diagnosticCode,MAP.id,failure.url||'',failure);
+      const changed=failure.status===409||failure.requiresReload;
+      setSceneStatus(`场景加载不完整 · ${mapErrorMessage(failure)} · ${changed?'重新加载地图':'点击重试'}`,changed?reloadMap:loadMissingMaterials,failure);
+    }finally{
+      $('loading').style.display='none';
     }
-    $('streamStatus').hidden=true;
-  }catch(error){
-    collisionWorld.remove(state.groups);for(const g of state.groups){g.mesh.removeFromParent();g.mesh.dispose();g.mesh.geometry.dispose();}state.groups=[];library.dispose();throw error;
   }
   window.factoryDebug={state,manifest,renderer,camera,scene,controls};
+  await loadMissingMaterials();
 }
 function applyPageMapRequest(url){
-  if(myTasks&&url.searchParams.get('myTasks')==='1'){mapUI.showTab('point');myTasks.enable(url.searchParams.get('task'));layout.openFilters();}
+  if(myTasks&&url.searchParams.get('myTasks')==='1'){mapUI.showTab('point',false);myTasks.enable(url.searchParams.get('task'));layout.openFilters();}
 }
 const mapSession=installMapSession({map:MAP,
-  shouldReload:()=>readTextureQuality()!==requestedTextureQuality||readGeometryQuality()!==requestedGeometryQuality||readSceneryMode()!==requestedSceneryMode,
+  shouldReload:()=>readSceneryMode()!==requestedQuality.scenery,
   onSuspend(){
-    screenshotUI.setSuspended(true);
+    flushCamera();screenshotUI.setSuspended(true);
     pageSuspended=true;sectorStreamer?.setSuspended(true);firstPerson.setSuspended(true);touchNavigation.reset();resetPointGestures();
     clearTimeout(overlayTimer);overlayTimer=null;$('tooltip').hidden=true;
   },
@@ -744,8 +941,6 @@ const mapSession=installMapSession({map:MAP,
     }
     firstPerson.setSuspended(false);sectorStreamer?.setSuspended(false);if(routeChanged)applyPageMapRequest(url);lastOverlay=-Infinity;
     // A resize while the map was covered must update the retained cameras too.
-    const w=viewport.clientWidth,h=viewport.clientHeight;if(w&&h){renderer.setSize(w,h);orbitCamera.left=-initialSpan*w/h/2;orbitCamera.right=initialSpan*w/h/2;orbitCamera.updateProjectionMatrix();firstPerson.camera.aspect=w/h;firstPerson.camera.updateProjectionMatrix();}
-    invalidate();
+    resizeViewport();
   }
 });
-start().catch(error=>{console.error(error);$('loading').style.display='';$('loading').innerHTML=`<strong>场景加载失败</strong><span>${escape(error.message)}</span><button type="button" id="retryMapLoading">重新加载地图</button>`;$('retryMapLoading').onclick=()=>location.reload();});

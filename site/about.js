@@ -1,4 +1,4 @@
-import {projectNotice, dataSources} from './project-notice.js';
+import {projectAuthor, projectNotice, dataSources} from './project-notice.js';
 
 const footer = document.querySelector('.site-footer');
 if (footer && !document.getElementById('openProjectAbout')) {
@@ -24,6 +24,8 @@ if (footer && !document.getElementById('openProjectAbout')) {
     a.target = '_blank'; a.rel = 'noopener noreferrer'; a.title = `${label}（新窗口）`; return a;
   };
   paragraph('中文三维物资与任务地图，支持地图浏览、任务规划和本地资源。');
+  heading('作者声明');
+  paragraph(`作者：${projectAuthor.name}，B站主页：`).append(link(projectAuthor.url, projectAuthor.url));
   paragraph(projectNotice.independence);
   heading('游戏内容与素材'); paragraph(projectNotice.rights);
   heading('数据来源');

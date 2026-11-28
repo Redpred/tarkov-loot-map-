@@ -1,3 +1,5 @@
+import {readPagePreferences,savePagePreferences} from './atlas-page-session.js';
+
 export const COMPACT_LAYOUT_QUERY='(max-width:750px), (max-width:1000px) and (max-height:500px)';
 
 // A phone preference must never hide the desktop navigation or its focus targets.
@@ -23,18 +25,20 @@ export function bindCompactHeader({header,button,compact=window.matchMedia(COMPA
 }
 
 export function createFloatingLayout(map){
-  const $=id=>document.getElementById(id),key=map+'-layout-v1';let saved={};
+  const $=id=>document.getElementById(id),key=map+'-layout-v1',saved=readPagePreferences(key);
   const compact=window.matchMedia(COMPACT_LAYOUT_QUERY);
-  try{saved=JSON.parse(localStorage.getItem(key)||'{}')||{};}catch{}
-  if(typeof saved!=='object'||Array.isArray(saved))saved={};
-  function save(){try{localStorage.setItem(key,JSON.stringify(saved));}catch{}}
-  function panel(side,open,persist=true){
+  const screenKey=name=>compact.matches?'compact:'+name:name;
+  function remember(patch){Object.assign(saved,patch);savePagePreferences(key,patch);}
+  function focus(force,store=true){
+    const active=force??!document.body.classList.contains('focus-map');
+    document.body.classList.toggle('focus-map',active);
+    if(store)remember({[screenKey('focus')]:active});
+  }
+  function panel(side,open,store=false){
+    const other=side==='left'?'right':'left';
     if(open){
-      document.body.classList.remove('focus-map');
-      if(compact.matches){
-        const other=side==='left'?'right':'left';
-        panel(other,false,false);
-      }
+      focus(false,false);
+      if(compact.matches)panel(other,false);
     }
     const root=$(side+'Panel'),button=$(side+'PanelToggle');root.classList.toggle('collapsed',!open);
     $(side==='left'?'filterBody':'details').hidden=!open;
@@ -42,32 +46,44 @@ export function createFloatingLayout(map){
     button.title=(open?'收起':'展开')+button.textContent;
     button.setAttribute('aria-label',button.title);
     if(!open&&$(side==='left'?'filterBody':'details').contains(document.activeElement))document.activeElement.blur();
-    document.body.classList.toggle(side+'-panel-closed',!open);if(persist&&!compact.matches){saved[side]=open;save();}
+    document.body.classList.toggle(side+'-panel-closed',!open);
+    if(store){
+      const patch={[screenKey(side)]:open};
+      if(open){patch[screenKey('focus')]=false;if(compact.matches)patch[screenKey(other)]=false;}
+      remember(patch);
+    }
   }
   for(const side of ['left','right']){
-    panel(side,side==='right'||compact.matches?false:saved[side]??true,false);
-    $(side+'PanelToggle').onclick=()=>panel(side,$(side+'Panel').classList.contains('collapsed'));
+    $(side+'PanelToggle').onclick=()=>panel(side,$(side+'Panel').classList.contains('collapsed'),true);
   }
-  compact.addEventListener('change',event=>{
-    panel('right',false,false);panel('left',event.matches?false:saved.left??true,false);
-    navigator(event.matches?false:saved.navigator??true,false);
-  });
-  function navigator(open,persist=true){$('mapNavigator').classList.toggle('collapsed',!open);$('toggleNavigator').setAttribute('aria-expanded',String(open));$('toggleNavigator').textContent='全图导航'+(open?' −':' +');if(persist&&!compact.matches){saved.navigator=open;save();}}
-  navigator(compact.matches?false:saved.navigator??true,false);$('toggleNavigator').onclick=()=>navigator($('mapNavigator').classList.contains('collapsed'));
+  function navigator(open,store=false){$('mapNavigator').classList.toggle('collapsed',!open);$('toggleNavigator').setAttribute('aria-expanded',String(open));$('toggleNavigator').textContent='全图导航'+(open?' −':' +');if(store)remember({[screenKey('navigator')]:open});}
+  function restore(){
+    const setting=(name,fallback)=>typeof saved[screenKey(name)]==='boolean'?saved[screenKey(name)]:fallback;
+    panel('left',setting('left',!compact.matches));panel('right',setting('right',false));
+    navigator(setting('navigator',!compact.matches));
+    focus(setting('focus',false),false);
+  }
+  compact.addEventListener('change',restore);restore();
+  $('toggleNavigator').onclick=()=>navigator($('mapNavigator').classList.contains('collapsed'),true);
   document.addEventListener('keydown',event=>{
     if(event.key!=='Escape'||document.querySelector('dialog[open]')||!compact.matches)return;
-    for(const side of ['left','right'])panel(side,false,false);
+    for(const side of ['left','right'])if(!$(side+'Panel').classList.contains('collapsed'))panel(side,false,true);
   });
-  for(const section of document.querySelectorAll('.filter-section')){
-    section.open=typeof saved[section.id]==='boolean'?saved[section.id]:true;
-    section.addEventListener('toggle',()=>{saved[section.id]=section.open;save();});
+  function rememberSection(section,name=section.id,restore=true){
+    let open=restore&&typeof saved[name]==='boolean'?saved[name]:section.open;
+    section.open=open;
+    section.addEventListener('toggle',()=>{
+      if(!section.isConnected||open===section.open)return;
+      open=section.open;remember({[name]:open});
+    });
   }
   function foldout(button,content,name){
-    const key='group:'+name;
-    function set(open){content.hidden=!open;button.setAttribute('aria-expanded',String(open));saved[key]=open;save();}
-    set(saved[key]===true);button.onclick=()=>set(content.hidden);
+    const groupKey='group:'+name;
+    function set(open){content.hidden=!open;button.setAttribute('aria-expanded',String(open));}
+    set(saved[groupKey]===true);
+    button.onclick=()=>{const open=content.hidden;set(open);remember({[groupKey]:open});};
   }
-  return {openDetails:()=>panel('right',true),closeDetails:()=>panel('right',false),openFilters:()=>panel('left',true),closeFilters:()=>panel('left',false),foldout};
+  return {openDetails:()=>panel('right',true),closeDetails:()=>panel('right',false),openFilters:store=>panel('left',true,store),closeFilters:()=>panel('left',false),focus,foldout,rememberSection};
 }
 
 // The software keyboard may resize only the visual viewport (iOS/Android).

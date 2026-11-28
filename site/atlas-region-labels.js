@@ -28,9 +28,9 @@ export function layoutRegionLabels(labels,{camera,width,height,settings,band='al
   const projected=new THREE.Vector3(),world=new THREE.Vector3(),candidates=[];
   const pixelsPerMeter=camera.isOrthographicCamera?height*camera.zoom/(camera.top-camera.bottom):Infinity;
   for(const label of labels){
-    const localHigh=heightAt&&!firstPerson?heightAt(label.position,high):high;
+    const localHigh=heightAt?Math.min(high,heightAt(label.position,high)):high;
     if(!(label.kind==='road'?settings.roads:settings.areas))continue;
-    if(!firstPerson&&!regionVisibleOnFloor(label,band,low,localHigh))continue;
+    if(!regionVisibleOnFloor(label,band,low,localHigh))continue;
     if(pixelsPerMeter<(label.minPixelsPerMeter||0))continue;
     if(!firstPerson&&pixelsPerMeter>=8&&label.overviewFor?.length&&(band==='all'||label.overviewFor.includes(band)))continue;
     const pos=unityToView(label.position);world.set(pos.x,pos.y,pos.z);
@@ -41,7 +41,7 @@ export function layoutRegionLabels(labels,{camera,width,height,settings,band='al
       // corridor below it. Buildings are orientation aids, not visible surfaces.
       if(label.floor&&(bounds.length?!bounds.some(b=>camera.position.y-1.65>=b.minY-2.5&&camera.position.y-1.65<=b.maxY+2.5):Math.abs(camera.position.y-1.65-pos.y)>2.5))continue;
       if(world.distanceTo(camera.position)>distance)continue;
-      world.y+=1.8;
+      world.y=Math.min(world.y,localHigh)+1.8;
     }else if(!label.floor||Array.isArray(label.floor)||volumesFor(label).length){
       // Put broad names on the currently visible slice rather than below it.
       world.y=Math.min(localHigh,Math.max(low,pos.y));

@@ -17,7 +17,7 @@ if (!(Test-Path -LiteralPath (Join-Path $atlasPath '.git'))) {
 }
 $python=Join-Path $workspace 'atlas-venv/Scripts/python.exe'
 $tlsBootstrap=Join-Path $PSScriptRoot 'atlas-python-bootstrap.py'
-$node=Join-Path $workspace 'runtimes/node-v24.22.1-win-x64/node.exe'
+$node=& (Join-Path $PSScriptRoot 'resolve-project-node.ps1')
 & $node (Join-Path $PSScriptRoot 'setup-atlas-python.mjs')
 if ($LASTEXITCODE) { throw 'Atlas Python initialization failed.' }
 & $python $tlsBootstrap -m pip install -r (Join-Path $PSScriptRoot 'requirements-atlas-tls.txt') -r (Join-Path $atlasPath 'extraction/requirements.txt')

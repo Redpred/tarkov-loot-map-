@@ -1,16 +1,19 @@
 import {managedResources,MANAGED_DIRECTORY} from './atlas-managed-resources.js';
 import {localResources} from './atlas-local-resources.js';
 import {ATLAS_MAPS} from './atlas-maps.js';
-import {formatCacheBytes,cacheQualityText} from './atlas-map-cache.js';
+import {cacheQualityText,formatCacheBytes} from './atlas-map-cache.js';
+import {createLocalResourceSettings} from './atlas-local-resources-ui.js';
+import {createMapDiagnosticCopy,directoryError,formatMapDiagnostic,mapErrorMessage,mapLoadError} from './atlas-map-diagnostics.js';
+import {readMapJson} from './atlas-resource-request.js';
 
 const supported=()=>typeof globalThis.showDirectoryPicker==='function'&&globalThis.isSecureContext;
 export async function clientResourceLocation(action){
   if(action){const bridge=globalThis.tarkovDesktop||window.top.tarkovDesktop;const result=await bridge.action(action);if(result===false)return null;}
-  const response=await fetch('/api/client-resources',{cache:'no-store'});if(!response.ok)throw Error('无法读取客户端资源位置');return response.json();
+  return readMapJson('/api/client-resources','客户端资源位置读取',{code:'CLIENT-LOCATION',cache:'no-store',readError:true,retries:0});
 }
 export async function chooseClientResourceLocation(){const info=await clientResourceLocation('choose-resources');if(info)managedResources.setMode('client');return info;}
 let activePrompt;
-export function showResourceLocation({map,plan,recovery=false,message=''}={}){
+export function showResourceLocation({map,plan,recovery=false,message='',failure}={}){
   if(activePrompt)return activePrompt;
   activePrompt=new Promise(resolve=>{
     const dialog=document.createElement('dialog');dialog.className='resource-location-dialog';
@@ -26,21 +29,28 @@ export function showResourceLocation({map,plan,recovery=false,message=''}={}){
       <input type="file" webkitdirectory multiple hidden data-location-files>`;
     document.body.append(dialog);const $=selector=>dialog.querySelector(selector);let busy=false;
     $('[data-location-description]').textContent=recovery?'资源读写已暂停。已保存的文件会保留，处理后可继续。':`${map?.name||'地图'}的资源将保存在哪里？`;
-    $('[data-location-size]').textContent=plan?`${cacheQualityText(plan.quality)} · 当前画质整图资源约 ${formatCacheBytes([...plan.geometry,...plan.texture].reduce((n,row)=>n+row[2],0))}。按需要逐步下载，不会一次下载全部地图。`:'';
+    $('[data-location-size]').textContent=plan?`${cacheQualityText(plan.quality)} · 整图资源约 ${formatCacheBytes([...plan.geometry,...plan.texture].reduce((n,row)=>n+row[2],0))}。按需要逐步下载，不会一次下载全部地图。`:'';
     $('[data-location-status]').textContent=message||(!supported()?'当前浏览器无法自动保存到自选目录，请使用下方兼容入口。':'');
+    const copy=createMapDiagnosticCopy();
+    dialog.querySelector('.resource-location-actions').append(copy.button);
+    function showProblem(error){
+      $('[data-location-status]').textContent=mapErrorMessage(error);
+      copy.update(formatMapDiagnostic(error,{mapId:map?.id||document.documentElement.dataset.map,mode:managedResources.mode()}));
+    }
+    if(failure)showProblem(failure);
     $('[data-location-choose]').hidden=!supported();
     if(!supported()||recovery)dialog.querySelector('details').open=true;
     const finish=()=>{dialog.close();dialog.remove();activePrompt=null;resolve();};
     async function action(fn){if(busy)return;busy=true;for(const b of dialog.querySelectorAll('button'))b.disabled=true;
-      try{await fn();finish();}catch(error){if(error.name!=='AbortError')$('[data-location-status]').textContent=error.message;}
+      try{await fn();finish();}catch(error){if(error.name!=='AbortError')showProblem(directoryError(error));}
       finally{busy=false;for(const b of dialog.querySelectorAll('button'))b.disabled=false;}
     }
     $('[data-location-client]').hidden=!managedResources.client;
-    $('[data-location-client]').onclick=()=>action(async()=>{const info=await clientResourceLocation();if(!info.available)throw Error(info.error);managedResources.setMode('client');});
+    $('[data-location-client]').onclick=()=>action(async()=>{const info=await clientResourceLocation();if(!info.available)throw mapLoadError(info.code||'CLIENT-DIRECTORY-UNAVAILABLE',info.error);managedResources.setMode('client');});
     $('[data-location-choose]').onclick=()=>action(()=>managedResources.client?chooseClientResourceLocation().then(info=>{if(!info)throw new DOMException('已取消','AbortError');}):managedResources.choose());
     $('[data-location-authorize]').onclick=()=>action(async()=>{await managedResources.authorize();if(managedResources.mode()!=='managed')managedResources.setMode('managed');});
     $('[data-location-retry]').hidden=!recovery;
-    $('[data-location-retry]').onclick=()=>action(async()=>{const state=await managedResources.stats();if(state.needsPermission)throw Error('请点击重新授权，或重新选择目录');});
+    $('[data-location-retry]').onclick=()=>action(async()=>{const state=await managedResources.stats();if(state.needsPermission)throw mapLoadError('STORAGE-PERMISSION','请点击重新授权，或重新选择目录');});
     $('[data-location-online]').onclick=()=>action(()=>managedResources.setMode('online'));
     $('[data-location-manual]').onclick=()=>{if(globalThis.showDirectoryPicker)void action(async()=>{await localResources.choose();managedResources.setMode('manual');});else $('[data-location-files]').click();};
     $('[data-location-files]').onchange=event=>action(async()=>{await localResources.importFiles(event.target.files);managedResources.setMode('manual');});
@@ -49,7 +59,7 @@ export function showResourceLocation({map,plan,recovery=false,message=''}={}){
     dialog.showModal();
   });return activePrompt;
 }
-managedResources.setRecoveryHandler(message=>showResourceLocation({recovery:true,message}));
+managedResources.setRecoveryHandler((message,failure)=>showResourceLocation({recovery:true,message,failure}));
 
 export async function prepareResourceLocation(map,plan,geometry){
   await managedResources.register(plan);
@@ -60,49 +70,151 @@ export async function prepareResourceLocation(map,plan,geometry){
     }
   }
   const state=await managedResources.stats();
-  if(!state.mode||(state.mode==='managed'&&(!state.connected||!supported())))await showResourceLocation({map,plan,message:state.reason});
+  if(!state.mode)await showResourceLocation({map,plan,message:state.reason});
+  else if(state.mode==='managed'&&(!state.connected||!supported())){
+    const code=state.needsPermission&&!state.reason?'STORAGE-PERMISSION':'STORAGE-DIRECTORY-UNAVAILABLE';
+    await showResourceLocation({map,plan,failure:mapLoadError(code,state.reason||'请重新授权或选择资源目录。')});
+  }
   if(managedResources.mode()==='manual'){
     const local=await localResources.stats();
-    if(!local.connected)await showResourceLocation({map,plan,message:'请重新选择已解压资源包，或切换其他使用方式。'});
+    if(!local.connected)await showResourceLocation({map,plan,failure:mapLoadError('STORAGE-PACK-DISCONNECTED','请重新选择已解压资源包，或切换其他使用方式。')});
   }
   await managedResources.prepare();
 }
 
 export function createResourceLocationSettings(field,map){
-  const panel=document.createElement('section');panel.className='resource-location-settings';
-  panel.innerHTML=`<h3>资源保存位置</h3><p data-managed-status class="hint" role="status"></p>
-    <div class="view-actions"><button type="button" data-managed-downloads hidden>下载地图</button><button type="button" data-managed-client hidden>使用客户端资源目录</button><button type="button" data-managed-folder hidden>打开资源文件夹</button><button type="button" data-managed-choose>选择资源保存位置</button><button type="button" data-managed-authorize hidden>重新授权</button><button type="button" data-managed-use hidden>启用自动管理</button><button type="button" data-managed-pause hidden>暂停资源加载</button><button type="button" data-managed-online>切换在线模式</button><button type="button" data-managed-forget hidden>解除目录关联</button></div>
-    <p class="hint">自动管理模式按需保存模型和贴图，后续优先读取本地文件。地图已加载的部分在下次刷新时开始保存。</p>
-    <details class="map-cache-list"><summary>各地图本地资源与清理位置</summary><button type="button" data-managed-scan>重新统计占用</button><p data-managed-count class="hint" role="status"></p><div data-managed-maps></div>
-    <p class="hint">占用包含已保存分块、其他画质与旧版本。请先切换在线模式并关闭其他地图标签页，再自行删除对应地图子目录。网站不会自动删除文件；重新启用后会补充当前地图缺失资源。</p></details>
-    <p class="hint">网页仅显示目录名与相对路径。目录授权可能需要更新；解除关联不会删除文件。任务等其他数据仍需联网。</p>`;
-  field.querySelector('legend').after(panel);const $=selector=>panel.querySelector(selector);let busy=false;
-  async function refresh(scan=false){const info=await managedResources.stats({scan});
-    $('[data-managed-status]').textContent=[{managed:'自动管理本地资源',online:'在线模式（浏览器缓存）',manual:'手动资源包模式'}[info.mode]||'首次进入地图时选择保存方式',info.name?`目录：${info.name}`:'尚未关联专用目录',info.needsPermission?'需要重新授权':'',`本次读取 ${formatCacheBytes(info.hitBytes)} · 保存 ${formatCacheBytes(info.writeBytes)}`,info.reason].filter(Boolean).join('；');
-    $('[data-managed-choose]').hidden=!supported();$('[data-managed-authorize]').hidden=!info.needsPermission||!info.name||!supported();
-    $('[data-managed-use]').hidden=!info.connected||info.mode==='managed';$('[data-managed-forget]').hidden=!info.name;
-    $('[data-managed-pause]').hidden=!map||info.mode!=='managed';$('[data-managed-pause]').textContent=info.paused?'继续资源加载':'暂停资源加载';
-    $('[data-managed-client]').hidden=!managedResources.client||info.mode==='client';$('[data-managed-folder]').hidden=!managedResources.client;$('[data-managed-downloads]').hidden=!managedResources.client;
-    if(info.mode==='client'){const location=await clientResourceLocation();$('[data-managed-status]').textContent=`客户端本地资源：${location.path}。${location.error||'优先读取已有文件，只下载缺失资源。'}`;}
-    if(scan){const list=$('[data-managed-maps]');list.replaceChildren();
-      for(const map of info.maps){const row=document.createElement('p');row.className='hint';row.textContent=`${ATLAS_MAPS[map.mapId].name} · ${formatCacheBytes(map.bytes)} · ${map.path}`;list.append(row);}
-      $('[data-managed-count]').textContent=info.maps.length?`${info.maps.length} 张地图 · 共 ${formatCacheBytes(info.maps.reduce((n,m)=>n+m.bytes,0))}（文件字节）`:'尚无可统计的本地地图资源，或目录需要重新授权。';
+  const panel=document.createElement('div');
+  panel.className='resource-location-settings';
+  panel.innerHTML=`<div class="settings-inline resource-mode-row">
+      <button type="button" data-managed-switch disabled>切换模式</button>
+      <p class="resource-mode-status" role="status">当前模式：<strong data-managed-status>正在读取…</strong></p>
+      <button type="button" class="settings-info" data-settings-tip="resourceModeHelp" aria-label="资源模式说明" aria-describedby="resourceModeHelp">?</button>
+    </div>
+    <p class="resource-path">保存路径：<span data-managed-path>正在读取…</span></p>
+    <div class="view-actions resource-main-actions" data-managed-main>
+      <button type="button" data-managed-folder hidden>打开资源文件夹</button>
+      <button type="button" data-managed-choose>更改保存位置</button>
+    </div>
+    <p id="resourceModeHelp" hidden></p>
+    <p class="hint" data-managed-warning role="status"></p>
+    <p class="hint" data-managed-message role="status"></p>
+    <section class="settings-section" data-managed-inventory hidden>
+      <div class="settings-inline"><h3>本地地图占用</h3><button type="button" class="settings-info" data-settings-tip="managedInventoryHelp" aria-label="本地地图占用说明" aria-describedby="managedInventoryHelp">?</button></div>
+      <p id="managedInventoryHelp" hidden>网页只能显示已授权的目录名与相对路径。切换在线模式并关闭地图页后，可在文件管理器中清理对应地图目录。解除关联会保留文件。</p>
+      <p data-managed-count class="hint" role="status">尚未统计占用。</p>
+      <div data-managed-maps></div>
+      <div class="view-actions">
+        <button type="button" data-managed-scan>统计占用</button>
+        <button type="button" data-managed-authorize hidden>重新授权文件夹</button>
+        <button type="button" data-managed-use hidden>恢复已关联文件夹</button>
+        <button type="button" data-managed-pause hidden>暂停文件夹读写</button>
+        <button type="button" data-managed-forget>解除文件夹关联</button>
+      </div>
+    </section>`;
+  field.append(panel);
+  const $=name=>panel.querySelector(`[data-managed-${name}]`);
+  const updatePack=createLocalResourceSettings(panel,$('main'),map,action);
+  const buttons=panel.querySelectorAll('button:not([data-settings-tip])');
+  const switchMode=$('switch'),choose=$('choose'),folderButton=$('folder');
+  const count=$('count'),list=$('maps'),message=$('message');
+  const desktop=managedResources.client;
+  folderButton.hidden=!desktop;
+  choose.hidden=!desktop&&!supported();
+  panel.querySelector('#resourceModeHelp').textContent=desktop?
+    '切换模式可在客户端本地资源和在线模式之间切换。完整安装包已包含默认地图资源，已解压资源包可只读关联。':
+    '在线模式使用浏览器缓存。本地文件夹会保存新下载的资源，网页只显示已授权的目录名。已解压资源包可只读关联。';
+  let state,busy=false,revision=0,inventoryRevision;
+
+  function syncSwitch(){
+    switchMode.disabled=busy||!state||(state.mode==='online'&&!desktop&&!supported());
+  }
+
+  async function refresh(scan=false){
+    const stamp=++revision;
+    const [info,pack]=await Promise.all([managedResources.stats({scan}),localResources.stats()]);
+    const native=info.mode==='client',folder=info.mode==='managed',manual=info.mode==='manual';
+    const location=native?await clientResourceLocation().catch(error=>({error:error.message})):null;
+    if(stamp!==revision)return;
+    state=info;
+    const modes={client:'客户端本地资源',managed:'本地文件夹',online:'在线模式',manual:'只读资源包'};
+    $('status').textContent=modes[info.mode]||'未选择';
+    $('path').textContent=native?location.path||'暂不可用':folder?info.name||'未关联文件夹':
+      manual?pack.name||'未关联资源包':info.mode==='online'?'浏览器缓存':'未设置';
+    $('warning').textContent=location?.error||(folder&&(info.reason||
+      (!info.connected?'请重新授权或更改保存位置。':'')))||(manual&&!pack.name?'请关联已解压的资源包。':'');
+    $('inventory').hidden=!info.name;
+    $('authorize').hidden=!info.needsPermission||!supported();
+    $('use').hidden=!desktop||!info.connected||folder;
+    $('pause').hidden=!map||!folder||!info.connected;
+    $('pause').textContent=info.paused?'继续文件夹读写':'暂停文件夹读写';
+    syncSwitch();
+    updatePack(pack);
+    if(!scan&&inventoryRevision===info.revision)return;
+    inventoryRevision=info.revision;
+    list.replaceChildren();
+    for(const entry of info.maps){
+      const row=document.createElement('p');
+      row.className='hint';
+      row.textContent=`${ATLAS_MAPS[entry.mapId].name} · ${formatCacheBytes(entry.bytes)} · ${entry.path}`;
+      list.append(row);
+    }
+    count.textContent=scan?(info.maps.length?
+      `${info.maps.length} 张地图 · 共 ${formatCacheBytes(info.maps.reduce((total,entry)=>total+entry.bytes,0))}`:
+      info.reason||'暂无可统计的地图文件。'):'尚未统计占用。';
+  }
+
+  async function action(fn,scan=false){
+    if(busy)return;
+    busy=true;
+    revision++;
+    message.textContent='';
+    for(const button of buttons)button.disabled=true;
+    let problem='';
+    try{await fn?.();}
+    catch(error){if(error.name!=='AbortError')problem=error.message;}
+    try{await refresh(scan);}
+    catch(error){problem||=error.message;}
+    finally{
+      busy=false;
+      for(const button of buttons)button.disabled=false;
+      syncSwitch();
+      message.textContent=problem;
     }
   }
-  async function action(fn,scan=false){if(busy)return;busy=true;for(const b of panel.querySelectorAll('button'))b.disabled=true;
-    try{await fn();await refresh(scan);}catch(error){if(error.name!=='AbortError')$('[data-managed-status]').textContent=error.message;}
-    finally{busy=false;for(const b of panel.querySelectorAll('button'))b.disabled=false;}
+
+  async function useFolder(){
+    managedResources.setMode('managed');
+    await managedResources.prepare();
   }
-  $('[data-managed-client]').onclick=()=>action(()=>managedResources.setMode('client'));
-  $('[data-managed-folder]').onclick=()=>action(()=>clientResourceLocation('resource-folder'));
-  $('[data-managed-downloads]').onclick=()=>action(()=>clientResourceLocation('downloads'));
-  $('[data-managed-choose]').onclick=()=>action(async()=>{if(managedResources.client)await chooseClientResourceLocation();else await managedResources.choose();await managedResources.prepare();},true);
-  $('[data-managed-authorize]').onclick=()=>action(()=>managedResources.authorize(),true);
-  $('[data-managed-use]').onclick=()=>action(async()=>{managedResources.setMode('managed');await managedResources.prepare();});
-  $('[data-managed-online]').onclick=()=>action(()=>managedResources.setMode('online'));
-  $('[data-managed-pause]').onclick=()=>action(async()=>managedResources.setPaused(!(await managedResources.stats()).paused));
-  $('[data-managed-forget]').onclick=()=>action(()=>managedResources.forget(),true);
-  $('[data-managed-scan]').onclick=()=>action(async()=>{},true);
-  panel.querySelector('details').addEventListener('toggle',event=>{if(event.target.open)void action(async()=>{},true);});
-  return {refresh:()=>refresh()};
+  switchMode.onclick=()=>action(async()=>{
+    if(managedResources.mode()!=='online')return managedResources.setMode('online');
+    if(desktop)return managedResources.setMode('client');
+    if(state.needsPermission&&state.name){
+      await managedResources.authorize();
+    }else if(!state.connected){
+      await managedResources.choose();
+      await managedResources.prepare();
+      return;
+    }
+    await useFolder();
+  });
+  folderButton.onclick=()=>action(()=>clientResourceLocation('resource-folder'));
+  choose.onclick=()=>action(async()=>{
+    if(desktop)return chooseClientResourceLocation();
+    await managedResources.choose();
+    await managedResources.prepare();
+  });
+  $('authorize').onclick=()=>action(()=>managedResources.authorize());
+  $('use').onclick=()=>action(useFolder);
+  $('pause').onclick=()=>action(()=>managedResources.setPaused(!state.paused));
+  $('forget').onclick=()=>action(()=>managedResources.forget());
+  $('scan').onclick=()=>{
+    count.textContent='正在统计本地占用…';
+    return action(null,true);
+  };
+  return {refresh:async()=>{
+    if(busy)return;
+    try{await refresh();}
+    catch(error){message.textContent=error.message;}
+  }};
 }

@@ -30,8 +30,8 @@ export function createMapSkinController({storage,events=globalThis.window,onChan
 
 export function createMapSkinUI({settings,onChange=()=>{}}){
   const field=document.createElement('fieldset');field.id='mapSkinSettings';
-  field.innerHTML='<legend>显示皮肤</legend><label for="mapSkin">地图皮肤</label><select id="mapSkin"><option value="night">黑夜（默认）</option><option value="day">白天</option></select><p class="hint">白天使用浅色地图背景。</p>';
-  settings.querySelector('.view-dialog-head').after(field);
+  field.innerHTML='<legend>地图皮肤</legend><div class="setting-row"><label for="mapSkin">配色</label><select id="mapSkin"><option value="night">黑夜（默认）</option><option value="day">白天</option></select></div>';
+  settings.querySelector('#settings-quality').append(field);
   const select=field.querySelector('select'),button=document.createElement('button');button.id='toggleMapSkin';button.type='button';
   button.setAttribute('aria-controls','mapSkin');
   const controller=createMapSkinController({onChange:(skin,palette)=>{

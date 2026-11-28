@@ -1,15 +1,13 @@
 import * as THREE from 'three';
+import {readMapJson} from './atlas-resource-request.js';
+import {mapLoadError} from './atlas-map-diagnostics.js';
 
 export async function loadMarkerIcons(){
-  const response=await fetch('data/icons/factory/manifest.json');
-  if(!response.ok)throw new Error('物资图标未生成，请运行 npm run factory:icons');
-  const manifest=await response.json();
-  const catalogResponse=await fetch('data/icons/items/manifest.json');
-  if(!catalogResponse.ok)throw new Error('完整图标库未生成，请运行 npm run icons:fetch');
-  const catalog=await catalogResponse.json();
-  const extraResponse=await fetch('data/icons/items/spt-extras.json');
-  if(!extraResponse.ok)throw new Error('物品图标暂不可用，请稍后刷新页面');
-  const extras=await extraResponse.json();
+  const [manifest,catalog,extras]=await Promise.all([
+    readMapJson('data/icons/factory/manifest.json','点位图标目录读取',{code:'MARKER-CATALOG'}),
+    readMapJson('data/icons/items/manifest.json','物品图标目录读取',{code:'ITEM-ICON-CATALOG'}),
+    readMapJson('data/icons/items/spt-extras.json','补充图标目录读取',{code:'EXTRA-ICON-CATALOG'})
+  ]);
   manifest.entries={...manifest.entries,...catalog.entries,...extras.entries};
   manifest.items={...manifest.items,...catalog.items,...extras.items};
   manifest.catalog=catalog;
@@ -21,21 +19,39 @@ export async function loadMarkerIcons(){
   const texture=new THREE.CanvasTexture(canvas);
   texture.colorSpace=THREE.SRGBColorSpace;
   texture.minFilter=THREE.LinearFilter;texture.magFilter=THREE.LinearFilter;texture.generateMipmaps=false;
-  async function prepare(keys){
+  async function prepare(keys,{allowMissing=false}={}){
     const unique=[...new Set(['other',...keys])];
-    if(unique.length>1024)throw new Error('当前地图使用的不同图标超过 1024 个');
-    const images=await Promise.all(unique.map(async key=>{
-      const entry=manifest.entries[key];if(!entry)throw new Error(`未知图标：${key}`);
-      const image=new Image();image.src=entry.file;await image.decode();return image;
+    if(unique.length>1024)throw mapLoadError('MARKER-CAPACITY', '当前地图使用的不同图标超过 1024 个');
+    const images=await Promise.allSettled(unique.map(async key=>{
+      const entry=manifest.entries[key];if(!entry)throw mapLoadError('MARKER-IMAGE-ENTRY', `未知图标 ${key}`);
+      const image=new Image();image.src=entry.file;
+      let timer;
+      try{
+        await Promise.race([image.decode(),new Promise((_,reject)=>{
+          timer=setTimeout(()=>{image.removeAttribute('src');reject(mapLoadError('MARKER-IMAGE-TIMEOUT', `点位图标读取超时 · ${key}`, {url:entry.file}));},15000);
+        })]);
+        return image;
+      }catch(cause){
+        throw cause.diagnosticCode?cause:mapLoadError('MARKER-IMAGE-DECODE', `点位图标解码失败 · ${key}`, {url:entry.file,cause});
+      }finally{clearTimeout(timer);}
     }));
+    const firstFailure=images.find(result=>result.status==='rejected');
+    if(firstFailure&&!allowMissing)throw firstFailure.reason;
     // Rebuild slots atomically, so repeated changes cannot fill the atlas.
     context.clearRect(0,0,2048,2048);rects.clear();
-    images.forEach((image,i)=>{
-      const x=i%32*64,y=Math.floor(i/32)*64,scale=Math.min(60/image.width,60/image.height);
-      const w=image.width*scale,h=image.height*scale;
-      context.drawImage(image,x+(64-w)/2,y+(64-h)/2,w,h);rects.set(unique[i],[x,y,64,64]);
+    images.forEach(({value:image},i)=>{
+      if(!image&&i!==0)return;
+      const x=i%32*64,y=Math.floor(i/32)*64;
+      if(image){
+        const scale=Math.min(60/image.width,60/image.height),w=image.width*scale,h=image.height*scale;
+        context.drawImage(image,x+(64-w)/2,y+(64-h)/2,w,h);
+      }else{
+        context.fillStyle='#dfc796';context.beginPath();context.arc(x+32,y+32,18,0,2*Math.PI);context.fill();
+      }
+      rects.set(unique[i],[x,y,64,64]);
     });
     texture.needsUpdate=true;
+    return firstFailure?.reason;
   }
   return {manifest,texture,rects,prepare};
 }

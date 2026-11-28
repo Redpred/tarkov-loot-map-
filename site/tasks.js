@@ -1,10 +1,11 @@
-import {installPageBridge,replacePageUrl} from './atlas-page-session.js';
+import {installPageBridge,replacePageUrl,readPagePreferences,savePagePreferences} from './atlas-page-session.js';
 import { ATLAS_MAPS, atlasMapHref } from './atlas-maps.js';
 import { createTaskStore } from './task-store.js';
 import { layoutTaskGraph, groupTasksByMap, taskGraphRecords } from './task-graph.js';
 import { taskVisiblePrerequisites,taskRequirementRows,compareTaskUnlock } from './task-requirements.js';
 import {presentTraders,SEASON_CATEGORY,SEASON_CATEGORY_ID,matchesTaskCategory} from './task-presentation.js';
 import {createPreparationView} from './task-preparation-ui.js';
+import {accessLabels,applyTaskAccess} from './task-preparation.js';
 import {taskAssetUrl} from './task-asset-url.js';
 
 const $ = id => document.getElementById(id);
@@ -14,8 +15,14 @@ const query = new URLSearchParams(location.search);
 const returnMap = Object.hasOwn(ATLAS_MAPS, query.get('map')) ? query.get('map') : null;
 if (returnMap) { $('mapNavigation').hidden = false; $('mapNavigation').href = atlasMapHref(returnMap); $('taskNavigation').href = `tasks.html?map=${encodeURIComponent(returnMap)}`; }
 installPageBridge();
-const state = { catalogue: null, assets: {}, view: ['mine','preparation'].includes(query.get('view')) ? query.get('view') : 'overview', trader: null, mineTrader: '', search: '', detail: null, opened: new Map() };
-const preparation=createPreparationView({store,openDetail,setView,opened:state.opened});
+const preferenceKey='atlas-task-interface-v1',saved=readPagePreferences(preferenceKey),views=['overview','mine','preparation'];
+const linkedView=query.get('view'),view=views.includes(linkedView)?linkedView:
+  !query.has('task')&&views.includes(saved.view)?saved.view:'overview';
+const state = { catalogue: null, assets: {}, view, trader: saved.trader, mineTrader: saved.mineTrader,
+  search: !query.has('task')&&typeof saved.search==='string'?saved.search.slice(0,200):'', detail: null,
+  opened: new Map(Object.entries(saved.opened||{}).filter(([,open])=>typeof open==='boolean')) };
+const preparation=createPreparationView({store,openDetail,setView,opened:state.opened,rememberGroup});
+$('taskSearch').maxLength=200;$('taskSearch').value=state.search;
 let taskById = new Map(), traderById = new Map(), mapById = new Map(), lastFocus = null, toastTimer = 0;
 let lastSelection = JSON.stringify(store.getState().selected);
 const groupLabels = { '1': '信任度等级 1', '2': '信任度等级 2', '3': '信任度等级 3', '4': '信任度等级 4', core: '核心任务' };
@@ -68,8 +75,14 @@ function announce(text) {
   toastTimer = setTimeout(() => { $('taskToast').hidden = true; }, 2300);
 }
 function selectedTasks() { return state.catalogue.tasks.filter(task => store.isSelected(task.id)); }
+function rememberGroup(key,open){
+  if(state.opened.get(key)===open)return;
+  state.opened.set(key,open);
+  savePagePreferences(preferenceKey,{opened:{...readPagePreferences(preferenceKey).opened,[key]:open}});
+}
 function setView(view) {
   state.view = view;
+  savePagePreferences(preferenceKey,{view});
   const url = new URL(location.href);
   if (view !== 'overview') url.searchParams.set('view', view); else url.searchParams.delete('view');
   replacePageUrl(url);
@@ -88,7 +101,8 @@ function renderTraders() {
     button.setAttribute('aria-label', `${trader.name}，${unavailable?'资料待补齐':count+' 个任务'}`);
     button.append(traderPortrait(trader), element('span', '', trader.name), element('span', 'trader-count', unavailable?'待补齐':count));
     button.addEventListener('click', () => {
-      if (state.view !== 'overview') state.mineTrader = trader.id; else state.trader = trader.id;
+      const field=state.view==='overview'?'trader':'mineTrader';
+      state[field]=trader.id;savePagePreferences(preferenceKey,{[field]:trader.id});
       render();
       $('traderBar').querySelector('[aria-pressed="true"]')?.focus({ preventScroll: true });
     });
@@ -213,7 +227,8 @@ window.addEventListener('resize',arrangeGraphs);
 function createGroup({ id, title, tasks, graph, mapId }) {
   const details = element('details', 'task-group');
   const key = `${state.view}:${state.view === 'overview' ? state.trader : state.mineTrader}:${id}`;
-  details.open = state.opened.get(key) ?? tasks.length > 0;
+  let open=state.opened.get(key)??tasks.length>0;
+  details.open=open;
   details.dataset.groupKey = key;
   const summary = element('summary', '', title); summary.append(element('span', '', tasks.length));
   if (mapId && ATLAS_MAPS[mapId]) {
@@ -231,7 +246,10 @@ function createGroup({ id, title, tasks, graph, mapId }) {
     }
   }
   details.append(summary, content);
-  details.addEventListener('toggle', () => {state.opened.set(key, details.open);if(details.open)content.querySelector('.task-graph-grid')?.dispatchEvent(new Event('task-graph-layout'));});
+  details.addEventListener('toggle', () => {
+    if(details.isConnected&&details.open!==open){open=details.open;rememberGroup(key,open);}
+    if(details.open)content.querySelector('.task-graph-grid')?.dispatchEvent(new Event('task-graph-layout'));
+  });
   return details;
 }
 function emptyState(text, actionText, action) {
@@ -344,6 +362,24 @@ function objectiveItems(ids) {
   add(12);
   return wrapper;
 }
+function objectiveAccess(access) {
+  const list = element('ul', 'objective-access');
+  for (const entry of access) {
+    const row = element('li');
+    const map = mapById.get(entry.mapId);
+    const badge = accessLabels[entry.bring || 'required'];
+    const names = entry.options.map(group => group.map(id => {
+      const item = state.catalogue.items[id];
+      return item.name || item.en;
+    }).join(' ＋ ')).join(' 或 ');
+    const heading = element('div', 'objective-access-heading');
+    heading.append(element('span', 'prep-tag', badge), element('strong', '', `${map.name} · ${entry.location}`));
+    row.append(heading, element('p', 'objective-access-keys', names));
+    if (entry.note) row.append(element('p', 'objective-access-note', entry.note));
+    list.append(row);
+  }
+  return list;
+}
 function renderDetail(task) {
   const host = $('detailContent'); host.replaceChildren();
   const hero = questPicture(task, 'detail-hero'); if (hero) { hero.loading = 'eager'; host.append(hero); }
@@ -400,6 +436,7 @@ function renderDetail(task) {
     if (Number(objective.count) > 1 && objective.showCount !== false && ['CounterCreator', 'HandoverItem', 'FindItem', 'LeaveItemAtLocation', 'PlaceBeacon', 'WeaponAssembly', 'SellItemToTrader'].includes(objective.type)) notes.append(element('span', '', `数量 ${objective.count}`));
     const mapNames = (objective.mapIds || []).map(id => mapById.get(id)?.name).filter(Boolean); if (mapNames.length) notes.append(element('span', '', mapNames.join(' / ')));
     if (notes.childElementCount) row.append(notes);
+    if (objective.access?.length) row.append(objectiveAccess(objective.access));
     if(objective.acquisition?.text)row.append(element('p','objective-acquisition',objective.acquisition.text));
     if (objective.details?.length) row.append(requirements(objective.details));
     if(objective.relatedTaskIds?.length){
@@ -444,14 +481,16 @@ async function load() {
   try {
     const [catalogueResponse, assetsResponse, preparationResponse] = await Promise.all([fetch('data/tasks/catalog.json'), fetch('data/tasks/assets/manifest.json').catch(() => null),fetch('data/tasks/preparation-items.json').catch(()=>null)]);
     if (!catalogueResponse.ok) throw new Error('Task catalogue unavailable');
-    const catalogue = await catalogueResponse.json();
-    if (!Array.isArray(catalogue.tasks) || !Array.isArray(catalogue.traders) || !Array.isArray(catalogue.maps)) throw new Error('Invalid task catalogue');
+    const data = await catalogueResponse.json();
+    if (!Array.isArray(data.tasks) || !Array.isArray(data.traders) || !Array.isArray(data.maps)) throw new Error('Invalid task catalogue');
     const extra=preparationResponse?.ok?await preparationResponse.json().catch(()=>null):null;
-    if(extra?.schemaVersion===1&&extra.source?.sptCommit===catalogue.source.sptCommit)catalogue.items={...extra.items,...catalogue.items};
+    if(extra?.schemaVersion===1&&extra.source?.sptCommit===data.source?.sptCommit)data.items={...extra.items,...data.items};
+    const catalogue = applyTaskAccess(data);
     catalogue.traders=presentTraders(catalogue.traders);
     state.catalogue = catalogue; state.assets = assetsResponse?.ok ? await assetsResponse.json().catch(() => ({})) : {};
     taskById = new Map(catalogue.tasks.map(task => [task.id, task])); traderById = new Map(catalogue.traders.map(trader => [trader.id, trader])); mapById = new Map(catalogue.maps.map(map => [map.id, map]));
-    state.trader ||= catalogue.traders[0]?.id;
+    if(state.trader!==SEASON_CATEGORY_ID&&!traderById.has(state.trader))state.trader=catalogue.traders[0]?.id;
+    if(state.mineTrader!==SEASON_CATEGORY_ID&&!traderById.has(state.mineTrader))state.mineTrader='';
     const linkedTask = taskById.get(query.get('task'));
     if (linkedTask) state.trader = linkedTask.seasonFlowId||linkedTask.seasonId?SEASON_CATEGORY_ID:linkedTask.traderId;
     render(); if (linkedTask) openDetail(linkedTask.id, { updateUrl: false, focus: false });
@@ -464,13 +503,16 @@ $('mineTab').addEventListener('click', () => setView('mine'));
 $('preparationTab').addEventListener('click', () => setView('preparation'));
 for (const id of ['overviewTab', 'mineTab','preparationTab']) $(id).addEventListener('keydown', event => {
   if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-  event.preventDefault(); const views=['overview','mine','preparation'],view=views[event.key==='Home'?0:event.key==='End'?2:(views.indexOf(state.view)+(event.key==='ArrowRight'?1:2))%3];
+  event.preventDefault(); const view=views[event.key==='Home'?0:event.key==='End'?2:(views.indexOf(state.view)+(event.key==='ArrowRight'?1:2))%3];
   setView(view); $(view+'Tab').focus();
 });
 let searchTimer = 0;
-$('taskSearch').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { state.search = $('taskSearch').value; render(); }, 120); });
-$('expandGroups').addEventListener('click', () => document.querySelectorAll('.task-group').forEach(group => { group.open = true; state.opened.set(group.dataset.groupKey, true); }));
-$('collapseGroups').addEventListener('click', () => document.querySelectorAll('.task-group').forEach(group => { group.open = false; state.opened.set(group.dataset.groupKey, false); }));
+$('taskSearch').addEventListener('input', () => {
+  state.search=$('taskSearch').value.slice(0,200);savePagePreferences(preferenceKey,{search:state.search});
+  clearTimeout(searchTimer);searchTimer=setTimeout(render,120);
+});
+$('expandGroups').addEventListener('click', () => document.querySelectorAll('.task-group').forEach(group => { group.open = true; rememberGroup(group.dataset.groupKey, true); }));
+$('collapseGroups').addEventListener('click', () => document.querySelectorAll('.task-group').forEach(group => { group.open = false; rememberGroup(group.dataset.groupKey, false); }));
 $('closeDetail').addEventListener('click', closeDetail); $('detailBackdrop').addEventListener('click', closeDetail); $('retryLoad').addEventListener('click', load);
 smallScreen.addEventListener('change', () => { if (state.detail) { $('detailBackdrop').hidden = !smallScreen.matches; $('taskDetail').setAttribute('aria-modal', String(smallScreen.matches)); } });
 document.addEventListener('keydown', event => {

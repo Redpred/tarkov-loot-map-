@@ -8,6 +8,8 @@ import {gzipSync} from 'node:zlib';
 import {once} from 'node:events';
 import {fileURLToPath} from 'node:url';
 import {ATLAS_MAPS} from '../site/atlas-maps.js';
+import {DEFAULT_GEOMETRY_QUALITY} from '../site/atlas-geometry-quality.js';
+import {DEFAULT_TEXTURE_QUALITY} from '../site/atlas-texture-quality.js';
 import {readMapCachePlan} from './lib/map-cache-plan.mjs';
 import {createSiteServer} from './lib/site-server.mjs';
 import {DELIVERY_CHUNK} from './lib/prepared-delivery.mjs';
@@ -15,10 +17,10 @@ import {createResourceArchive,createResourceCollection} from './lib/resource-pac
 
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 async function fileHash(file){const digest=createHash('sha256');for await(const chunk of createReadStream(file))digest.update(chunk);return digest.digest('hex');}
-export async function buildResourceDelivery({root,out,mapIds,quality={geometry:'low',texture:'medium',scenery:'full'},zip=true,onProgress=console.log}){
+export async function buildResourceDelivery({root,out,mapIds,quality={geometry:DEFAULT_GEOMETRY_QUALITY,texture:DEFAULT_TEXTURE_QUALITY,scenery:'full'},zip=true,onProgress=console.log}){
   root=path.resolve(root);out=path.resolve(out);
   if(!mapIds?.length||mapIds.some(id=>!Object.hasOwn(ATLAS_MAPS,id)))throw Error('地图无效');
-  if(!['original','medium','low'].includes(quality.geometry)||!['original','medium','low'].includes(quality.texture)||!['full','simple'].includes(quality.scenery))throw Error('资源档位无效');
+  if(quality.geometry!==DEFAULT_GEOMETRY_QUALITY||quality.texture!==DEFAULT_TEXTURE_QUALITY||!['full','simple'].includes(quality.scenery))throw Error('资源仅提供低档模型和 128 像素贴图');
   // An absent output is required, preventing accidental mutation of a release.
   await fs.mkdir(out);await fs.mkdir(path.join(out,'packs'));await fs.mkdir(path.join(out,'chunks'));
   const staging=path.join(out,'_bundles');await fs.mkdir(staging);
@@ -72,5 +74,5 @@ if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.ur
   const args=process.argv.slice(2),read=(key,fallback)=>args.includes(key)?args[args.indexOf(key)+1]:fallback;
   const out=read('--out');if(!out)throw Error('请提供尚不存在的独立暂存目录 --out');
   const maps=read('--map','all'),mapIds=maps==='all'?Object.keys(ATLAS_MAPS):maps.split(',');
-  await buildResourceDelivery({root:path.resolve('site'),out,mapIds,quality:{geometry:read('--geometry','low'),texture:read('--texture','medium'),scenery:read('--scenery','full')},zip:!args.includes('--no-zip')});
+  await buildResourceDelivery({root:path.resolve('site'),out,mapIds,quality:{geometry:read('--geometry',DEFAULT_GEOMETRY_QUALITY),texture:read('--texture',DEFAULT_TEXTURE_QUALITY),scenery:read('--scenery','full')},zip:!args.includes('--no-zip')});
 }

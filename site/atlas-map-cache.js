@@ -1,14 +1,13 @@
 import {ATLAS_MAPS} from './atlas-maps.js';
 import {cacheOwner} from './atlas-cache-identity.js';
 import {resourceCache} from './atlas-resource-cache.js';
-import {readGeometryQuality} from './atlas-geometry-quality.js';
-import {readTextureQuality} from './atlas-texture-quality.js';
+import {DEFAULT_GEOMETRY_QUALITY} from './atlas-geometry-quality.js';
+import {DEFAULT_TEXTURE_QUALITY} from './atlas-texture-quality.js';
 import {readSceneryMode,sceneryEndpoint} from './atlas-scenery-details.js';
 
 export const formatCacheBytes=bytes=>bytes>=2**30?`${(bytes/2**30).toFixed(2)} GiB`:`${(bytes/2**20).toFixed(1)} MiB`;
-export const cacheQualityLabel=tier=>({original:'高',medium:'均衡',low:'低'}[tier]||tier);
-export const selectedCacheQuality=()=>({geometry:readGeometryQuality(),texture:readTextureQuality(),scenery:readSceneryMode()});
-export const cacheQualityText=quality=>`模型${cacheQualityLabel(quality.geometry)} · 贴图${cacheQualityLabel(quality.texture)} · 装饰${quality.scenery==='simple'?'精简':'保留'}`;
+export const selectedCacheQuality=()=>({geometry:DEFAULT_GEOMETRY_QUALITY,texture:DEFAULT_TEXTURE_QUALITY,scenery:readSceneryMode()});
+export const cacheQualityText=quality=>`装饰${quality.scenery==='simple'?'精简':'保留'}`;
 
 export function makeMapCachePlan(map,geometry,texture,quality){
   const endpoint=`/${map.endpoint}${quality.geometry==='original'?'':'/'+quality.geometry}${quality.scenery==='simple'?'/simple':''}`;
@@ -31,8 +30,8 @@ export function makeMapCachePlan(map,geometry,texture,quality){
 
 export function summarizeMapCache(mapId,records,plan=null){
   const own=records.filter(row=>(row.mapId||cacheOwner(row.identity).mapId)===mapId);
-  const out={mapId,bytes:0,count:own.length,kinds:{geometry:0,texture:0,auxiliary:0,partial:0},tiers:{},parts:{},state:own.length?'unknown':'empty',percent:0};
-  for(const row of own){const owner=cacheOwner(row.identity);out.bytes+=row.bytes;out.kinds[owner.kind]+=row.bytes;if(owner.kind!=='auxiliary')out.tiers[owner.quality]=(out.tiers[owner.quality]||0)+row.bytes;}
+  const out={mapId,bytes:0,count:own.length,kinds:{geometry:0,texture:0,auxiliary:0,partial:0},parts:{},state:own.length?'unknown':'empty',percent:0};
+  for(const row of own){const owner=cacheOwner(row.identity);out.bytes+=row.bytes;out.kinds[owner.kind]+=row.bytes;}
   if(!plan)return out;
   const saved=new Map(own.map(row=>[row.identity+'|'+row.version,row]));let total=0,matched=0,missing=0;
   for(const kind of ['geometry','texture']){

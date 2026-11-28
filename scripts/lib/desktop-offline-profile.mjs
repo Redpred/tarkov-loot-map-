@@ -3,8 +3,8 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {ATLAS_MAPS} from '../../site/atlas-maps.js';
-import {readGeometryQuality} from '../../site/atlas-geometry-quality.js';
-import {readTextureQuality} from '../../site/atlas-texture-quality.js';
+import {DEFAULT_GEOMETRY_QUALITY} from '../../site/atlas-geometry-quality.js';
+import {DEFAULT_TEXTURE_QUALITY} from '../../site/atlas-texture-quality.js';
 import {readSceneryMode} from '../../site/atlas-scenery-details.js';
 import {readMapCachePlan} from './map-cache-plan.mjs';
 import {validateArchiveLock, archiveId, ARCHIVE_CHUNK} from './desktop-resource-archive.mjs';
@@ -16,7 +16,7 @@ export const GITHUB_ASSET_LIMIT = 2 ** 31;
 // Reads only lock-selected objects, never a directory-wide copy of user files.
 export async function defaultOfflineProfile({lock, readObject, maps = Object.values(ATLAS_MAPS)}) {
   validateArchiveLock(lock);
-  const quality = {geometry: readGeometryQuality(null), texture: readTextureQuality(null), scenery: readSceneryMode(null)};
+  const quality = {geometry: DEFAULT_GEOMETRY_QUALITY, texture: DEFAULT_TEXTURE_QUALITY, scenery: readSceneryMode(null)};
   assert.deepEqual(quality, {geometry: 'low', texture: 'medium', scenery: 'full'}, 'Review the offline selector when defaults change');
   const objects = new Map(), models = new Map();
   const add = (collection, relative, entry) => {

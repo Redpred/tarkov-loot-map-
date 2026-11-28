@@ -16,6 +16,6 @@ export function createHeightRange(bounds){
   return {
     min,max:maxHeight,clamp,
     preset:band=>clamp(band?.max??maxHeight),
-    bounds:(cut,firstPerson=false)=>({low:min,high:firstPerson?Math.max(10000,bounds.max[1]+1):clamp(cut)}),
+    bounds:(cut,includeAboveBounds=false)=>({low:min,high:includeAboveBounds?Math.max(10000,maxHeight+1):clamp(cut)}),
   };
 }

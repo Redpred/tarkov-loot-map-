@@ -1,6 +1,25 @@
 import {pageAction,pageRoute,plainPageClick} from './atlas-page-routes.js';
 
 const SESSION='atlasLiveMapSession';
+export const mapInterfaceKey=mapId=>`${mapId}-interface-v1`;
+
+function preferenceStorage(){
+  try{return globalThis.localStorage;}catch{return null;}
+}
+export function readPagePreferences(key,storage=preferenceStorage()){
+  try{
+    const record=JSON.parse(storage?.getItem(key)||'null');
+    return record&&typeof record==='object'&&!Array.isArray(record)?record:{};
+  }catch{return {};}
+}
+export function savePagePreferences(key,patch,storage=preferenceStorage()){
+  if(!storage)return false;
+  try{
+    storage.setItem(key,JSON.stringify({...readPagePreferences(key,storage),...patch}));
+    return true;
+  }catch{return false;}
+}
+
 function parentSession(){
   try{return window.parent!==window?window.parent[SESSION]:null;}catch{return null;}
 }

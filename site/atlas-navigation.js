@@ -37,6 +37,26 @@ export function planePivot(camera,ndc,height){
   return ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0),-height),new THREE.Vector3());
 }
 
+export function createSceneOverview(bounds){
+  const min=new THREE.Vector3().fromArray(bounds.min);
+  const size=new THREE.Vector3().fromArray(bounds.max).sub(min);
+  const center=min.addScaledVector(size,.5);
+  center.z=-center.z;
+  const axis=new THREE.Vector3();
+  function extent(x,y,rotation){
+    axis.set(x,y,0).applyQuaternion(rotation);
+    return Math.abs(axis.x)*size.x+Math.abs(axis.y)*size.y+Math.abs(axis.z)*size.z;
+  }
+  return {
+    center,distance:size.length()/2+1,
+    zoom(camera){
+      const width=(camera.right-camera.left)/extent(1,0,camera.quaternion);
+      const height=(camera.top-camera.bottom)/extent(0,1,camera.quaternion);
+      return .9*Math.min(width,height);
+    }
+  };
+}
+
 export function sectorDistance(sector,center){
   // Sectors store Unity Z; the viewer uses -Z. Distance is to the actual
   // geometry footprint, so buildings crossing tile edges are not cut off.

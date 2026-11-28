@@ -1,19 +1,24 @@
 // Track the whole pointer gesture: lifting one finger after a pinch is never a tap.
-export function createMapTapTracker(){
+export function createMapTapTracker(button=0){
   const pointers=new Map();let blocked=false;
   const threshold=e=>e.pointerType==='touch'?8:e.pointerType==='pen'?6:4;
   const moved=(start,e)=>Math.hypot(e.clientX-start.x,e.clientY-start.y)>=start.threshold;
   return {
     get pointerCount(){return pointers.size;},
     down(e){
-      if(e.button!==0)return;
+      if(e.button!==button)return;
       if(pointers.size)blocked=true;
-      pointers.set(e.pointerId,{x:e.clientX,y:e.clientY,time:e.timeStamp,threshold:threshold(e),maxDuration:e.pointerType==='touch'?700:Infinity,moved:false});
+      pointers.set(e.pointerId,{x:e.clientX,y:e.clientY,time:e.timeStamp,threshold:threshold(e),maxDuration:e.pointerType==='touch'?700:Infinity,moved:false,dx:0,dy:0});
     },
-    move(e){const start=pointers.get(e.pointerId);if(start&&moved(start,e))start.moved=true;},
+    move(e,relative=false){
+      const start=pointers.get(e.pointerId);
+      if(!start||start.moved)return;
+      if(relative){start.dx+=e.movementX;start.dy+=e.movementY;}
+      start.moved=relative?Math.hypot(start.dx,start.dy)>=start.threshold:moved(start,e);
+    },
     up(e){
       const start=pointers.get(e.pointerId);
-      const tap=Boolean(start)&&e.button===0&&!blocked&&!start.moved&&!moved(start,e)&&e.timeStamp-start.time<start.maxDuration;
+      const tap=Boolean(start)&&e.button===button&&!blocked&&!start.moved&&!moved(start,e)&&e.timeStamp-start.time<start.maxDuration;
       pointers.delete(e.pointerId);if(!pointers.size)blocked=false;
       return tap;
     },

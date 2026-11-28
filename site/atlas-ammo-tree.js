@@ -3,14 +3,15 @@ import {checkboxState} from './atlas-point-selection.js';
 export const ammoSelectionKey=item=>`ammo:${item.tpl}`;
 export function selectedAmmoIds(groups,selected){return new Set(groups.flatMap(g=>g.items.filter(i=>selected.has(ammoSelectionKey(i))).flatMap(i=>i.searchIds)));}
 
-export function createAmmoTree({host,index,selection,onChange}){
+export function createAmmoTree({host,index,selection,onChange,foldout,rememberSection=()=>{}}){
   let groups=[],ids=new Set(),checks=[],parents=[];
   const section=document.createElement('div');section.className='type-group ammo-tree';host.append(section);
   const heading=document.createElement('div');heading.className='type-group-heading';
   const all=document.createElement('input');all.type='checkbox';all.setAttribute('aria-label','子弹全选');all.disabled=true;
   const toggle=document.createElement('button');toggle.type='button';toggle.className='type-group-toggle';toggle.textContent='子弹';toggle.setAttribute('aria-expanded','false');
   const content=document.createElement('div');content.id='ammoTypeOptions';content.className='type-group-options';content.hidden=true;toggle.setAttribute('aria-controls',content.id);
-  toggle.onclick=()=>{content.hidden=!content.hidden;toggle.setAttribute('aria-expanded',String(!content.hidden));};
+  if(foldout)foldout(toggle,content,'ammo');
+  else toggle.onclick=()=>{content.hidden=!content.hidden;toggle.setAttribute('aria-expanded',String(!content.hidden));};
   const status=document.createElement('p');status.className='hint';status.textContent='加载子弹列表…';content.append(status);heading.append(all,toggle);section.append(heading,content);
   const allKeys=()=>groups.flatMap(g=>g.items.map(ammoSelectionKey));
   function sync(){ids=selectedAmmoIds(groups,selection.keys);for(const {input,key} of checks)input.checked=selection.keys.has(key);for(const {input,keys} of parents)Object.assign(input,checkboxState(keys,selection.keys));Object.assign(all,checkboxState(allKeys(),selection.keys));}
@@ -27,6 +28,7 @@ export function createAmmoTree({host,index,selection,onChange}){
         input.onclick=event=>event.stopPropagation();input.onchange=()=>change(keys,input.checked);
         for(const item of group.items){const label=document.createElement('label');label.className='ammo-leaf';const check=document.createElement('input');check.type='checkbox';const key=ammoSelectionKey(item);check.dataset.ammo=key;check.setAttribute('aria-label',`子弹：${item.name}`);const name=document.createElement('span');name.textContent=item.name;name.title=item.en||item.name;label.append(check,name);node.append(label);checks.push({input:check,key});check.onchange=()=>change([key],check.checked);}
         content.append(node);
+        rememberSection(node,'ammo:'+group.id);
       }
       if(!groups.length){status.textContent='本地图暂无已收录的子弹';content.append(status);}sync();onChange();
     }catch{status.textContent='子弹列表加载失败。';const retry=document.createElement('button');retry.textContent='重试';retry.onclick=load;content.replaceChildren(status,retry);}

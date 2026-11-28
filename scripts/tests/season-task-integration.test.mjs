@@ -48,13 +48,16 @@ test('OR branches, explicitly accepted states, waits, and independent stage orde
   assert.deepEqual(task('C01').mapIds,['shoreline','lighthouse','reserve','woods']);
   assert.ok(task('C02').objectives[3].text.includes('集装箱'));
 });
-test('old v1 progress, selections and map overrides persist when acceptance is added and completion is undone',()=>{
+test('old v1 progress and map overrides persist when acceptance is added and completion is undone',()=>{
   const t=task('B01'),o=t.objectives[0].id;
   const prior={version:1,selected:[t.id,'legacy-q'],finished:[],completed:{[t.id]:[o]},hidden:{customs:{'legacy-q':['legacy-o']}},shown:{},disabled:{},mapEnabled:{woods:false},loyaltyLevels:{[t.traderId]:3}};
   let value=JSON.stringify(prior);const storage={getItem:()=>value,setItem:(key,v)=>{assert.equal(key,TASK_STORE_KEY);value=v;}};
-  const a=createTaskStore({storage,eventTarget:new EventTarget()});a.setTaskAccepted(t.id,true);a.setTaskCompleted(t.id,true);a.setTaskCompleted(t.id,false);
+  const a=createTaskStore({storage,eventTarget:new EventTarget()});a.setTaskAccepted(t.id,true);
+  assert.deepEqual(a.getState().selected,prior.selected);
+  a.setTaskCompleted(t.id,true);a.setTaskCompleted(t.id,false);
   const b=createTaskStore({storage,eventTarget:new EventTarget()});
-  for(const key of Object.keys(prior))assert.deepEqual(b.getState()[key],prior[key]);
+  const expected={...prior,selected:['legacy-q']};
+  for(const [key,entry] of Object.entries(expected))assert.deepEqual(b.getState()[key],entry);
   assert.ok(b.isTaskAccepted(t.id));assert.ok(b.isCompleted(t.id,o));a.destroy();b.destroy();
 });
 test('only four direct client targets are added; ordinary loot and enemy candidates are not inferred for this flow',()=>{

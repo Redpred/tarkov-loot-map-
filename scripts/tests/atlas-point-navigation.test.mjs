@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createMapTapTracker,createPointDoubleTapTracker} from '../../site/atlas-touch.js';
+import {createMeasurementPaths,formatMeasurement} from '../../site/atlas-measurement.js';
 import {firstPersonEntryPosition} from '../../site/atlas-navigation.js';
 import {createFirstPerson} from '../../site/atlas-first-person.js';
 import {validateViewSettings} from '../../site/atlas-view-settings.js';
@@ -40,6 +41,42 @@ test('a drag returning to its start and a pinch interrupt a pair of taps',()=>{
   assert.equal(up(pointer(330,{pointerType:'touch'})),false);
   taps.down(pointer(350,{pointerType:'touch'}));assert.equal(up(pointer(370,{pointerType:'touch'})),false);
 });
+test('right taps can end a measurement without treating rotation or locked mouse motion as a tap',()=>{
+  const right=createMapTapTracker(2);
+  right.down(pointer(0));assert.equal(right.up(pointer(10)),false);
+  right.down(pointer(20,{button:2}));
+  right.move(pointer(30,{clientX:65}));
+  assert.equal(right.up(pointer(40,{button:2})),false);
+  right.down(pointer(50,{button:2}));
+  right.move(pointer(60,{movementX:3,movementY:0}),true);
+  right.move(pointer(70,{movementX:3,movementY:0}),true);
+  assert.equal(right.up(pointer(80,{button:2})),false);
+  right.down(pointer(90,{button:2}));assert.equal(right.up(pointer(100,{button:2})),true);
+});
+test('measurement uses three-dimensional segment lengths and can start a separate path',()=>{
+  const measurement=createMeasurementPaths();
+  const a=new THREE.Vector3(0,0,0),b=new THREE.Vector3(3,4,12),c=new THREE.Vector3(3,7,16);
+  assert.equal(measurement.add(a),null);
+  assert.equal(formatMeasurement(measurement.add(b)),'13.0 m');
+  assert.equal(measurement.add(c),5);
+  measurement.end();
+  assert.equal(measurement.add(a),null);
+  assert.deepEqual(measurement.paths,[[a,b,c],[a]]);
+});
+test('deleting measurement points splits the line and discards only orphaned endpoints',()=>{
+  const measurement=createMeasurementPaths();
+  const points=Array.from({length:7},(_,i)=>new THREE.Vector3(i,0,0));
+  measurement.add(points[0]);measurement.end();
+  points.slice(1,6).forEach(point=>measurement.add(point));
+  measurement.remove(measurement.paths[1],points[3]);
+  assert.deepEqual(measurement.paths,[[points[0]],points.slice(1,3),points.slice(4,6)]);
+  assert.equal(measurement.add(points[6]),1);
+  measurement.remove(measurement.paths[1],points[1]);
+  assert.deepEqual(measurement.paths,[[points[0]],points.slice(4,7)]);
+  measurement.remove(measurement.paths[1],points[5]);
+  assert.deepEqual(measurement.paths,[[points[0]]]);
+  assert.equal(measurement.add(points[1]),null);
+});
 test('an explicit point uses its own floor and converts Unity Z once without a roof raycast or offset',()=>{
   const point={position:{x:25,y:-3,z:17}},target=new THREE.Vector3(0,12,0),camera={position:new THREE.Vector3(20,200,20)};
   const position=firstPersonEntryPosition({point,target,camera,surface(){throw new Error('must not raycast the roof');}});
@@ -70,12 +107,10 @@ test('fly entry and teleport preserve the point coordinates plus eye height, and
   fp.enter();assert.deepEqual(fp.camera.position.toArray(),[40,8.65,12]);
   fp.enter();assert.deepEqual(fp.camera.position.toArray(),[40,8.65,12]);assert.equal(frames.size,1);
 }));
-test('flight hovers without a ground or loading dependency, ignores jump and crosses all heights',()=>withFirstPerson(({create,tick})=>{
+test('flight hovers without a ground or loading dependency and crosses all heights',()=>withFirstPerson(({create,tick})=>{
   const fp=create();fp.enter(new THREE.Vector3(25,-3,-17));
   const origin=fp.camera.position.clone();for(let i=0;i<60;i++)tick();
   assert.ok(fp.camera.position.equals(origin),'idle flight must not snap to a surface or fall');
-  const space=Object.assign(new Event('keydown',{cancelable:true}),{code:'Space',repeat:false});
-  window.dispatchEvent(space);tick();assert.equal(space.defaultPrevented,false);assert.ok(fp.camera.position.equals(origin));
   fp.setTouchMovement({up:-1});for(let i=0;i<60;i++)tick();assert.ok(fp.camera.position.y<-3,'flight can pass below the entry floor');
   fp.setTouchMovement({up:0});fp.teleport(new THREE.Vector3(40,-120,12));tick();
   assert.deepEqual(fp.camera.position.toArray(),[40,-118.35,12],'deep flight must not trigger a falling recovery');

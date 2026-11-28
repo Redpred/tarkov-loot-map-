@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import {digest} from '../lib/geometry-quality.mjs';
 import {loadFactoryGeometry} from '../../site/factory-geometry.js';
 import {SCENERY_DETAILS_KEY,readSceneryMode,saveSceneryMode} from '../../site/atlas-scenery-details.js';
-import {createTextureSettings} from '../../site/atlas-texture-settings.js';
+import {createScenerySettings} from '../../site/atlas-texture-settings.js';
 import * as THREE from 'three';
 import {createSectorStreamer} from '../../site/atlas-sectors.js';
 
-test('full scenery is default; the checkbox applies globally with qualities and editor preserves the preference',()=>{
+test('scenery can be saved from home and applied in the map',()=>{
   const before={localStorage:Object.getOwnPropertyDescriptor(globalThis,'localStorage'),location:Object.getOwnPropertyDescriptor(globalThis,'location')};
   const values=new Map(),storage={getItem:k=>values.get(k),setItem:(k,v)=>values.set(k,v)};let reloads=0;
   assert.equal(readSceneryMode(storage),'full');assert.ok(saveSceneryMode('simple',storage));assert.equal(readSceneryMode(storage),'simple');
@@ -16,12 +16,19 @@ test('full scenery is default; the checkbox applies globally with qualities and 
   values.clear();
   Object.defineProperty(globalThis,'localStorage',{configurable:true,value:storage});Object.defineProperty(globalThis,'location',{configurable:true,value:{reload:()=>reloads++}});
   try{
-    const nodes=Object.fromEntries(['textureQuality','textureQualityStatus','geometryQuality','geometryQualityStatus','applyTextureQuality','loadSceneryDetails','sceneryDetailsStatus'].map(id=>['#'+id,{}]));
-    const ui=createTextureSettings({querySelector:id=>nodes[id]});assert.equal(nodes['#loadSceneryDetails'].checked,true);assert.equal(nodes['#applyTextureQuality'].hidden,true);
-    nodes['#loadSceneryDetails'].checked=false;nodes['#loadSceneryDetails'].onchange();assert.equal(nodes['#applyTextureQuality'].hidden,false);
-    nodes['#applyTextureQuality'].onclick();assert.equal(values.get(SCENERY_DETAILS_KEY),'simple');assert.equal(reloads,1);
-    ui.sceneryLoaded({scenery:'full',locked:true});ui.reset();assert.equal(nodes['#loadSceneryDetails'].checked,true);assert.equal(nodes['#loadSceneryDetails'].disabled,true);
-    nodes['#applyTextureQuality'].onclick();assert.equal(values.get(SCENERY_DETAILS_KEY),'simple');
+    const nodes=Object.fromEntries(['applySceneryDetails','loadSceneryDetails','sceneryDetailsStatus','sceneryDetailsHelp'].map(id=>['#'+id,{}]));
+    const dialog={querySelector:id=>nodes[id]},apply=nodes['#applySceneryDetails'],input=nodes['#loadSceneryDetails'];
+    let applied=0;
+    createScenerySettings(dialog,{home:true,onApplied:()=>applied++});
+    assert.equal(input.checked,true);assert.equal(apply.hidden,true);
+    input.checked=false;input.onchange();assert.equal(apply.hidden,false);
+    apply.onclick();assert.equal(values.get(SCENERY_DETAILS_KEY),'simple');assert.equal(applied,1);assert.equal(reloads,0);assert.equal(apply.hidden,true);
+    const mapUI=createScenerySettings(dialog);assert.equal(input.checked,false);
+    mapUI.loaded({scenery:'full',sceneryWarning:'装饰筛选暂不可用'});
+    assert.match(nodes['#sceneryDetailsStatus'].textContent,/装饰筛选暂不可用/);
+    assert.match(nodes['#sceneryDetailsHelp'].textContent,/减少下载和内存占用/);
+    mapUI.reset();assert.equal(input.checked,true);assert.equal(apply.hidden,false);
+    apply.onclick();assert.equal(values.get(SCENERY_DETAILS_KEY),'full');assert.equal(reloads,1);
   }finally{for(const [key,desc] of Object.entries(before)){if(desc)Object.defineProperty(globalThis,key,desc);else delete globalThis[key];}}
 });
 

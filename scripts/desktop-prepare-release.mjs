@@ -25,26 +25,29 @@ for (const name of ['latest.yml', verification.installerName + '.blockmap', ...(
 }
 await fs.writeFile(path.join(directory, 'SHA256SUMS.txt'), checksums.join('\n') + '\n', {flag: 'wx'});
 await fs.copyFile(path.join(output, 'package-verification.json'), path.join(directory, 'package-verification.json'), fs.constants.COPYFILE_EXCL);
+if (!verification.offlineResources) {
+  const serverManifest = {schemaVersion: 1, kind: 'program', version: pkg.version,
+    installer: {name: verification.installerName, size: verification.installerBytes, sha512: verification.installerSha512}};
+  await fs.writeFile(path.join(directory, 'server-latest.json'), JSON.stringify(serverManifest, null, 2) + '\n', {flag: 'wx'});
+}
 const notes = `# 塔科夫物资地图 ${pkg.version} · Windows 预览版
 
-支持 Windows 10/11 x64，与网站共用首页、三维地图、任务和设置界面。本版包含现代标题栏、离线地图下载、截图定位、微信/支付宝/爱发电赞助入口、关于声明和 ICP 备案页脚，并移除了旧二维功能。
+支持 Windows 10/11 x64，与网站共用首页、三维地图、任务和设置界面。客户端可直接读取随安装包提供的地图资源，并支持截图定位和本地保存设置与任务进度。
 
-${verification.offlineResources ? '本安装包已内置 13 张地图的默认资源：低档模型、中档贴图、完整场景。只下载这一个 EXE，安装后即可离线使用，无需另外下载资源包。其他画质选项继续保留，使用前需补充对应资源。安装及临时解压建议预留 10 GiB。' : '这是仅含程序与基础数据的开发构建，未预装地图模型和贴图，使用前需要取得匹配资源；面向普通用户的主要下载应选择默认资源离线版。'}
+${verification.offlineResources ? '本安装包内置 13 张地图的低档模型、长边最多 128 像素的贴图和完整装饰。运行这个 EXE 安装后，即可按默认设置离线打开地图。安装及临时解压建议预留 10 GiB。' : '此程序包用于升级已安装的客户端，复用磁盘上的地图模型和贴图。首次安装请使用完整离线包。'}
 
-安装包和可选资源以 GitHub Releases 为主要下载渠道。旧资源 Release 须长期保留；未公开时不能保证其他画质在线补齐。
-
-需要手动补齐其他画质时，见[地图资源整合包](https://github.com/${resourceRelease.repository}/releases/tag/${resourceRelease.tag})：先下载 shared 公共包，再下载所需地图的全部编号 ZIP。关闭客户端，将各 ZIP 内的 map-resources 合并到安装目录即可，无需导入工具。默认画质不需要这一步。
+需要手动补充缺失资源时，可使用匹配的[地图资源整合包](https://github.com/${resourceRelease.repository}/releases/tag/${resourceRelease.tag})。下载 shared 公共包与所需地图的全部编号 ZIP 后，关闭客户端，将 ZIP 中的 map-resources 合并到安装目录。
 
 ## 安装与更新
 
 1. 下载同页的 \`${verification.installerName}\`；可选下载 \`SHA256SUMS.txt\` 核验文件。
 2. 在 PowerShell 中运行 \`Get-FileHash .\\${verification.installerName} -Algorithm SHA256\`，与校验文件比较。
-3. 首次运行安装包，或从 alpha.8 及更早版本手动覆盖安装。安装本版后可在应用菜单“检查更新”中使用自动更新。无需额外安装 Node.js 或 Python。
-4. 默认使用程序同目录下的 map-resources 文件夹，无需选择位置。${verification.offlineResources ? '默认画质资源已安装；首次使用直接打开地图即可。已有用户若曾更改目录或画质，请切回客户端目录及低模型/中贴图。' : '通过设置或应用菜单“离线地图”完成所需地图和画质的下载，再断网使用。'}
+3. 从 alpha.18 及更早版本接入服务器更新时，手动覆盖安装一次。之后可在“设置 → 客户端更新”中检查更新。无需额外安装 Node.js 或 Python。
+4. 默认从程序同目录下的 map-resources 读取。${verification.offlineResources ? '曾更改资源位置的用户可在设置中选回安装目录。' : '使用前请将匹配的地图资源合并到此目录。'}
 
 设置和任务进度保存在本机用户目录，卸载默认保留。地图资源默认位于程序旁的 map-resources 文件夹，升级和卸载保留；可在设置中更改位置。截图定位只读取文件名和修改时间，不上传截图。
 
-安装版默认启动后检查更新，每 6 小时再次检查，发现新版后自动下载；由用户点击“重启并安装”完成升级，普通关闭不触发安装。可关闭自动检查与下载并使用手动检查。免安装运行只检查版本，自动安装需要先运行安装包。更新文件由 GitHub Releases 提供并校验 SHA-512；资源 Release 不参与应用版本检查。公开发布本 Release 时必须一并提供安装包、latest.yml 和 blockmap，草稿或私有仓库不能作为普通用户的更新源。
+客户端默认启动后向服务器检查版本，有新版时弹窗提示。你可以选择下载更新，下载完成后再点“重启并安装”。在“客户端更新”中关闭启动检查后，仍可手动检查。免安装版可检查版本，自动安装需要先运行安装包。服务器通过独立程序包提供更新，客户端下载后校验 SHA-512。
 
 ## 版权与来源
 

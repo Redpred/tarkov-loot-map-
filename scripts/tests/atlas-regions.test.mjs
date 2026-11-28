@@ -77,6 +77,18 @@ test('first person hides behind-camera, distant and other-floor room labels',()=
   assert.deepEqual(layoutRegionLabels(input,{...options(c),firstPerson:true,distance:100}).map(p=>p.label.id),['near']);
 });
 
+test('first person applies the global cut and local floor presets to region labels',()=>{
+  const c=new THREE.PerspectiveCamera(65,1,.1,1000);
+  c.position.set(0,4,0);c.lookAt(0,4,-10);
+  const lower={...label('lower',-5,20),kind:'room',floor:'ground'};
+  const upper={...label('upper',5,20),kind:'room',floor:'upper',position:{x:5,y:4,z:20}};
+  const view={...options(c),firstPerson:true,low:-5,high:10,distance:100};
+  const visible=overrides=>layoutRegionLabels([lower,upper],{...view,...overrides}).map(p=>p.label.id).sort();
+  assert.deepEqual(visible({}),['lower','upper']);
+  assert.deepEqual(visible({high:3}),['lower']);
+  assert.deepEqual(visible({heightAt:({x},high)=>x>0?3:high}),['lower']);
+});
+
 test('area and road switches are independent and untrusted saved settings default off',()=>{
   for(const saved of [null,[],1,'yes',{areas:'false',roads:1}])assert.deepEqual(validateRegionSettings(saved),{areas:false,roads:false,arrivals:true});
   assert.deepEqual(validateRegionSettings({areas:true,roads:false,arrivals:false}),{areas:true,roads:false,arrivals:false});

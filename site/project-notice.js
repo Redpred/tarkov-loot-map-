@@ -1,5 +1,11 @@
 // Shared attribution for the website and the desktop About window.
+export const projectAuthor = Object.freeze({
+  name: 'Redpred',
+  url: 'https://space.bilibili.com/434445528?spm_id_from=333.788.0.0',
+});
+
 export const projectNotice = Object.freeze({
+  author: `作者：${projectAuthor.name}，B站主页：${projectAuthor.url}`,
   rights: 'Escape from Tarkov 的游戏内容、名称、标识及相关素材，其商标和著作权归 Battlestate Games 及其授权方所有。保留所有权利。',
   independence: '塔科夫物资地图是独立开发的非官方第三方工具，与 Battlestate Games 无关联，未获其认可，也不存在官方合作关系。',
   client: '地图模型、贴图及部分图标、任务素材来自 Escape from Tarkov 客户端。',
@@ -13,7 +19,7 @@ export const dataSources = Object.freeze([
 ]);
 
 export function projectNoticeText() {
-  return [projectNotice.rights, projectNotice.independence,
+  return [`作者声明\n${projectNotice.author}`, projectNotice.rights, projectNotice.independence,
     ...dataSources.map(source => `${source.name}：${source.description}\n${source.url}`),
     projectNotice.client, projectNotice.license, projectNotice.sptLicense].join('\n\n');
 }

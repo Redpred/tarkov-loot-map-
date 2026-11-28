@@ -3,6 +3,7 @@
 import {ATLAS_MAPS} from './atlas-maps.js';
 import {cacheOwner} from './atlas-cache-identity.js';
 import {validateResourcePack,localResources} from './atlas-local-resources.js';
+import {directoryError,mapLoadError} from './atlas-map-diagnostics.js';
 
 export const MANAGED_DIRECTORY='tarkov-map-resources';
 const MARKER='atlas-directory.json',TYPE='tarkov-managed-resources',MODE_KEY='atlas-resource-mode-v1',EPOCH_KEY='atlas-managed-directory-epoch',BINDING_KEY='atlas-managed-directory-binding';
@@ -33,9 +34,9 @@ export function createManagedResources({indexedDB=globalThis.indexedDB,storage=p
   }
   async function hasMarker(root){
     const file=await optionalFile(root,[MARKER]);if(!file)return false;
-    if(file.size>4096)throw Error('所选目录的资源标识无效，请选择其他专用目录');
+    if(file.size>4096)throw mapLoadError('STORAGE-DIRECTORY-MARKER', '所选目录的资源标识无效，请选择其他专用目录');
     const value=JSON.parse(await file.text());
-    if(value.schemaVersion!==1||value.type!==TYPE)throw Error('所选目录的资源标识无效，请选择其他专用目录');return true;
+    if(value?.schemaVersion!==1||value.type!==TYPE)throw mapLoadError('STORAGE-DIRECTORY-MARKER', '所选目录的资源标识无效，请选择其他专用目录');return true;
   }
   async function atomic(root,parts,blob,stamp=epoch){
     if(stamp!==epoch)throw stale();let dir=root;
@@ -65,7 +66,7 @@ export function createManagedResources({indexedDB=globalThis.indexedDB,storage=p
       if(!await hasMarker(root)){
         root=await selected.getDirectoryHandle(MANAGED_DIRECTORY,{create:true});
         if(!await hasMarker(root)){
-          for await(const unused of root.values())throw Error('同名子目录已有其他文件，请选择其他位置或空的专用目录');
+          for await(const unused of root.values())throw mapLoadError('STORAGE-DIRECTORY-OCCUPIED', '同名子目录已有其他文件，请选择其他位置或空的专用目录');
           await atomic(root,[MARKER],new Blob([JSON.stringify({schemaVersion:1,type:TYPE})]));
         }
       }
@@ -85,7 +86,10 @@ export function createManagedResources({indexedDB=globalThis.indexedDB,storage=p
     reason=error.name==='NotAllowedError'?'目录权限已失效，请重新授权。':error.name==='QuotaExceededError'?'磁盘空间不足，请手动清理后重试，或切换在线模式。':`本地资源读写失败：${error.message}`;
     if(error.name==='NotAllowedError')needsPermission=true;
     if(!recoverHandler)throw error;
-    if(!recovery)recovery=Promise.resolve().then(()=>recoverHandler(reason)).finally(()=>{recovery=null;});
+    if(!recovery){
+      const failure=directoryError(error,reason);
+      recovery=Promise.resolve().then(()=>recoverHandler(failure.message,failure)).finally(()=>{recovery=null;});
+    }
     await recovery;
     if(mode==='managed'&&!needsPermission)reason='';
   }

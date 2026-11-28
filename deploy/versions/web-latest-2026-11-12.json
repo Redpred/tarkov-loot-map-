@@ -1,0 +1,348 @@
+{
+  "schemaVersion": 1,
+  "version": "web-latest-2026-11-12",
+  "status": "deployed",
+  "deployedAt": "2026-11-12T09:19:15.131961+00:00",
+  "releaseId": "web-latest-20261112T091343Z",
+  "previousRelease": "web-client-alpha17-20261111T140226Z",
+  "source": {
+    "baseCommit": "2c172ee630ee7b41ae0301cb075f9b67fe8c8377",
+    "workingTree": true,
+    "productionCodeBaseline": "6c17f65c10279744ddc255b8f4c0d64003c37494"
+  },
+  "site": "https://tarkovlootmap.com/",
+  "downloadUrl": "https://pan.quark.cn/s/adeaebc575dd",
+  "desktopVersion": "1.4.0-alpha.19",
+  "node": "24.22.1",
+  "releasePlanSha256": "a8db2fe1b645a62c0d12ec3c1fe9eef1f1553e25d0a6bf8dbdf469d41d9aa9c3",
+  "files": [
+    {
+      "file": "scripts/lib/site-server.mjs",
+      "sha256": "1842023262991cd4d25c53d0018e012e6bb0a9c987c3ce99aee1e70b2c458965",
+      "bytes": 16815
+    },
+    {
+      "file": "site/atlas-ammo-tree.js",
+      "sha256": "a84e26e1c4ad004c018f6343c6d34986e8929e27bfb5f296f04629c44ae9f9bc",
+      "bytes": 4034
+    },
+    {
+      "file": "site/atlas-building-cut-editor.js",
+      "sha256": "017206fcb563136a7ebd495743e7abdd54cf6c0239186e725075fa16b524fa36",
+      "bytes": 18270
+    },
+    {
+      "file": "site/atlas-cache-settings.js",
+      "sha256": "5a863b7251330d8fd7a0d2be28e29d4f196bd415b77c23dc56c2fe84784a14fe",
+      "bytes": 5733
+    },
+    {
+      "file": "site/atlas-first-person.js",
+      "sha256": "5549f010703531201de4551fd16ffd535c3d37508b1ffcb7353c64c1658aa5d5",
+      "bytes": 5864
+    },
+    {
+      "file": "site/atlas-geometry-quality.js",
+      "sha256": "1a78e018f357abac3c1f0613daeb5863f8ad8517f559d480643ceedae79880bb",
+      "bytes": 2835
+    },
+    {
+      "file": "site/atlas-item-search.js",
+      "sha256": "e57809a15c117a60fec992e035868f939a73b5eb767485be5b5f468f6e9efca9",
+      "bytes": 16606
+    },
+    {
+      "file": "site/atlas-layout.js",
+      "sha256": "f4cba205c9ff3214793e8062e311ecfc07fd9f8d67207a09e6b03252290ad1c4",
+      "bytes": 6819
+    },
+    {
+      "file": "site/atlas-local-resources-ui.js",
+      "sha256": "bc1036a7729e88dac0965b65bb73675501f2feb1e9568a51828a533fe7040c54",
+      "bytes": 2906
+    },
+    {
+      "file": "site/atlas-managed-resources.js",
+      "sha256": "013d17b8956e35959c74c2a78c23a36c45e3fa3f5e88916e49259e3770462766",
+      "bytes": 17840
+    },
+    {
+      "file": "site/atlas-map-cache-ui.js",
+      "sha256": "9d8fd010a72e0081a25d4db45b9dc5be1b77b82929c226e4743cf851e889aad8",
+      "bytes": 2833
+    },
+    {
+      "file": "site/atlas-map-cache.js",
+      "sha256": "13bd95eca0a6b4c5226bb32639b3217c5446f031c088691053e3bf77ab9f1fec",
+      "bytes": 5856
+    },
+    {
+      "file": "site/atlas-map-diagnostics.js",
+      "sha256": "a7e72995e30862e008f7988719bacea2c89dbfd01e73926b7c47ea8b46371bee",
+      "bytes": 4353
+    },
+    {
+      "file": "site/atlas-map-entry.js",
+      "sha256": "731469ee8e0c1b3ef7801ff50670247e718fc3c385d51ed29cde7a594b1b7349",
+      "bytes": 2111
+    },
+    {
+      "file": "site/atlas-map-filters.js",
+      "sha256": "6a59e70bf449d181ad1643faab023bad9ecbed07d245080a569581efdb528b01",
+      "bytes": 16459
+    },
+    {
+      "file": "site/atlas-map-skin.js",
+      "sha256": "c53b303892c8335af70f9f266d408b17e2af1fb4e203a3b5fb57d8e4c43dfe5e",
+      "bytes": 2766
+    },
+    {
+      "file": "site/atlas-my-tasks.js",
+      "sha256": "e14041a0be183dc7ba4e189c271b7829142634ee71d17890fe58d79761ea4b48",
+      "bytes": 5576
+    },
+    {
+      "file": "site/atlas-page-session.js",
+      "sha256": "0a85651552d29c37ab618f61a6b3df92cc3dfb098e84b13157d5651cbba7f61a",
+      "bytes": 5776
+    },
+    {
+      "file": "site/atlas-resource-cache.js",
+      "sha256": "4308977fe717fa1ab9ebde113c3e47c6b5c3fdaaed42dbc8019c33987cb6dc94",
+      "bytes": 15651
+    },
+    {
+      "file": "site/atlas-resource-location-ui.js",
+      "sha256": "c2a82de6e2a44267da399212e6cef15a9be063d87090c3151d552f13a4d64b68",
+      "bytes": 14863
+    },
+    {
+      "file": "site/atlas-resource-request.js",
+      "sha256": "cbea50ee7b8153894a4bbf58eac005b8ae939be8fc0fa8365b13c586cc88fd7b",
+      "bytes": 4175
+    },
+    {
+      "file": "site/atlas-runtime.js",
+      "sha256": "d32f5a2e6498147558d0f67fc20a89d8fad336e78589f88b67f4a59d6d35d420",
+      "bytes": 3489
+    },
+    {
+      "file": "site/atlas-scenery-details.js",
+      "sha256": "343b5faacd6346a50d40692e6833dbed6a7db5792d96cf260d90565398cc0d3c",
+      "bytes": 3514
+    },
+    {
+      "file": "site/atlas-sectors.js",
+      "sha256": "a77764c3d5f07e7098c45be78d672680523abffb70fbcf8fbd3f98fd1cd4e3d4",
+      "bytes": 12136
+    },
+    {
+      "file": "site/atlas-settings.css",
+      "sha256": "3c882ac260d3cafe1ce70f22f2d32fc8fd6c85a1d78d77c540134b3cdf0c98f0",
+      "bytes": 8040
+    },
+    {
+      "file": "site/atlas-texture-quality.js",
+      "sha256": "7af4e67624d5a5bb08a145fcff7c50c7b3df121420e932a5a9679a407d106ddf",
+      "bytes": 2592
+    },
+    {
+      "file": "site/atlas-texture-settings.js",
+      "sha256": "8e8e91c5be03f0d9c53e2a6c4539e76a497616aea502378bd5d4b344b8b0be78",
+      "bytes": 1409
+    },
+    {
+      "file": "site/atlas-view-preferences.js",
+      "sha256": "a32c5c877be671f69656124b875283ebfab9580b09d763aa4222e2bf4bdc90ed",
+      "bytes": 2248
+    },
+    {
+      "file": "site/atlas-view-settings.js",
+      "sha256": "8ff07c9505d77ce1c6f7dc6c26c7822cca269c269738f21fbbe08b1e75b1ed78",
+      "bytes": 18808
+    },
+    {
+      "file": "site/desktop-shell.css",
+      "sha256": "660bf8d7d0874a783c8f5f48d51a3fd4428f893d020c6f97c8ab25c39c67acb2",
+      "bytes": 4878
+    },
+    {
+      "file": "site/desktop-shell.js",
+      "sha256": "44f071be19e1f03f9bd90858af290f920541ffa840d0efb1cce16be35d3845ec",
+      "bytes": 2950
+    },
+    {
+      "file": "site/desktop-updates.js",
+      "sha256": "f3ff0fd152de02c53e57d627f8510dbbec5e38fe65edf96799f7cf4b2e67f649",
+      "bytes": 8249
+    },
+    {
+      "file": "site/factory-geometry.js",
+      "sha256": "259740bb7c806a21c8018d0b3a924806f4927c11ea9bad5a6164f1a742077eba",
+      "bytes": 8164
+    },
+    {
+      "file": "site/factory-markers.js",
+      "sha256": "9b435cdfd86c5232951ed0b610f52b2fac14eee6901c171c28367b8c2953e4df",
+      "bytes": 5636
+    },
+    {
+      "file": "site/factory-materials.js",
+      "sha256": "7862e5aad24e0077920d17a12b0a59c20caaf66abd16e83ad554cbc0a2d1f85e",
+      "bytes": 8440
+    },
+    {
+      "file": "site/factory.css",
+      "sha256": "13118b85d571ccd1a9e506f305319ab93f22f3259b257713a146a27671b71903",
+      "bytes": 19053
+    },
+    {
+      "file": "site/factory.html",
+      "sha256": "4721aaa1bd18bb78a71a40ea47356ec0a604080ce2a927fe675502055ad81162",
+      "bytes": 9037
+    },
+    {
+      "file": "site/factory.js",
+      "sha256": "6408d8d6f134cf08083a250d618af6448e8f7b97765c1b24f49eb8894becaa5d",
+      "bytes": 75126
+    },
+    {
+      "file": "site/home.js",
+      "sha256": "9f50c91dba7564e1281bbec61b7295e4d79f25bc60c52c53e079fd17be6c0f14",
+      "bytes": 5816
+    },
+    {
+      "file": "site/index.html",
+      "sha256": "70f9ab150be4efd9627540620e8571c2e925e0c69255bf1db2c8d4ef9923ef7f",
+      "bytes": 2960
+    },
+    {
+      "file": "site/map-ui.css",
+      "sha256": "435a3a502ef3c08694ef35744995b1a8ab675032b1bafe8e0524c50196e1e142",
+      "bytes": 30883
+    },
+    {
+      "file": "site/map-ui.js",
+      "sha256": "8e0c4081ee3d525a4c7dba1735261bc98d58298e8bf5b4cc1b28a5f6fd5945f1",
+      "bytes": 16490
+    },
+    {
+      "file": "site/map.html",
+      "sha256": "1542a9b8c7566cb2dd80e676954fcf59b2614683228be01d11d551e1f366a478",
+      "bytes": 8929
+    },
+    {
+      "file": "site/streets.html",
+      "sha256": "74ec41ba03d0cbf26d2528739d5ef034235e475a1f34374514bd5fff400277c2",
+      "bytes": 9064
+    },
+    {
+      "file": "site/task-preparation-ui.js",
+      "sha256": "0c7b94801fecb3c43472317c4878f5842bdffd906deb0dc7796d23f4101acc6c",
+      "bytes": 9743
+    },
+    {
+      "file": "site/tasks.html",
+      "sha256": "54713f9bb6942379ac205983d6771534f7d51fd968468ba5e7de06816ba9cfad",
+      "bytes": 4548
+    },
+    {
+      "file": "site/tasks.js",
+      "sha256": "7983e874e9c8056003bef853a1df0297b5aa0afb1d72ba44b4b94f08dc2928ff",
+      "bytes": 38210
+    }
+  ],
+  "retiredFiles": [
+    "site/desktop-downloads.css",
+    "site/desktop-downloads.html",
+    "site/desktop-downloads.js"
+  ],
+  "changedBytes": 498553,
+  "runtimeBaseline": "web-2026-11-06.json",
+  "protectedResourceMetadata": {
+    "files": 68376,
+    "bytes": 28918247445,
+    "sha256": "b3366961999dcb065ab289c5d27b6426e168c4274825602af366fb56eb4bcbdf"
+  },
+  "runtimeManifestSha256": "bf68fdb1091ac5ac5c297bd12771e092379c623c8c6f69dceb670db7e4735b6a",
+  "desktopUpdateManifestSha256": "4da7e6ff8e2c86a1d534a6dc2a71df6a8d6203e006aaefa2616abdb83278ccf7",
+  "serviceRestarted": true,
+  "validation": {
+    "localBrowserMaps": [
+      "factory",
+      "streets",
+      "customs",
+      "woods",
+      "shoreline",
+      "interchange",
+      "reserve",
+      "labs",
+      "ground_zero",
+      "labyrinth",
+      "terminal",
+      "icebreaker",
+      "lighthouse"
+    ],
+    "localBrowserChecks": [
+      "download-link",
+      "website-first-use-resource-mode",
+      "website-has-no-client-update-tab",
+      "resource-settings",
+      "settings-category-restored",
+      "scene-503-retry",
+      "copy-diagnostic"
+    ],
+    "candidateMapCachePlans": 26,
+    "publicStaticFiles": 46,
+    "publicDownloadHrefChecks": 5,
+    "currentETagReturnedNotModified": 5,
+    "publicMaps": [
+      "factory",
+      "streets",
+      "customs",
+      "woods",
+      "shoreline",
+      "interchange",
+      "reserve",
+      "labs",
+      "ground_zero",
+      "labyrinth",
+      "terminal",
+      "icebreaker",
+      "lighthouse"
+    ],
+    "publicCachePlans": 26,
+    "publicGeometryAndTextureSamples": 26,
+    "publicMapErrorCodes": [
+      "SERVER-MODEL-RANGE",
+      "SERVER-MODEL-VERSION",
+      "SERVER-FILE-MISSING"
+    ],
+    "publicHiddenPaths": [
+      "/loot.html",
+      "/encyclopedia.html",
+      "/__local-editor/session",
+      "/api/health"
+    ],
+    "publicMarketModes": [
+      {
+        "mode": "regular",
+        "items": 5497,
+        "stale": false
+      },
+      {
+        "mode": "pve",
+        "items": 5497,
+        "stale": false
+      },
+      {
+        "mode": "pvp-season",
+        "items": 5497,
+        "stale": false
+      }
+    ],
+    "desktopUpdateVersion": "1.4.0-alpha.19",
+    "sharePageStatus": 200,
+    "shareVerificationScope": "sharePage"
+  }
+}

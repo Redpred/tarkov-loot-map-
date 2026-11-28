@@ -4,6 +4,8 @@ import {createMaterialLibrary} from './factory-materials.js';
 import {selectSectors,selectNearbySectors,retainedSectorIds} from './atlas-navigation.js';
 import {loadPreparedSpatial} from './atlas-runtime.js';
 import {sha256} from './atlas-resource-cache.js';
+import {readMapJson} from './atlas-resource-request.js';
+import {mapErrorMessage,mapLoadError} from './atlas-map-diagnostics.js';
 
 export function buildGeometryGroups(manifest,buffer,materials,spatial=null){
   return manifest.meshes.map((m,i)=>{
@@ -32,21 +34,34 @@ export async function buildGroupsInSlices(manifest,buffer,materials,spatial=null
       if(performance.now()-start>=6){await new Promise(resolve=>setTimeout(resolve,0));start=performance.now();}
     }
     signal?.throwIfAborted();return groups;
-  }catch(error){disposeGroups(groups);throw error;}
+  }catch(cause){
+    disposeGroups(groups);
+    signal?.throwIfAborted();
+    throw mapLoadError('MODEL-MESH', '模型网格构建失败', {cause});
+  }
 }
 
 function disposeGroups(groups){for(const g of groups){g.mesh.dispose();g.mesh.geometry.dispose();}}
 
 // Publish only genuinely textured meshes. Cutouts/decals never get an opaque
 // placeholder, and original mesh indices still select the matching spatial data.
-export async function* texturedGroupBatches(detail,buffer,library,spatial=null,{signal,progress=()=>{},batchSize=8,waitUntilActive=async()=>{}}={}){
+export async function* texturedGroupBatches(detail,buffer,library,spatial=null,{signal,progress=()=>{},batchSize=8,waitUntilActive=async()=>{},skipMaterials}={}){
   const byMaterial=new Map();
-  detail.meshes.forEach((mesh,index)=>{if(!byMaterial.has(mesh.material))byMaterial.set(mesh.material,[]);byMaterial.get(mesh.material).push(index);});
+  detail.meshes.forEach((mesh,index)=>{
+    if(skipMaterials?.has(mesh.material))return;
+    if(!byMaterial.has(mesh.material))byMaterial.set(mesh.material,[]);
+    byMaterial.get(mesh.material).push(index);
+  });
   const ids=[...byMaterial.keys()];
+  const unavailable=new Map();let firstError;
   for(let offset=0;offset<ids.length;offset+=batchSize){
     await waitUntilActive();
     signal?.throwIfAborted();
-    const materialIds=ids.slice(offset,offset+batchSize),materials=await library.acquire(materialIds,progress,signal);
+    const materials=await library.acquire(ids.slice(offset,offset+batchSize),progress,signal,{
+      unavailable,onUnavailable:error=>{firstError??=error;}
+    });
+    const materialIds=[...materials.keys()];
+    if(!materialIds.length)continue;
     let groups;
     try{
       const indices=materialIds.flatMap(id=>byMaterial.get(id));
@@ -56,6 +71,7 @@ export async function* texturedGroupBatches(detail,buffer,library,spatial=null,{
     // Ownership of groups and these material references transfers to the caller.
     yield {groups,materialIds};
   }
+  if(firstError)throw firstError;
 }
 
 export function createSectorStreamer({manifest,textureManifest=manifest,map,geometryBase=map.textureBase,geometryEndpoint=map.endpoint,getView,clipping,settings,onAdd,onRemove,onStatus,runtime=null,
@@ -68,9 +84,17 @@ export function createSectorStreamer({manifest,textureManifest=manifest,map,geom
   function status(extra=''){
     if(disposed)return;
     const ready=desired.filter(s=>loaded.get(s.id)?.complete).length;
-    const errors=desired.filter(s=>failed.has(s.id)).length;
+    const errors=desired.map(s=>failed.get(s.id)).filter(Boolean);
+    const failure=errors.find(entry=>entry.error.status===409||entry.error.requiresReload)||errors[0];
     const mb=Math.round([...loaded.values()].reduce((n,v)=>n+v.sector.stats.bytes,0)/2**20);
-    onStatus(errors?`${errors} 个分区加载失败，点击重试`:`${paused?'已暂停 · ':''}${map.name}场景 ${ready} / ${desired.length} 个分区 · 已载入 ${mb} MiB${desired.budgetLimited?' · 已限制加载范围（预算）':''}${extra?' · '+extra:''}`,errors>0,paused);
+    if(failure){
+      const {error}=failure,action=error.status===409||error.requiresReload?'重新加载地图':'点击重试';
+      onStatus(`${errors.length} 个分区加载不完整 · ${mapErrorMessage(error)} · ${action}`,true,paused,error,failure.sectorId);
+    }else if(!desired.length&&!paused){
+      onStatus('当前视野没有地图分区，移动视角或复位查看',false,paused);
+    }else{
+      onStatus(`${paused?'已暂停 · ':''}${map.name}场景 ${ready} / ${desired.length} 个分区 · 已载入 ${mb} MiB${desired.budgetLimited?' · 已限制加载范围（预算）':''}${extra?' · '+extra:''}`,false,paused);
+    }
   }
   function remove(id){
     const value=loaded.get(id);if(!value)return;
@@ -98,28 +122,37 @@ export function createSectorStreamer({manifest,textureManifest=manifest,map,geom
         }
         if(!sector)break;
         const job={id:sector.id,controller:new AbortController()},signal=job.controller.signal;
-        active=job;let resources=[];
+        active=job;let resources=[],entry=loaded.get(sector.id);
+        const url=geometryBase+sector.file;
         try{
-          status('读取模型');
-          const response=await fetcher(geometryBase+sector.file,{signal});if(!response.ok)throw new Error(`HTTP ${response.status}`);
-          const detail=await response.json();
-          signal.throwIfAborted();
-          if(detail.sha256!==sector.sha256)throw new Error('分区已更新，请刷新页面');
-          if(sector.decorationFilter&&await sha256(new TextEncoder().encode(JSON.stringify(detail)))!==runtime?.geometry?.[sector.id]?.manifestSha256)throw new Error('装饰筛选分区已更新，请刷新页面');
-          signal.throwIfAborted();
-          resources=[loadGeometry(detail,(done,total,source)=>status(geometryProgressText(done,total,source)),`${geometryEndpoint}/${sector.id}`,signal),loadSpatial(map.id,sector.id,detail,runtime,{signal})];
-          const [buffer,spatial]=await Promise.all(resources);signal.throwIfAborted();
-          const entry={sector,groups:[],materialIds:[],complete:false};loaded.set(sector.id,entry);
-          for await(const batch of texturedGroupBatches(detail,buffer,library,spatial,{signal,progress:(done,total)=>status(`补充贴图 ${done}/${total}`)})){
+          if(!entry){
+            status('读取模型');
+            const detail=await readMapJson(url,'分区模型清单读取',{code:'SECTOR-MANIFEST',fetcher,signal,readError:true});
+            if(detail?.sha256!==sector.sha256)throw mapLoadError('SECTOR-MANIFEST-VERSION', '分区模型版本已更新', {url,requiresReload:true});
+            if(sector.decorationFilter&&await sha256(new TextEncoder().encode(JSON.stringify(detail)))!==runtime?.geometry?.[sector.id]?.manifestSha256)throw mapLoadError('SECTOR-SCENERY-VERSION', '装饰筛选分区版本已更新', {url,requiresReload:true});
+            signal.throwIfAborted();
+            resources=[loadGeometry(detail,(done,total,source)=>status(geometryProgressText(done,total,source)),`${geometryEndpoint}/${sector.id}`,signal),loadSpatial(map.id,sector.id,detail,runtime,{signal})];
+            const [buffer,spatial]=await Promise.all(resources);signal.throwIfAborted();
+            entry={sector,groups:[],materialIds:new Set(),complete:false,pending:{detail,buffer,spatial}};loaded.set(sector.id,entry);
+          }
+          const {detail,buffer,spatial}=entry.pending;
+          for await(const batch of texturedGroupBatches(detail,buffer,library,spatial,{signal,skipMaterials:entry.materialIds,progress:(done,total)=>status(`补充贴图 ${done}/${total}`)})){
             if(signal.aborted){disposeGroups(batch.groups);library.release(batch.materialIds);signal.throwIfAborted();}
-            entry.groups.push(...batch.groups);entry.materialIds.push(...batch.materialIds);onAdd(batch.groups);
+            entry.groups.push(...batch.groups);for(const id of batch.materialIds)entry.materialIds.add(id);onAdd(batch.groups);
             status(`逐步显示 ${entry.groups.length}/${detail.meshes.length}`);await yieldUI();
           }
-          signal.throwIfAborted();entry.complete=true;status();
+          signal.throwIfAborted();entry.pending=null;entry.complete=true;status();
           await yieldUI();
         }catch(error){
-          job.controller.abort();await Promise.allSettled(resources);remove(sector.id);
-          if(error.name!=='AbortError'&&!disposed){failed.set(sector.id,{message:error.message,background:!desired.some(s=>s.id===sector.id)});console.error(`${map.id} sector ${sector.id}:`,error);}status();
+          const cancelled=signal.aborted||error.name==='AbortError';
+          job.controller.abort();await Promise.allSettled(resources);
+          if(cancelled)remove(sector.id);
+          else if(!disposed){
+            const problem=error.diagnosticCode?error:mapLoadError('SECTOR-LOAD', '分区加载失败', {url,cause:error});
+            failed.set(sector.id,{error:problem,sectorId:sector.id,background:!desired.some(s=>s.id===sector.id)});
+            console.error(problem.diagnosticCode,map.id,sector.id,problem.url||'',problem);
+          }
+          status();
         }finally{if(active===job)active=null;}
       }
     }finally{busy=false;if(disposed)library.dispose();else{status();if(!suspended()&&incomplete())update();}}
@@ -129,12 +162,12 @@ export function createSectorStreamer({manifest,textureManifest=manifest,map,geom
     revision++;
     const view=getView();
     center.copy(view.center);view.camera.updateMatrixWorld();
-    const key=JSON.stringify([view.camera.matrixWorld.elements,view.camera.projectionMatrix.elements,center.toArray(),clipping.low.value,clipping.high.value,settings.mode,settings.distance,settings.sectorBudget,settings.retain,view.firstPerson]);
+    const key=JSON.stringify([view.camera.matrixWorld.elements,view.camera.projectionMatrix.elements,center.toArray(),clipping.low.value,clipping.high.value,settings.mode,settings.distance,settings.sectorBudget,settings.retain,view.firstPerson,view.overview]);
     if(key!==lastView){lastView=key;movedAt=performance.now();}
-    const options={...settings,nearRadius:view.firstPerson?24:0};
+    const options=view.overview?{mode:'view',distance:Infinity,sectorBudget:0}:{...settings,nearRadius:view.firstPerson?24:0};
     desired=selectSectors(manifest,view.camera,center,clipping,options);
     for(const sector of desired)if(failed.get(sector.id)?.background)failed.delete(sector.id);
-    nearby=connection?.saveData||['slow-2g','2g'].includes(connection?.effectiveType)?[]:selectNearbySectors(manifest,view.camera,center,clipping,options,desired);
+    nearby=view.overview||connection?.saveData||['slow-2g','2g'].includes(connection?.effectiveType)?[]:selectNearbySectors(manifest,view.camera,center,clipping,options,desired);
     if(active&&!desired.some(s=>s.id===active.id)&&(incomplete()||!nearby.some(s=>s.id===active.id)))active.controller.abort();
     if(suspended())active?.controller.abort();
     status();void pump();
@@ -146,6 +179,6 @@ export function createSectorStreamer({manifest,textureManifest=manifest,map,geom
       pageSuspended=Boolean(value);
       if(pageSuspended){clearTimeout(timer);timer=null;clearTimeout(idleTimer);idleTimer=null;active?.controller.abort();}
       else update();
-    },retry(){failed.clear();update();},togglePause(){paused=!paused;if(paused)active?.controller.abort();update();status();return paused;},
+    },retry(){failed.clear();status('重新加载分区');update();},togglePause(){paused=!paused;if(paused)active?.controller.abort();update();status();return paused;},
     dispose(){if(disposed)return;disposed=true;clearTimeout(timer);clearTimeout(idleTimer);active?.controller.abort();environment?.removeEventListener('visibilitychange',visibility);for(const id of loaded.keys())remove(id);if(!busy)library.dispose();}};
 }
